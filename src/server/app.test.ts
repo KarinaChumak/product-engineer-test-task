@@ -61,6 +61,22 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     expect(job.questions.find((q) => q.id === 'notice_period')).not.toHaveProperty('prefill');
   });
 
+  it('still returns the questionnaire, without prefill, when the profile cannot be read', async () => {
+    const warnings: string[] = [];
+    const app = createApp({
+      loadJob: jobsFromDirectory('jobs', () => {}),
+      loadProfile: () => Promise.reject(new Error('ENOENT: profile.json')),
+      warn: (message) => warnings.push(message),
+    });
+
+    const response = await app.request('/api/jobs/job-short/questionnaire');
+
+    expect(response.status).toBe(200);
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'notice_period')).not.toHaveProperty('prefill');
+    expect(warnings).toEqual([expect.stringContaining('ENOENT')]);
+  });
+
   it('returns 404 for an unknown job', async () => {
     const response = await appWith(jobsFromDirectory('jobs', () => {})).request(
       '/api/jobs/job-missing/questionnaire',
