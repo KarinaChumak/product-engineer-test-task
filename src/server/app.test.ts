@@ -76,14 +76,12 @@ describe('GET /api/jobs/:id/questionnaire', () => {
           must_be_true: true,
           options: [],
         },
-        // A rule the server keeps for screening must still never reach the client.
-        { type: 'numeric', id: 'salary', question: 'Salary?', must_be_at_least: 30000 },
       ],
     });
 
     const response = await createApp({ ...silent, jobs }).request('/api/jobs/job-rules/questionnaire');
 
-    expect(await response.text()).not.toMatch(/must_be|90000|30000/);
+    expect(await response.text()).not.toMatch(/must_be|90000/);
   });
 
   it('does not prefill a profile value that is not one of the options', async () => {

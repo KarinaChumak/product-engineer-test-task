@@ -7,29 +7,19 @@ import type {
   SelectOption,
 } from '@/shared/questionnaire';
 
-// Parses a recruiter's config once, into a `Job` that keeps everything the server needs: the repaired
-// questions, their screening rules and their profile fields. The candidate's questionnaire, and later the
-// answer checks and screening, are all read from that `Job`, so they agree on every repair. Screening rules
-// (`must_be_*`) live beside each client question, never inside it, so they can't leave the server.
+// Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
+// question: today its profile field. The candidate's questionnaire is read from that `Job`, and so will
+// T-04's answer checks and screening, so they agree on every repair. Server-only data lives beside each
+// client question, never inside it, so it can't leave the server.
 // A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
 export type Warn = (message: string) => void;
-
-/**
- * A rule that rejects a candidate by their answer. `must_be_true` arrives with boolean questions in
- * Phase 2; until then it's ignored like any rule on a type it isn't allowed on.
- */
-export interface ScreeningRule {
-  type: 'must_be_at_least' | 'must_be_below';
-  threshold: number;
-}
 
 /** A question as the server knows it. `client` is what the candidate sees, and nothing else is sent. */
 export interface JobQuestion {
   client: ClientQuestion;
   /** The profile field to prefill the answer from. */
   profileField?: string;
-  rules: ScreeningRule[];
 }
 
 /** A job config after its repairs. Server-only: send `toJobQuestionnaire(job)` instead. */
@@ -108,26 +98,6 @@ export function toJobSummary(raw: unknown): JobSummary | undefined {
   return { id, title: asString(raw.title) || id, company: asString(raw.company) ?? '' };
 }
 
-/** The question's screening rules. A rule on a type it isn't allowed on, or without a number, is ignored with a warning. */
-function parseRules(raw: Raw, question: ClientQuestion, warn: Warn): ScreeningRule[] {
-  const rules: ScreeningRule[] = [];
-  for (const type of ['must_be_at_least', 'must_be_below'] as const) {
-    const threshold = raw[type];
-    if (threshold === undefined) continue;
-    if (question.type !== 'numeric') {
-      warn(`Ignored ${type} on "${question.id}": it only applies to numeric questions`);
-    } else if (typeof threshold !== 'number' || !Number.isFinite(threshold)) {
-      warn(`Ignored ${type} on "${question.id}": its threshold ${JSON.stringify(threshold)} is not a number`);
-    } else {
-      rules.push({ type, threshold });
-    }
-  }
-  if (raw.must_be_true !== undefined) {
-    warn(`Ignored must_be_true on "${question.id}": it only applies to boolean questions`);
-  }
-  return rules;
-}
-
 /** Parses a job config and repairs it, warning about each repair. Throws when the config isn't an object. */
 export function parseJob(raw: unknown, warn: Warn): Job {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
@@ -144,13 +114,13 @@ export function parseJob(raw: unknown, warn: Warn): Job {
       const client = normalizeQuestion(question, warn);
       if (!client) return [];
       const profileField = asString(question.profile_field);
-      return [{ client, rules: parseRules(question, client, warn), ...(profileField && { profileField }) }];
+      return [{ client, ...(profileField && { profileField }) }];
     }),
   };
 }
 
 /**
- * The questionnaire the candidate sees: the job without its screening rules. With a `profile`, each
+ * The questionnaire the candidate sees: only each question's `client` part. With a `profile`, each
  * question with a profile field gets its `prefill` from it.
  */
 export function toJobQuestionnaire(job: Job, profile: Profile = {}): JobQuestionnaire {
