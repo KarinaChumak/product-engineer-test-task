@@ -49,12 +49,10 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
   - The number field shows the prefilled value marked "from your profile", formatted for the UI locale (95,000 in `en`, 95.000 in `de`), and the answer is kept as an integer (test)
   - Non-digits can't be typed, and the field works by keyboard (test)
 - Touches: src/server (profile prefill), src/components/NumberField, src/app (one map entry)
-- Size: ~360 lines, so split into two stacked PRs
-- PRs: two
-  - (1) Answer the salary in a number field: grouped for the locale while typing, digits only, by keyboard, and clearable; kept as an integer
-  - (2) The salary is prefilled from the profile and marked "from your profile"; clearing a prefilled answer leaves it empty instead of falling back to the prefill
+- Size: ~390 lines (planned as two PRs against a feared overrun; it fit in one)
+- PRs: one
 - After: T-01
-- Branch: T-02-salary-number-field, T-02b-salary-prefill
+- Branch: T-02-salary-number-field
 
 ### T-03 Answer the free-text question
 
