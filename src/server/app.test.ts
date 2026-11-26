@@ -61,6 +61,32 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     });
   });
 
+  it('returns job-short with salary_expectation prefilled from the profile amount', async () => {
+    const response = await createApp(silent).request('/api/jobs/job-short/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'salary_expectation')).toMatchObject({
+      type: 'numeric',
+      prefill: 95000,
+    });
+  });
+
+  it.each([
+    ['outside the question range', 400000],
+    ['not a whole number', 95000.5],
+    ['not a number', '95000'],
+  ])('does not prefill a salary amount that is %s', async (_, amount) => {
+    const app = createApp({
+      ...silent,
+      loadProfile: async () => ({ salary_expectation: { amount } as { amount: number } }),
+    });
+
+    const response = await app.request('/api/jobs/job-short/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'salary_expectation')).not.toHaveProperty('prefill');
+  });
+
   it('removes every screening rule from the job', async () => {
     const jobs = storeOf({
       id: 'job-rules',

@@ -93,3 +93,7 @@ The page background is `--color-surface`, the top bar is lilac (`--color-accent-
 ## Architecture review: The server parses a job config once, into a Job
 
 `parseJob(raw, warn)` in `src/server/normalize.ts` repairs a config once, into a server-only `Job`. Each `JobQuestion` keeps the client question (`client`) and, beside it, what only the server needs (today its `profileField`), so server-only data is never inside what's sent. `toJobQuestionnaire(job, profile)` builds the candidate's questionnaire from the `Job`. T-04 adds the screening rules to `JobQuestion` beside `client`, and its answer checks and screening read the same `Job`. Why: the GET and POST routes then agree on every repair, and there's only one reader of the messy config. Rejected: parsing straight into the client shape and reading `must_be_*` from the raw config again in the POST route (two readers that can drift).
+
+## T-02: A cleared answer is undefined, and it doesn't fall back to the prefill
+
+A question adapter calls `onChange(undefined)` when the candidate empties a field. The page stores that as a changed answer, so a cleared prefilled question stays empty instead of showing the profile value again. Only questions the candidate never touched fall back to `prefill`. Why: otherwise deleting a prefilled salary snaps back to 95,000, and the candidate can't leave an optional answer empty. Rejected: an empty string or `0` as "cleared" (both are real answers for some types).

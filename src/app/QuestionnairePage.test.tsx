@@ -34,8 +34,8 @@ const questionnaire: JobQuestionnaire = {
       id: 'salary',
       question: 'What is your salary expectation?',
       required: true,
-      min: 0,
-      max: 1,
+      min: 20000,
+      max: 300000,
     },
     {
       type: 'text',
@@ -49,13 +49,16 @@ const questionnaire: JobQuestionnaire = {
 
 const prefilledQuestionnaire: JobQuestionnaire = {
   ...questionnaire,
-  questions: questionnaire.questions.map((question) =>
-    question.id === 'notice_period' ? { ...question, prefill: '3_months' } : question,
-  ),
+  questions: questionnaire.questions.map((question) => {
+    if (question.id === 'notice_period') return { ...question, prefill: '3_months' };
+    if (question.id === 'salary') return { ...question, prefill: 95000 };
+    return question;
+  }),
 };
 
 // The page also has the job switcher's combobox, so the question's is found by its name.
 const noticePeriod = { name: 'What is your notice period?' };
+const salaryQuestion = { name: 'What is your salary expectation?' };
 
 beforeEach(() => server.use(jobListHandler()));
 
@@ -131,7 +134,7 @@ describe('QuestionnairePage', () => {
     await user.click(screen.getByRole('option', { name: '1 month' }));
 
     expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
-    expect(screen.queryByText('From your profile')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', noticePeriod)).not.toHaveAccessibleDescription();
   });
 
   it('marks the answer as from your profile again when the candidate picks the profile value back', async () => {
@@ -152,8 +155,50 @@ describe('QuestionnairePage', () => {
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox', noticePeriod);
-    expect(screen.queryByText('What is your salary expectation?')).not.toBeInTheDocument();
     expect(screen.queryByText('Which project are you proud of?')).not.toBeInTheDocument();
+  });
+
+  it('answers the salary question in a number field grouped for the job language', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json({ ...questionnaire, language: 'de' })),
+    );
+    renderAt('/jobs/job-short');
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.type(salary, '95000');
+
+    expect(salary).toHaveValue('95.000');
+  });
+
+  it('shows the prefilled salary grouped and marked as from your profile', async () => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    expect(salary).toHaveValue('95,000');
+    expect(salary).toHaveAccessibleDescription('From your profile');
+  });
+
+  it('drops the profile mark when the candidate changes the prefilled salary', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.type(await screen.findByRole('textbox', salaryQuestion), '0');
+
+    expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('950,000');
+    expect(screen.getByRole('textbox', salaryQuestion)).not.toHaveAccessibleDescription();
+  });
+
+  it('leaves the salary empty when the candidate clears the prefilled amount', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.clear(await screen.findByRole('textbox', salaryQuestion));
+
+    expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('');
   });
 
   it('says so when the job has no questions to answer', async () => {

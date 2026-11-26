@@ -43,16 +43,17 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-02 Answer the salary question in a number field, prefilled from the profile
 
-- Status: todo
+- Status: in review
 - Done when:
-  - `GET /api/jobs/job-short` also prefills `salary_expectation` from `salary_expectation.amount` (test)
+  - `GET /api/jobs/job-short/questionnaire` also prefills `salary_expectation` from `salary_expectation.amount` (test)
   - The number field shows the prefilled value marked "from your profile", formatted for the UI locale (95,000 in `en`, 95.000 in `de`), and the answer is kept as an integer (test)
   - Non-digits can't be typed, and the field works by keyboard (test)
 - Touches: src/server (profile prefill), src/components/NumberField, src/app (one map entry)
-- Size: ~200 lines
+- Size: ~390 lines (planned as two PRs against a feared overrun; it fit in one)
 - PRs: one
 - After: T-01
-- Branch: none yet
+- Branch: T-02-salary-number-field
+- Outcome: `NumberField` (a generic whole-number input grouped for the locale while typing, digits only) answers numeric questions through the `numeric` map entry, and the server prefills `salary_expectation` from the profile amount when it is an integer within `min`/`max`. `QuestionProps.onChange` now takes `undefined` for a cleared answer, and the page keeps a cleared answer empty instead of falling back to the prefill. T-03's adapter gets the same `onChange` type, and T-06 adds error states to `NumberField` too.
 
 ### T-03 Answer the free-text question
 
