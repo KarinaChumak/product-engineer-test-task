@@ -15,4 +15,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
   },
+  server: {
+    proxy: { '/api': `http://localhost:${process.env.API_PORT ?? 8787}` },
+  },
 });

@@ -19,19 +19,24 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-01 Open job-short and answer the notice-period question, prefilled from the profile
 
-- Status: todo
+- Status: in progress
 - Done when:
-  - `GET /api/jobs/job-short` returns the job with every screening rule removed, and with `notice_period` prefilled from `profile.json` (test)
+  - `GET /api/jobs/job-short/questionnaire` returns the questionnaire with every screening rule removed, and with `notice_period` prefilled from `profile.json` (test)
   - An unknown job ID returns 404, and the page shows a "job not found" state (test)
   - While the job loads, the page shows a loading state. A 500 or a network error shows an error that says what happened and offers "Try again", which refetches. Shown at mobile and desktop widths (test, screenshot)
   - The page shows the job title and the notice-period select with its options as written. Types not supported yet aren't rendered. The UI copy is in English because `language` is `en` (test)
   - The prefilled option is marked "from your profile", and the candidate can pick another one by mouse or keyboard (test)
   - `.claude/scripts/dev` starts Vite and the API together, and the page loads at mobile and desktop widths with no console errors (screenshot)
 - Touches: src/server (Hono app, job loading, the normalization skeleton, profile prefill), src/shared (job and answer types), src/app (data loading, type → component map, react-intl provider, messages), src/components/Select, src/index.css (Instaffo tokens), .claude/scripts/dev
-- Size: ~420 lines
-- PRs: one
+- Size: ~1,400 lines (the ~420 estimate was low), so split into five stacked PRs
+- PRs: five
+  - (1) `GET /api/jobs/:id/questionnaire` returns the job's questionnaire with every screening rule removed, and 404 for an unknown ID; `.claude/scripts/dev` starts the API next to Vite
+  - (2) The page shows the job's title, a loading skeleton, "job not found" and a plain error; TanStack Query, react-intl, MSW in tests, and the layout components (screens define no CSS)
+  - (3) A failed load says what happened and offers "Try again", which refetches; a path that names no job shows "job not found"
+  - (4) Answer the notice-period select with its options as written, by mouse or keyboard; types not supported yet aren't rendered
+  - (5) The notice period is prefilled from the profile and marked "from your profile" until the candidate picks another option
 - After: none
-- Branch: none yet
+- Branch: T-01-api, T-01a-open-job, T-01b-load-errors, T-01c-notice-period, T-01d-profile-prefill
 
 ### T-02 Answer the salary question in a number field, prefilled from the profile
 
