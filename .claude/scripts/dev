@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+# A ticket worktree gets its own port, so parallel tickets can run their dev servers at once.
+[ ! -f .claude/ticket.env ] || { set -a; . .claude/ticket.env; set +a; }
+exec pnpm exec vite --port "${PORT:-5173}" --strictPort "$@"

@@ -1,0 +1,10 @@
+# Files that don't count toward the PR size limit (.claude/scripts/pr-size).
+# One glob per line. A glob without a "/" matches the file name in any folder.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+*.lock
+*.snap
+*.svg
+*.min.js
+claude-notes/*

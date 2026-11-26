@@ -1,0 +1,11 @@
+{
+  "template": "ai-repo-template",
+  "template_commit": "9449f31",
+  "stack": "react-vite",
+  "mode": "solo",
+  "notes": "in-repo",
+  "notes_dir": "claude-notes",
+  "decisions_file": "claude-notes/decisions.md",
+  "ci_review": true,
+  "created": "2026-11-26"
+}

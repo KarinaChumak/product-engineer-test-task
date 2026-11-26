@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Counts the lines this branch changes against its base, and fails over the limit.
+#
+#   .claude/scripts/pr-size [base]   base defaults to main, or origin/main when it is ahead
+#
+# Files matching a glob in .claude/pr-size-ignore don't count. A glob without a "/" matches the
+# file name in any folder. Uncommitted and untracked files count, so it can run before a commit.
+# The limit is $PR_SIZE_LIMIT, default 500.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+
+limit=${PR_SIZE_LIMIT:-500}
+base=${1:-}
+if [ -z "$base" ]; then
+  base=main
+  # origin's copy when it's newer; the local one when it has commits that aren't pushed yet.
+  if git rev-parse -q --verify origin/main >/dev/null && git merge-base --is-ancestor main origin/main 2>/dev/null; then
+    base=origin/main
+  fi
+fi
+from=$(git merge-base "$base" HEAD)
+
+patterns=()
+if [ -f .claude/pr-size-ignore ]; then
+  while IFS= read -r p || [ -n "$p" ]; do
+    case "$p" in '' | '#'*) continue ;; esac
+    patterns+=("$p")
+  done <.claude/pr-size-ignore
+fi
+
+ignored() {
+  local path=$1 p
+  for p in ${patterns[@]+"${patterns[@]}"}; do
+    case "$p" in
+      */*) case "$path" in $p) return 0 ;; esac ;;
+      *) case "${path##*/}" in $p) return 0 ;; esac ;;
+    esac
+  done
+  return 1
+}
+
+total=0 skipped=0 rows=""
+count() {
+  local n=$1 path=$2
+  if ignored "$path"; then
+    skipped=$((skipped + n))
+  else
+    total=$((total + n))
+    rows="$rows$n $path"$'\n'
+  fi
+}
+
+while IFS=$'\t' read -r added deleted path; do
+  [ "$added" = - ] && continue # binary
+  count $((added + deleted)) "$path"
+done < <(git diff --numstat --no-renames "$from")
+while IFS= read -r path; do
+  [ -f "$path" ] && count "$(wc -l <"$path" | tr -d ' ')" "$path"
+done < <(git ls-files --others --exclude-standard)
+
+echo "pr-size: $total changed lines against $base (limit $limit); $skipped more in ignored files"
+printf '%s' "$rows" | sort -rn | head -10 | sed 's/^/  /'
+if [ "$total" -gt "$limit" ]; then
+  echo "Over the limit. Split the work into PRs that are each a complete smaller behavior, or ask a human to add the size-exception label."
+  exit 1
+fi

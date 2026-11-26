@@ -1,0 +1,51 @@
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-2: 6px;
+  --touch-target: 44px;
+
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-border: #767676;
+  --color-accent: #2f5bd3;
+  --color-on-accent: #ffffff;
+  --color-focus: #2f5bd3;
+
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #141414;
+    --color-text: #f0f0f0;
+    --color-border: #8a8a8a;
+    --color-accent: #7c9cff;
+    --color-on-accent: #0d0d0d;
+    --color-focus: #7c9cff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}

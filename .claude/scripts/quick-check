@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Runs before Claude stops, so it has to be fast: an incremental typecheck of the project,
+# and ESLint (including the React Compiler rules) on the files this branch changed.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+
+pnpm -s exec tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsbuildinfo
+
+base=$(git merge-base HEAD main 2>/dev/null || git rev-parse HEAD 2>/dev/null || true)
+[ -n "$base" ] || exit 0
+files=()
+while IFS= read -r f; do
+  case "$f" in *.ts | *.tsx | *.js | *.jsx) [ -f "$f" ] && files+=("$f") ;; esac
+done < <({ git diff --name-only "$base"; git ls-files --others --exclude-standard; } | sort -u)
+[ "${#files[@]}" -eq 0 ] || pnpm -s exec eslint --max-warnings=0 --no-warn-ignored "${files[@]}"

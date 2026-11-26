@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# Sets up the worktree for a ticket, so parallel tickets never share a checkout.
+#
+#   .claude/scripts/ticket start <ID> [slug]   create or reuse .claude/worktrees/<ID>
+#   .claude/scripts/ticket remove <ID>         remove the worktree after its PR is merged
+#
+# start prints key=value lines: path, branch, port, new (yes|no).
+# Base branch: $TICKET_BASE, default main; origin/main instead when it is ahead of the local main.
+set -euo pipefail
+
+die() {
+  echo "ticket: $*" >&2
+  exit 1
+}
+
+cmd=${1:-}
+id=${2:-}
+slug=${3:-}
+[ -n "$cmd" ] && [ -n "$id" ] || die "usage: ticket start <ID> [slug] | ticket remove <ID>"
+printf '%s' "$id" | grep -Eq '^[A-Za-z0-9._-]+$' || die "ticket IDs may only contain letters, digits, '.', '_' and '-'."
+slug=$(printf '%s' "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+
+# The main checkout, even when this runs inside another worktree.
+common=$(git rev-parse --path-format=absolute --git-common-dir)
+root=$(dirname "$common")
+dir="$root/.claude/worktrees/$id"
+base=${TICKET_BASE:-main}
+
+existing_branch() {
+  git -C "$root" for-each-ref --format='%(refname:short)' "refs/heads/$id" "refs/heads/$id-*" | head -1
+}
+
+pick_port() {
+  local used="" f port=5174
+  for f in "$root"/.claude/worktrees/*/.claude/ticket.env; do
+    [ -f "$f" ] && used="$used $(sed -n 's/^PORT=//p' "$f")"
+  done
+  while case " $used " in *" $port "*) true ;; *) false ;; esac; do port=$((port + 1)); done
+  echo "$port"
+}
+
+start() {
+  local new=no branch
+  if [ ! -d "$dir" ]; then
+    new=yes
+    branch=$(existing_branch)
+    if [ -n "$branch" ]; then
+      git -C "$root" worktree add -q "$dir" "$branch"
+    else
+      branch=$id${slug:+-$slug}
+      git -C "$root" fetch -q origin "$base" 2>/dev/null || true
+      local from=$base
+      # origin's copy when it's newer; the local one when it has commits that aren't pushed yet.
+      if git -C "$root" rev-parse -q --verify "origin/$base" >/dev/null &&
+        git -C "$root" merge-base --is-ancestor "$base" "origin/$base" 2>/dev/null; then
+        from="origin/$base"
+      fi
+      git -C "$root" worktree add -q -b "$branch" "$dir" "$from"
+    fi
+    # Untracked files the app needs, such as .env, listed in .worktreeinclude.
+    if [ -f "$root/.worktreeinclude" ]; then
+      while IFS= read -r p || [ -n "$p" ]; do
+        case "$p" in '' | '#'*) continue ;; esac
+        [ -f "$root/$p" ] && [ ! -e "$dir/$p" ] && mkdir -p "$(dirname "$dir/$p")" && cp -p "$root/$p" "$dir/$p"
+      done <"$root/.worktreeinclude"
+    fi
+  fi
+  if [ ! -f "$dir/.claude/ticket.env" ]; then
+    mkdir -p "$dir/.claude"
+    echo "PORT=$(pick_port)" >"$dir/.claude/ticket.env"
+  fi
+  echo "path=$dir"
+  echo "branch=$(git -C "$dir" branch --show-current)"
+  echo "port=$(sed -n 's/^PORT=//p' "$dir/.claude/ticket.env")"
+  echo "new=$new"
+}
+
+remove() {
+  [ -d "$dir" ] || die "no worktree for $id at $dir"
+  local branch
+  branch=$(git -C "$dir" branch --show-current)
+  rm -f "$dir/.claude/ticket.env"
+  git -C "$root" worktree remove "$dir" || die "the worktree has uncommitted changes; commit or discard them first."
+  if git -C "$root" branch -d "$branch" >/dev/null 2>&1; then
+    echo "removed $dir and branch $branch"
+  else
+    echo "removed $dir; kept branch $branch because it isn't merged into the local $base yet"
+  fi
+}
+
+case "$cmd" in
+  start) start ;;
+  remove) remove ;;
+  *) die "unknown command $cmd" ;;
+esac

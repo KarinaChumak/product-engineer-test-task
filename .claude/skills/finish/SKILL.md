@@ -1,0 +1,80 @@
+---
+name: finish
+description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, then pushes and opens the PR. Run it automatically when a ticket's work is done, or when the user runs /finish.
+---
+
+# Finish a ticket
+
+Run every step without stopping to ask, unless a step says to stop. The user sees the result at the end, with the PR already open.
+
+## 1. Prove it's done
+
+For each "done when" of the ticket (or of this PR, if the ticket has several), name the test, e2e test or screenshot that proves it. Write the missing ones. If one can't be met, stop and tell the user why.
+
+## 2. Check and size
+
+1. Run `.claude/scripts/check` and fix what fails.
+2. Run `.claude/scripts/pr-size`. If it's over the limit, stop and propose how to split the branch into PRs that are each a complete smaller behavior. Only a human can add the `size-exception` label.
+
+Commit what you have before the review, so the reviewer sees all of it.
+
+## 3. Local review by a separate agent
+
+The review must come from an agent that didn't write the code. Start the `reviewer` subagent. It has its own context and reads the branch itself. Give it only the ticket ID and branch name, never your own summary of the change or your reasons for it, so its review isn't shaped by yours.
+
+Then go through its findings yourself:
+
+- **Fix** every finding that holds up when you check it against the code. When it's a class of problem, fix every instance.
+- **Push back** on a finding that's wrong, and note why with the evidence. Don't change the code for it.
+- Nits: fix the ones that are cheap and clearly better; skip the rest and note them.
+
+Commit the fixes with messages that say what changed.
+
+## 4. Polish
+
+1. Run the `/simplify` skill, and commit what it changes.
+2. If the branch changes UI and the repo has the `design-check` or `verify-ui` skills, run them. Keep the screenshot paths for the PR description.
+3. Run `.claude/scripts/check` again.
+
+## 5. Update the plan
+
+In the ticket's section in `claude-notes/plan.md`:
+
+- `Status: in review`, or `in progress (PR 1 of 2 in review)` when more PRs follow.
+- Add an `Outcome:` line: what was built, in one or two sentences, and anything that changes later tickets. `/plan-phase` reads it.
+- If the work showed that a later ticket needs to change, say so in the report; don't rewrite other tickets yourself.
+
+## 6. Record global decisions
+
+A decision is global if another ticket has to follow it: a shared contract, a data shape, a library, a pattern for a kind of code. Choices that only affect this ticket are not recorded.
+
+Add each one at the end of `claude-notes/decisions.md`, keyed by the ticket ID:
+
+```markdown
+## T-04: Date ranges in the URL
+
+Filters live in the query string (`?from=&to=`), not in local state. Why: reload and sharing keep them. Rejected: localStorage.
+```
+
+To change an earlier decision, add a new entry that says which one it supersedes. Don't edit old entries.
+
+## 7. Open the PR
+
+1. Commit everything, including the notes if they're in the repo.
+2. Write the description in the format of `.github/pull_request_template.md`:
+   - **Why:** the ticket ID and title.
+   - **Testing:** how each "done when" was proved, the `check` result, and screenshot paths.
+   - **Decisions:** the new entries.
+   - **Local review:** how many findings the reviewer agent reported, one line per finding that was fixed, and each one you pushed back on with the reason.
+3. Push the branch and open the PR, ready for review: `gh pr create --base main --title "<what the user can now do>" --body-file <file>`. If the branch already has a PR, update its description instead. Opening it starts the CI review, if the repo has one.
+
+Never merge the PR, and don't turn on auto-merge.
+
+## 8. Report
+
+Tell the user, briefly:
+
+- The PR link.
+- What the local review found, what was fixed, and what you pushed back on.
+- Anything that changes later tickets.
+- Next: reviewers comment on the PR; when there are comments, say "address the comments" (the `/address-review` skill). After the merge, run `.claude/scripts/ticket remove <ID>` from the main checkout.

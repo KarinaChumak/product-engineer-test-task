@@ -2,6 +2,18 @@
 
 Mock data for the test task. The brief: https://docs.google.com/document/d/16fWdqCyH1Tm4HBOd8qT80u0IsTmiFkrE-fQLQcv8DP0/edit
 
+## Running the project
+
+React 19 + TypeScript + Vite, with React Compiler.
+
+```bash
+.claude/scripts/setup
+pnpm exec playwright install chromium
+.claude/scripts/dev
+```
+
+The dev server runs at http://localhost:5173. Commands, conventions and the Claude Code setup are in `.claude/CLAUDE.md`.
+
 ## Job config
 
 Each file in `jobs/` is one job with the questions the company asks:

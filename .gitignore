@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/ai-setup-pending/
+.claude/worktrees/
+.claude/ticket.env
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.verify/

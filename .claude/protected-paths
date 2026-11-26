@@ -1,0 +1,6 @@
+.github/workflows/*
+pnpm-lock.yaml
+eslint.config.js
+tsconfig.json
+vite.config.ts
+playwright.config.ts

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+# Everything CI checks.
+pnpm -s format:check
+pnpm -s lint
+pnpm -s typecheck
+pnpm -s test
+pnpm -s build
