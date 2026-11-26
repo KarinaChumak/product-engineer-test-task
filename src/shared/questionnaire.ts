@@ -14,6 +14,8 @@ interface QuestionBase {
   id: string;
   question: string;
   required: boolean;
+  /** The answer taken from the candidate's profile, for them to confirm. */
+  prefill?: AnswerValue;
 }
 
 export interface SelectQuestion extends QuestionBase {
