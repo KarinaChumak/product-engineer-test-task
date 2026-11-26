@@ -45,14 +45,13 @@ function QuestionnaireView({ jobId }: { jobId: string }) {
 }
 
 function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnaire> }) {
+  // Once loaded, the questionnaire stays: a failed background reload keeps the last one and the answers.
+  if (query.data) return <QuestionList questionnaire={query.data} />;
   // A failed query that refetches goes back to pending, so a failure before means it's retrying.
   const failedBefore = query.errorUpdatedAt > 0;
   if (query.isPending && !failedBefore) return <Skeleton label={<FormattedMessage id="job.loading" />} />;
-  if (query.isError || query.isPending) {
-    if (query.error instanceof NotFoundError) return <JobNotFound />;
-    return <LoadError error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />;
-  }
-  return <QuestionList questionnaire={query.data} />;
+  if (query.error instanceof NotFoundError) return <JobNotFound />;
+  return <LoadError error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />;
 }
 
 function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
