@@ -57,17 +57,24 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
   }
 }
 
+function toLanguage(value: unknown, warn: Warn): Language | undefined {
+  if (value === 'de' || value === 'en') return value;
+  if (value !== undefined)
+    warn(`Ignored language ${JSON.stringify(value)}: only "de" and "en" are supported`);
+  return undefined;
+}
+
 /** Turns a job config into the questionnaire the candidate sees. */
 export function toJobQuestionnaire(raw: unknown, warn: Warn): JobQuestionnaire {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
-  const language: Language = raw.language === 'de' ? 'de' : 'en';
+  const language = toLanguage(raw.language, warn);
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
 
   return {
     id: asString(raw.id) ?? '',
     title: asString(raw.title) ?? '',
     company: asString(raw.company) ?? '',
-    language,
+    ...(language && { language }),
     questions: questions.flatMap((question) => {
       const normalized = isRecord(question) ? normalizeQuestion(question, warn) : undefined;
       return normalized ? [normalized] : [];
