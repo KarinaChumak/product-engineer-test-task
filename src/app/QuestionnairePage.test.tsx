@@ -34,8 +34,8 @@ const questionnaire: JobQuestionnaire = {
       id: 'salary',
       question: 'What is your salary expectation?',
       required: true,
-      min: 0,
-      max: 1,
+      min: 20000,
+      max: 300000,
     },
     {
       type: 'text',
@@ -152,8 +152,20 @@ describe('QuestionnairePage', () => {
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox', noticePeriod);
-    expect(screen.queryByText('What is your salary expectation?')).not.toBeInTheDocument();
     expect(screen.queryByText('Which project are you proud of?')).not.toBeInTheDocument();
+  });
+
+  it('answers the salary question in a number field grouped for the job language', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json({ ...questionnaire, language: 'de' })),
+    );
+    renderAt('/jobs/job-short');
+
+    const salary = await screen.findByRole('textbox', { name: 'What is your salary expectation?' });
+    await user.type(salary, '95000');
+
+    expect(salary).toHaveValue('95.000');
   });
 
   it('says so when the job has no questions to answer', async () => {

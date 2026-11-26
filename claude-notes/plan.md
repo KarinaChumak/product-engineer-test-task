@@ -43,16 +43,18 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-02 Answer the salary question in a number field, prefilled from the profile
 
-- Status: todo
+- Status: in progress
 - Done when:
-  - `GET /api/jobs/job-short` also prefills `salary_expectation` from `salary_expectation.amount` (test)
+  - `GET /api/jobs/job-short/questionnaire` also prefills `salary_expectation` from `salary_expectation.amount` (test)
   - The number field shows the prefilled value marked "from your profile", formatted for the UI locale (95,000 in `en`, 95.000 in `de`), and the answer is kept as an integer (test)
   - Non-digits can't be typed, and the field works by keyboard (test)
 - Touches: src/server (profile prefill), src/components/NumberField, src/app (one map entry)
-- Size: ~200 lines
-- PRs: one
+- Size: ~360 lines, so split into two stacked PRs
+- PRs: two
+  - (1) Answer the salary in a number field: grouped for the locale while typing, digits only, by keyboard, and clearable; kept as an integer
+  - (2) The salary is prefilled from the profile and marked "from your profile"; clearing a prefilled answer leaves it empty instead of falling back to the prefill
 - After: T-01
-- Branch: none yet
+- Branch: T-02-salary-number-field, T-02b-salary-prefill
 
 ### T-03 Answer the free-text question
 

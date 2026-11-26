@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { NumericQuestion } from '@/app/questions/NumericQuestion';
 import { SelectQuestion } from '@/app/questions/SelectQuestion';
 import type { QuestionProps } from '@/app/questions/types';
 import type { ClientQuestion, QuestionType } from '@/shared/questionnaire';
@@ -10,6 +11,7 @@ type QuestionComponents = {
 /** One entry per question type. Each later type adds its adapter here. */
 const questionComponents: QuestionComponents = {
   select: SelectQuestion,
+  numeric: NumericQuestion,
 };
 
 /** The component that renders this question, or undefined while its type isn't supported yet. */

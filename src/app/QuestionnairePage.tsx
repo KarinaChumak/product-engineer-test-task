@@ -56,7 +56,7 @@ function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnair
 
 function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   // Only the answers the candidate changed; the rest fall back to the profile prefill.
-  const [changed, setChanged] = useState<Record<string, AnswerValue>>({});
+  const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
     return Component ? [{ question, Component }] : [];
