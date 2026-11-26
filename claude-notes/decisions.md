@@ -69,6 +69,7 @@ Files in `src/app` have no stylesheets and set no `className` or `style`. Layout
 ## T-01: Tests mock the network with MSW and fail on console output
 
 Client tests declare responses with `server.use(http.get(…))` from `@/test/server`; a request without a handler fails the test. `vitest-fail-on-console` fails any test that logs a warning or error, so tests never spy on the console; the test query client attaches no logger. The conventions test bans `spyOn(console` and `stubGlobal('fetch'`. Why: tests exercise the real `fetch` path, and unexpected logs surface instead of being muted. Rejected: stubbing `fetch` with `vi.fn` (couples tests to call shapes); console spies (they hide real warnings).
+
 ## T-01: The UI falls back to the browser language
 
 Supersedes "UI copy with react-intl" only for where the locale comes from. The locale is the job's `language` when it is `de` or `en`. When the job has none, or one the app doesn't support, `JobQuestionnaire.language` is left unset and the UI uses the browser's language. An unsupported value is logged as a warning. Why: a job without a language says nothing about the candidate, and the browser does. Rejected: defaulting to `en`, which hides typos like `"DE"` in a job config.
