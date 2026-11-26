@@ -39,6 +39,13 @@ export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion;
 
 export type QuestionType = ClientQuestion['type'];
 
+/** A job in the list of open jobs: enough to tell it apart and open it, and nothing about its questions. */
+export interface JobSummary {
+  id: string;
+  title: string;
+  company: string;
+}
+
 /** The questions a job asks, with the job's title, company and language to show them in. */
 export interface JobQuestionnaire {
   id: string;

@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
+import { jobListHandler } from '@/test/jobs';
 import { renderAt } from '@/test/render';
 import { server } from '@/test/server';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
@@ -53,6 +54,11 @@ const prefilledQuestionnaire: JobQuestionnaire = {
   ),
 };
 
+// The page also has the job switcher's combobox, so the question's is found by its name.
+const noticePeriod = { name: 'What is your notice period?' };
+
+beforeEach(() => server.use(jobListHandler()));
+
 describe('QuestionnairePage', () => {
   it('shows a loading state while the job loads', () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => delay('infinite')));
@@ -88,10 +94,10 @@ describe('QuestionnairePage', () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('combobox'));
+    await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
 
-    expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
   });
 
   it('marks the prefilled answer as from your profile, in English for an English job', async () => {
@@ -111,7 +117,9 @@ describe('QuestionnairePage', () => {
     );
     renderAt('/jobs/job-short');
 
-    expect(await screen.findByRole('combobox')).toHaveAccessibleDescription('Aus deinem Profil');
+    expect(await screen.findByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
+      'Aus deinem Profil',
+    );
   });
 
   it('drops the profile mark when the candidate picks another option', async () => {
@@ -119,10 +127,10 @@ describe('QuestionnairePage', () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('combobox'));
+    await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
 
-    expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
     expect(screen.queryByText('From your profile')).not.toBeInTheDocument();
   });
 
@@ -131,19 +139,19 @@ describe('QuestionnairePage', () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('combobox'));
+    await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
-    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '3 months' }));
 
-    expect(screen.getByRole('combobox')).toHaveAccessibleDescription('From your profile');
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription('From your profile');
   });
 
   it('does not render question types that are not supported yet', async () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
-    await screen.findByRole('combobox');
+    await screen.findByRole('combobox', noticePeriod);
     expect(screen.queryByText('What is your salary expectation?')).not.toBeInTheDocument();
     expect(screen.queryByText('Which project are you proud of?')).not.toBeInTheDocument();
   });

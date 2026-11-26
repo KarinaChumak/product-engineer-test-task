@@ -81,3 +81,11 @@ Client tests declare responses with `server.use(http.get(…))` from `@/test/ser
 ## T-01: The UI falls back to the browser language
 
 Supersedes "UI copy with react-intl" only for where the locale comes from. The locale is the job's `language` when it is `de` or `en`. When the job has none, or one the app doesn't support, `JobQuestionnaire.language` is left unset and the UI uses the browser's language. An unsupported value is logged as a warning. Why: a job without a language says nothing about the candidate, and the browser does. Rejected: defaulting to `en`, which hides typos like `"DE"` in a job config.
+
+## Job switcher: The client lists jobs through GET /api/jobs
+
+`GET /api/jobs` returns every job as a `JobSummary` (id, title, company), built by `toJobSummary`; a config without a string `id` is left out. The API reads jobs through one `JobStore` (`find`, `list`), and `createApp(overrides)` defaults every dependency to the real one (`jobs/`, `profile.json`, the console), so `index.ts` calls `createApp()` and tests pass only what they fake. Every page shows a `JobSwitcher` above `<main>`, in a `TopBar` navigation landmark, that opens the job picked. It's a shortcut, so it isn't shown while the list loads or when it fails. `QuestionnaireView` is keyed by job ID, so switching between cached jobs starts from fresh answers. Why: switching between job-short, job-long and job-bad by editing the URL was slow during development and demos. Rejected: hard-coded links (they'd drift from `jobs/`); returning the whole questionnaires (the list needs none of the questions).
+
+## Job switcher: Screens sit in a card on a grey page
+
+The page background is `--color-surface`, the top bar is lilac (`--color-accent-soft`), and each screen's content (loading, errors, the questionnaire) sits in a `Card`: white (dark in dark mode), borderless, `--radius-3`, `--shadow-card`. Select outlines use `--color-field-border`, the lightest grey that still keeps 3:1 against the card. Why: the questionnaire stands out from the job switcher above it, closer to Instaffo's look. Rejected: `--color-line` for select outlines (1.5:1 fails WCAG 1.4.11).

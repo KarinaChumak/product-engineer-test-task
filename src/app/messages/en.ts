@@ -10,6 +10,9 @@ export const en = {
   'job.error.network': 'We couldn’t reach the server. Check your internet connection.',
   'job.error.retry': 'Try again',
   'job.error.retrying': 'Trying again…',
+  'jobSwitcher.nav': 'Jobs',
+  'jobSwitcher.label': 'Switch job',
+  'jobSwitcher.placeholder': 'Choose a job',
 };
 
 export type MessageKey = keyof typeof en;

@@ -1,5 +1,11 @@
 import { prefillFor, type Profile } from '@/server/prefill';
-import type { ClientQuestion, JobQuestionnaire, Language, SelectOption } from '@/shared/questionnaire';
+import type {
+  ClientQuestion,
+  JobQuestionnaire,
+  JobSummary,
+  Language,
+  SelectOption,
+} from '@/shared/questionnaire';
 
 // Turns a recruiter's config into the candidate's questionnaire, field by field, so screening rules (`must_be_*`)
 // never leave the server. A skeleton: Phase 2 adds the remaining types and the full set of repairs.
@@ -63,6 +69,14 @@ function toLanguage(value: unknown, warn: Warn): Language | undefined {
   if (value !== undefined)
     warn(`Ignored language ${JSON.stringify(value)}: only "de" and "en" are supported`);
   return undefined;
+}
+
+/** The job's entry in the list of jobs, or undefined for a config without a string `id` (it can't be opened). */
+export function toJobSummary(raw: unknown): JobSummary | undefined {
+  if (!isRecord(raw)) return undefined;
+  const id = asString(raw.id);
+  if (!id) return undefined;
+  return { id, title: asString(raw.title) || id, company: asString(raw.company) ?? '' };
 }
 
 /**

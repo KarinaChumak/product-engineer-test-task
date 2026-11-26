@@ -1,0 +1,11 @@
+import type { ReactNode } from 'react';
+import styles from './Card.module.css';
+
+export interface CardProps {
+  children: ReactNode;
+}
+
+/** A raised, rounded panel that sets its content apart from the page, its sections spaced apart. */
+export function Card({ children }: CardProps) {
+  return <div className={styles.card}>{children}</div>;
+}

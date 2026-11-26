@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
 import { useParams } from 'react-router';
 import { NotFoundError } from '@/app/api';
+import { JobSwitcher } from '@/app/JobSwitcher';
 import { getBrowserLanguage, messages } from '@/app/messages';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
@@ -31,8 +33,12 @@ function QuestionnaireView({ jobId }: { jobId: string }) {
 
   return (
     <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
+      <JobSwitcher currentJobId={jobId} />
       <Page>
-        <QuestionnaireContent query={query} />
+        <Card>
+          {/* Keyed by job, so switching jobs starts from fresh answers, while the switcher above keeps focus. */}
+          <QuestionnaireContent key={jobId} query={query} />
+        </Card>
       </Page>
     </IntlProvider>
   );

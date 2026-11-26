@@ -13,6 +13,8 @@ Phases run in order. Each has a one-line goal and exit below. Only the phases th
 
 Lanes: T-01, then T-02 ‖ T-03 ‖ T-04, then T-05 ‖ T-06.
 
+Out of plan: a job switcher in the top bar and the questionnaire card (branch `job-switcher`), asked for by the user between T-01 and T-02 to make switching jobs easier during development and demos.
+
 T-02 and T-03 each add one entry to the type → component map that T-01 creates. Whichever merges second rebases over that one line.
 
 Before T-01 can be proved in the browser, a human adds the `/api` proxy to the protected `vite.config.ts` (see the decision "API runs as a separate Hono process behind a Vite proxy").
