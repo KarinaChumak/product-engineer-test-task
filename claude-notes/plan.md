@@ -57,7 +57,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-03 Answer the free-text question
 
-- Status: todo
+- Status: in progress
 - Done when:
   - A text question shows a single-line field, and one with `multiline: true` shows a textarea that grows with its content (test)
   - The question text appears exactly as the recruiter wrote it, emoji included (test)
@@ -65,7 +65,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~150 lines
 - PRs: one
 - After: T-01
-- Branch: none yet
+- Branch: T-03-free-text-question
 
 ### T-04 Submit job-short and see the same end screen whatever the result
 
