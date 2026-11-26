@@ -9,3 +9,43 @@ Entry format:
 
 <What was decided.> Why: <the reason>. Rejected: <the alternatives>.
 -->
+
+## Kickoff: The server owns the config and the screening
+
+`GET /api/jobs/:id` returns a normalized, client-safe job: questions and their input options, with every screening rule removed. `POST /api/jobs/:id/applications` takes only the answers, validates them again, computes `screening` and builds the contract payload. The candidate never sees pass/fail, a threshold or the payload. Why: if the browser built the payload, anyone could send `passed: true`, and the rules would be readable in the bundle. Rejected: client-side screening, which the brief allows but production-ready rules out.
+
+## Kickoff: Deterministic normalization on GET
+
+The server repairs the config instead of dropping questions. It applies the README rules (the first of duplicate IDs wins, unknown types are dropped, rules on the wrong type are ignored) plus defensive fixes (`max_choices` capped at the option count, `"today"` resolved, min > max, empty option lists, text over 255 characters). Each fix is logged as a warning. Why: the payload still matches the contract, and the logs show recruiters what was wrong. Rejected: refusing bad configs; an LLM-based cleanup (not deterministic).
+
+## Kickoff: Profile prefill is resolved on the server
+
+The GET response carries each question's prefilled value, taken from `profile.json` through `profile_field`. The client shows it as "from your profile" for the candidate to confirm. Why: one place maps profile fields to answer values, and the client doesn't need the whole profile. Rejected: the client fetching the profile and mapping fields itself.
+
+## Kickoff: API runs as a separate Hono process behind a Vite proxy
+
+The Hono app lives in `src/server/`, so the existing tsconfig, lint and Vitest setup cover it. Types shared with the client live in `src/shared/`. In dev it runs as its own Node process, and Vite proxies `/api` to it. `.claude/scripts/dev` starts both, with the API port derived from the ticket's port. A human adds the `server.proxy` entry to the protected `vite.config.ts`. Why: the dev setup matches a production-style split, and the client only ever calls same-origin `/api`. Rejected: mounting Hono as Vite middleware (dev and prod would differ more); CORS with a separate origin.
+
+## Kickoff: Submissions stored in a JSON file
+
+Submissions go in `data/submissions.json` (gitignored), keyed by `candidate_id + job_id`. Writes go through one module that serializes them (an in-process queue, write to a temp file, then rename), so the duplicate check and the write can't interleave. Why: easy to inspect, no dependency, enough for one candidate. Rejected: `node:sqlite` (an atomic UNIQUE constraint, but harder to inspect); in-memory storage (lost on restart).
+
+## Kickoff: Drafts in localStorage only
+
+Answers are kept as a draft in localStorage per job, and the draft is cleared after a successful submit. Nothing reaches the server before an explicit submit. Why: no data reaches the recruiter until the candidate sends it, and a reload doesn't lose work. Rejected: server-side drafts.
+
+## Kickoff: Styling with CSS Modules and Radix primitives
+
+Components use CSS Modules (`<Name>.module.css`) with tokens from `src/index.css`, and Radix primitives for the select, checkbox and dialog behaviour. Icons come from Lucide, and Geist stands in for Aeonik Pro. Why: same approach as Instaffo, accessible primitives, no CSS-in-JS. Rejected: plain global CSS (class collisions); a full component library (it would fight Instaffo's look).
+
+## Kickoff: UI copy with react-intl
+
+UI strings live in `de` and `en` message files, and react-intl formats them. The locale comes from `job.language`. Number and date formats follow that locale. Recruiter questions and option labels are shown as written, never translated. Why: ICU plurals and number and date formatting in one place. Rejected: a custom typed dictionary; i18next.
+
+## Kickoff: The candidate is fixed to profile.json
+
+There's no sign-in. The server treats `profile.json` (`talent-4711`) as the current candidate. Why: auth is out of scope for the task. Rejected: a candidate switcher.
+
+## Kickoff: Styling follows Instaffo's current stack
+
+Supersedes "Styling with CSS Modules and Radix primitives" only to record where it comes from. The decision itself is unchanged. CSS Modules and Radix are what Instaffo uses today: its class names (`index-module__variant_body-m__…`) come from CSS Modules, and the page carries Radix's `data-radix-collection-item` attributes. Lucide and Geist are free stand-ins. Instaffo uses Font Awesome 6 Pro (Duotone, Thin, Sharp) and Aeonik Pro, which are paid and can't be shipped in this repo. Why: the candidate flow should look and behave like Instaffo's. Rejected: the free tier of Font Awesome (it lacks the Pro styles, so it wouldn't match either).
