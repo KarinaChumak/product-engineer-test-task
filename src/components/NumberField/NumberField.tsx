@@ -44,9 +44,30 @@ export function NumberField({
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
+    const shown = value === undefined ? '' : format(value);
     const caret = input.selectionStart ?? input.value.length;
-    const digitsBeforeCaret = digitsIn(input.value.slice(0, caret)).length;
-    const digits = digitsIn(input.value).slice(0, MAX_DIGITS);
+    let digitsBeforeCaret = digitsIn(input.value.slice(0, caret)).length;
+    let digits = digitsIn(input.value);
+
+    // Deleting a separator alone would change nothing, so delete the digit beside it instead.
+    if (digits === digitsIn(shown) && input.value.length < shown.length) {
+      const { inputType } = event.nativeEvent as InputEvent;
+      if (inputType === 'deleteContentBackward' && digitsBeforeCaret > 0) {
+        digits = digits.slice(0, digitsBeforeCaret - 1) + digits.slice(digitsBeforeCaret);
+        digitsBeforeCaret -= 1;
+      } else if (inputType === 'deleteContentForward') {
+        digits = digits.slice(0, digitsBeforeCaret) + digits.slice(digitsBeforeCaret + 1);
+      }
+    }
+
+    // Refuse a digit that would make the number too long to keep exactly.
+    if (digits.length > MAX_DIGITS) {
+      input.value = shown;
+      const position = Math.max(caret - 1, 0);
+      input.setSelectionRange(position, position);
+      return;
+    }
+
     const next = digits === '' ? undefined : Number(digits);
     const formatted = next === undefined ? '' : format(next);
 

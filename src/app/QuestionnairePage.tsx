@@ -73,7 +73,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
       ) : (
         <Stack gap={6}>
           {shown.map(({ question, Component }) => {
-            const value = question.id in changed ? changed[question.id] : question.prefill;
+            const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
             return (
               <Component
                 key={question.id}

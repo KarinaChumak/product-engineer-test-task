@@ -89,6 +89,41 @@ describe('NumberField', () => {
     expect(field()).toHaveValue('9,512,000');
   });
 
+  it('deletes the digit before a separator on Backspace', async () => {
+    const user = userEvent.setup();
+    render(<ControlledNumberField initial={95000} />);
+
+    // Caret just after the comma in "95,|000".
+    await user.click(field());
+    field().setSelectionRange(3, 3);
+    await user.keyboard('{Backspace}');
+
+    expect(field()).toHaveValue('9,000');
+  });
+
+  it('deletes the digit after a separator on Delete', async () => {
+    const user = userEvent.setup();
+    render(<ControlledNumberField initial={95000} />);
+
+    // Caret just before the comma in "95|,000".
+    await user.click(field());
+    field().setSelectionRange(2, 2);
+    await user.keyboard('{Delete}');
+
+    expect(field()).toHaveValue('9,500');
+  });
+
+  it('refuses a digit beyond the longest number it can keep exactly', async () => {
+    const user = userEvent.setup();
+    render(<ControlledNumberField initial={123456789012345} />);
+
+    await user.click(field());
+    field().setSelectionRange(0, 0);
+    await user.keyboard('9');
+
+    expect(kept()).toHaveTextContent('123456789012345');
+  });
+
   it('is empty again when every digit is deleted', async () => {
     const user = userEvent.setup();
     render(<ControlledNumberField initial={95} />);
