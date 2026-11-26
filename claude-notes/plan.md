@@ -23,11 +23,12 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Done when:
   - `GET /api/jobs/job-short` returns the job with every screening rule removed, and with `notice_period` prefilled from `profile.json` (test)
   - An unknown job ID returns 404, and the page shows a "job not found" state (test)
+  - While the job loads, the page shows a loading state. A 500 or a network error shows an error that says what happened and offers "Try again", which refetches. Shown at mobile and desktop widths (test, screenshot)
   - The page shows the job title and the notice-period select with its options as written. Types not supported yet aren't rendered. The UI copy is in English because `language` is `en` (test)
   - The prefilled option is marked "from your profile", and the candidate can pick another one by mouse or keyboard (test)
   - `.claude/scripts/dev` starts Vite and the API together, and the page loads at mobile and desktop widths with no console errors (screenshot)
 - Touches: src/server (Hono app, job loading, the normalization skeleton, profile prefill), src/shared (job and answer types), src/app (data loading, type → component map, react-intl provider, messages), src/components/Select, src/index.css (Instaffo tokens), .claude/scripts/dev
-- Size: ~380 lines
+- Size: ~420 lines
 - PRs: one
 - After: none
 - Branch: none yet
@@ -63,10 +64,12 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Done when:
   - `POST /api/jobs/job-short/applications` checks the answers against the normalized job (select value in the options, integer within `min`/`max`, text up to its limit) and returns 422 with field errors when they're invalid (test)
   - The server computes `screening` and stores a payload that matches the README contract in `data/submissions.json`. Optional questions left empty are omitted from it (test)
-  - After a successful submit, the candidate sees a neutral end screen that's the same whether they passed or failed (test)
+  - The candidate sees a neutral end screen only after a 2xx response, and it's the same whether they passed or failed (test)
+  - A 422, a 500 or a network error keeps the form and its answers and shows a visible error above the submit button. Field-level 422 errors come in T-06 (test)
+  - While the request is in flight, the submit button shows a pending state and is disabled, so a double click sends one request (test)
   - The response and the client bundle never contain `screening` or a threshold (test)
 - Touches: src/server (applications route, validation, screening, storage), src/shared (payload types), src/app (submit button, end screen)
-- Size: ~350 lines
+- Size: ~400 lines
 - PRs: one
 - After: T-01
 - Branch: none yet
