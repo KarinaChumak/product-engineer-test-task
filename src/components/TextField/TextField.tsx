@@ -26,7 +26,7 @@ export function TextField({
   const annotationId = `${id}-annotation`;
   const text = value ?? '';
 
-  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function setTextFromInput(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const next = event.currentTarget.value;
     onValueChange(next === '' ? undefined : next);
   }
@@ -34,7 +34,7 @@ export function TextField({
   const controlProps = {
     id,
     value: text,
-    onChange: handleChange,
+    onChange: setTextFromInput,
     required,
     'aria-describedby': annotation ? annotationId : undefined,
   };

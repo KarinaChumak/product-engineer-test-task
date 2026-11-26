@@ -42,7 +42,7 @@ export function NumberField({
   const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
   const shown = value === undefined ? '' : formatter.format(value);
 
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+  function setNumberFromInput(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const caret = input.selectionStart ?? input.value.length;
     let digitsBeforeCaret = digitsIn(input.value.slice(0, caret)).length;
@@ -98,7 +98,7 @@ export function NumberField({
         inputMode="numeric"
         autoComplete="off"
         value={shown}
-        onChange={handleChange}
+        onChange={setNumberFromInput}
         required={required}
         aria-describedby={annotation ? annotationId : undefined}
       />
