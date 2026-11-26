@@ -20,9 +20,11 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.11",
+    "@tanstack/react-query": "^5.108.4",
     "hono": "^4.13.22",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-intl": "^12.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.29.13",
@@ -44,11 +46,13 @@
     "eslint-plugin-react-refresh": "^0.5.8",
     "globals": "^17.14.0",
     "jsdom": "^31.0.1",
+    "msw": "^3.0.7",
     "prettier": "^3.10.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.74.0",
     "vite": "^8.3.8",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "vitest-fail-on-console": "^0.10.1"
   }
 }

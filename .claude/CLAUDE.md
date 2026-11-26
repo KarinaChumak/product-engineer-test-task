@@ -36,6 +36,9 @@ These scripts are the entry points in this repo. Use them instead of calling the
 - Import from `@/…`, never with `../`.
 - Query elements in tests by role or label (`getByRole`), not by test id or class name.
 - Don't add `useMemo`, `useCallback` or `memo` for performance: React Compiler memoizes. Use them only when a value's identity matters to an effect.
+- Fetch data with TanStack Query: request functions live in `src/app/api.ts`, and components and hooks call them through `useQuery`/`useMutation`, never with `fetch` in a `useEffect`. Tests render through `render` from `@/test/render`.
+- Screens in `src/app` define no CSS (no stylesheets, `className` or `style`): they compose components from `src/components`, and every style lives in a small reusable component. A conventions test enforces it.
+- Mock the network in tests with MSW (`server.use(http.get(…))` from `@/test/server`), never by stubbing `fetch`. Never spy on or silence the console: a logged warning or error fails the test, so fix what logs it.
 
 # Gotchas
 
