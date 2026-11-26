@@ -20,6 +20,7 @@
 }
 
 .input {
+  box-sizing: border-box;
   width: 100%;
   min-height: var(--touch-target);
   padding: var(--space-2) var(--space-3);
