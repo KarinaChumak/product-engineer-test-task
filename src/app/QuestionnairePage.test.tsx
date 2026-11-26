@@ -241,24 +241,23 @@ describe('QuestionnairePage', () => {
 
   it('keeps the questionnaire and the picked answer when reloading it in the background fails', async () => {
     const user = userEvent.setup();
-    let requests = 0;
     server.use(
-      http.get('/api/jobs/:id/questionnaire', () => {
-        requests += 1;
-        return requests === 1
-          ? HttpResponse.json(questionnaire)
-          : HttpResponse.json({ error: 'internal' }, { status: 500 });
-      }),
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire), { once: true }),
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ error: 'internal' }, { status: 500 }),
+      ),
     );
-    renderAt('/jobs/job-short');
+    const { queryClient } = renderAt('/jobs/job-short');
     await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
 
     // Coming back to the tab reloads the questionnaire in the background.
     act(() => window.dispatchEvent(new Event('visibilitychange')));
-    await waitFor(() => expect(requests).toBe(2));
-    // Let the failed response reach the page.
-    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    await waitFor(() =>
+      expect(queryClient.getQueryState(['jobQuestionnaire', 'job-short'])?.status).toBe('error'),
+    );
+    // TanStack Query tells the page with a setTimeout(0) queued when the state changed, so this one runs after it.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
