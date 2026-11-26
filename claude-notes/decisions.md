@@ -53,3 +53,19 @@ Supersedes "Styling with CSS Modules and Radix primitives" only to record where 
 ## T-01: The client fetches a job's questionnaire
 
 The client asks for the questions a job asks, not the job itself, so the names say so: `GET /api/jobs/:id/questionnaire` returns a `JobQuestionnaire` (`src/shared/questionnaire.ts`), built on the server by `toJobQuestionnaire`. The client reads it through `useJobQuestionnaire`, and `QuestionnairePage` renders it. The questionnaire still carries the job's title, company and language to show the questions in. Later endpoints about a job (applications, completion status) stay under `/api/jobs/:id/…`. Why: "job" names the recruiter's whole config, which the client never sees. Rejected: `GET /api/jobs/:id` with a `ClientJob` type.
+
+## T-01: Screens live in src/app, reusable components in src/components
+
+Screens and their wiring (data hooks, the message files) live in `src/app`; anything a screen renders comes from `src/components`. Why: screens stay thin and components stay reusable across tickets. Rejected: per-screen component folders.
+
+## T-01: Data fetching goes through TanStack Query
+
+Every request from the client is a `useQuery` (or `useMutation`) whose function lives in `src/app/api.ts`; components and hooks never call `fetch` in an effect. A hook such as `useJobQuestionnaire` returns the `useQuery` result unchanged, and the screen branches on `isPending`, `isError`, `error` and `data`. `createQueryClient()` in the same file sets the defaults: no retry on a 404 (`NotFoundError`), up to two retries otherwise, and failed requests are logged. Tests render through `render` from `@/test/render`, which uses a client without retries or logging. Why: loading, error, retry, abort and caching come from one library instead of each hook hand-rolling them. Rejected: `fetch` in `useEffect` (every hook repeats the abort and error handling); SWR (fewer mutation tools for T-04's submit); mapping the query to a custom `{ status }` union (a second state type to keep in sync).
+
+## T-01: Screens define no CSS
+
+Files in `src/app` have no stylesheets and set no `className` or `style`. Layout and look come from small components in `src/components` (`Page`, `PageHeader`, `Notice`, `Skeleton`, …), each with its own CSS Module. `src/test/conventions.test.ts` fails on a violation. Why: every style is reusable and lives in one place, so screens can't drift from the design. Rejected: a CSS Module per screen.
+
+## T-01: Tests mock the network with MSW and fail on console output
+
+Client tests declare responses with `server.use(http.get(…))` from `@/test/server`; a request without a handler fails the test. `vitest-fail-on-console` fails any test that logs a warning or error, so tests never spy on the console; the test query client attaches no logger. The conventions test bans `spyOn(console` and `stubGlobal('fetch'`. Why: tests exercise the real `fetch` path, and unexpected logs surface instead of being muted. Rejected: stubbing `fetch` with `vi.fn` (couples tests to call shapes); console spies (they hide real warnings).
