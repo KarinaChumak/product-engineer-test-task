@@ -1,20 +1,27 @@
 import type { UseQueryResult } from '@tanstack/react-query';
+import { ClipboardList } from 'lucide-react';
+import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
+import { useParams } from 'react-router';
 import { NotFoundError } from '@/app/api';
 import { getBrowserLanguage, messages } from '@/app/messages';
+import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
+import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
 import { PageHeader } from '@/components/PageHeader';
 import { Skeleton } from '@/components/Skeleton';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
 
-export interface QuestionnairePageProps {
-  jobId: string;
+/** The page at `/jobs/:jobId`: the questionnaire of that job. */
+export function QuestionnairePage() {
+  const { jobId } = useParams();
+  return jobId ? <QuestionnaireView jobId={jobId} /> : <NotFoundPage />;
 }
 
-/** The questionnaire of one job. */
-export function QuestionnairePage({ jobId }: QuestionnairePageProps) {
+function QuestionnaireView({ jobId }: { jobId: string }) {
   const query = useJobQuestionnaire(jobId);
   // Until the questionnaire arrives its language is unknown. The loading state shows no visible text,
   // so the browser language only reaches the screen in the not-found and error states.
@@ -30,23 +37,49 @@ export function QuestionnairePage({ jobId }: QuestionnairePageProps) {
 }
 
 function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnaire> }) {
-  if (query.isPending) return <Skeleton label={<FormattedMessage id="job.loading" />} />;
-  if (query.error instanceof NotFoundError) {
-    return (
-      <Notice
-        title={<FormattedMessage id="job.notFound.title" />}
-        description={<FormattedMessage id="job.notFound.body" />}
-      />
-    );
+  // A failed query that refetches goes back to pending, so a failure before means it's retrying.
+  const failedBefore = query.errorUpdatedAt > 0;
+  if (query.isPending && !failedBefore) return <Skeleton label={<FormattedMessage id="job.loading" />} />;
+  if (query.isError || query.isPending) {
+    if (query.error instanceof NotFoundError) return <JobNotFound />;
+    return <LoadError error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />;
   }
-  if (query.isError) {
-    return (
-      <Notice
-        role="alert"
-        title={<FormattedMessage id="job.error.title" />}
-        description={<FormattedMessage id="job.error.body" />}
-      />
-    );
-  }
-  return <PageHeader eyebrow={query.data.company} title={query.data.title} />;
+  return (
+    <>
+      <PageHeader eyebrow={query.data.company} title={query.data.title} />
+      {query.data.questions.length === 0 && (
+        <EmptyState icon={<ClipboardList aria-hidden="true" />}>
+          <FormattedMessage id="job.noQuestions" />
+        </EmptyState>
+      )}
+    </>
+  );
+}
+
+interface LoadErrorProps {
+  /** `null` while retrying: React Query clears the error, so the last one stays on screen. */
+  error: Error | null;
+  retrying: boolean;
+  onRetry: () => void;
+}
+
+function LoadError({ error, retrying, onRetry }: LoadErrorProps) {
+  const [shown, setShown] = useState(error);
+  if (error && error !== shown) setShown(error);
+  // fetch rejects with a TypeError when the server can't be reached at all.
+  const reason = shown instanceof TypeError ? 'job.error.network' : 'job.error.server';
+
+  return (
+    <Notice
+      role="alert"
+      title={<FormattedMessage id="job.error.title" />}
+      description={<FormattedMessage id={reason} />}
+      action={
+        // aria-disabled, not disabled, so the button keeps focus while it retries.
+        <Button aria-disabled={retrying} onClick={() => !retrying && onRetry()}>
+          <FormattedMessage id={retrying ? 'job.error.retrying' : 'job.error.retry'} />
+        </Button>
+      }
+    />
+  );
 }
