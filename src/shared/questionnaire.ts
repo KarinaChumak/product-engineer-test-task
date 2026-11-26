@@ -44,6 +44,7 @@ export interface JobQuestionnaire {
   id: string;
   title: string;
   company: string;
-  language: Language;
+  /** Unset when the job has no supported language; the UI then uses the browser's. */
+  language?: Language;
   questions: ClientQuestion[];
 }
