@@ -73,3 +73,7 @@ Client tests declare responses with `server.use(http.get(…))` from `@/test/ser
 ## T-01: Routes come from React Router
 
 `src/app/routes.tsx` declares the routes: `/` redirects to `/jobs/job-short`, `/jobs/:jobId` renders `QuestionnairePage`, which reads the ID with `useParams`, and any other path renders `NotFoundPage`. `main.tsx` mounts them with `createBrowserRouter`; tests render them with `renderAt(path)` from `@/test/render`, which uses a memory router. Why: the job ID is a route param, and later screens (review, already completed) become routes instead of more path parsing. Rejected: parsing `window.location.pathname` by hand; TanStack Router (its file-based setup needs a Vite plugin in the protected config).
+
+## T-01: Question types render through a type → component map
+
+`src/app/questionComponents.ts` maps each question `type` to an adapter in `src/app/questions/` that takes `QuestionProps` (question, value, onChange) and renders a component from `src/components/`. Screens ask `getQuestionComponent(question)`, which returns undefined for a type without an entry, so that question isn't rendered. Each later question type adds one entry. Why: the page stays the same as types are added, and two tickets adding types only touch one line each. Rejected: a switch in the page.

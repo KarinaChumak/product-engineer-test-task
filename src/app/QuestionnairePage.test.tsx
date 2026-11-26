@@ -15,6 +15,39 @@ const noQuestions: JobQuestionnaire = {
   questions: [],
 };
 
+const questionnaire: JobQuestionnaire = {
+  ...noQuestions,
+  questions: [
+    {
+      type: 'select',
+      id: 'notice_period',
+      question: 'What is your notice period?',
+      required: true,
+      maxChoices: 1,
+      options: [
+        { label: 'Immediately', value: 'immediately' },
+        { label: '1 month', value: '1_month' },
+        { label: '3 months', value: '3_months' },
+      ],
+    },
+    {
+      type: 'numeric',
+      id: 'salary',
+      question: 'What is your salary expectation?',
+      required: true,
+      min: 0,
+      max: 1,
+    },
+    {
+      type: 'text',
+      id: 'project',
+      question: 'Which project are you proud of?',
+      required: false,
+      multiline: true,
+    },
+  ],
+};
+
 describe('QuestionnairePage', () => {
   it('shows a loading state while the questionnaire loads', () => {
     server.use(http.get(anyJob, () => delay('infinite')));
@@ -29,6 +62,40 @@ describe('QuestionnairePage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Frontend Developer (React)' })).toBeInTheDocument();
     expect(screen.getByText('Kranich Health GmbH')).toBeInTheDocument();
+  });
+
+  it('shows the notice-period select with its options as written', async () => {
+    const user = userEvent.setup();
+    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox', { name: 'What is your notice period?' }));
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Immediately',
+      '1 month',
+      '3 months',
+    ]);
+  });
+
+  it('keeps the option the candidate picks', async () => {
+    const user = userEvent.setup();
+    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
+  });
+
+  it('does not render question types that are not supported yet', async () => {
+    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    renderAt('/jobs/job-short');
+
+    await screen.findByRole('combobox');
+    expect(screen.queryByText('What is your salary expectation?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Which project are you proud of?')).not.toBeInTheDocument();
   });
 
   it('says so when the job has no questions to answer', async () => {

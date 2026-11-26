@@ -10,14 +10,17 @@
   --page-width: 720px;
   --font-size-xl: 1.5rem;
 
+  /* Instaffo palette: purple #5e2f82, lilac #e2bdff, surface #f5f5f7, line #d3d4d6. */
   --color-bg: #ffffff;
   --color-surface: #f5f5f7;
   --color-text: #1a1a1a;
   --color-text-muted: #5f6368;
   --color-border: #767676;
-  --color-accent: #2f5bd3;
+  --color-line: #d3d4d6;
+  --color-accent: #5e2f82;
   --color-on-accent: #ffffff;
-  --color-focus: #2f5bd3;
+  --color-focus: #5e2f82;
+  --shadow-popover: 0 4px 16px rgb(0 0 0 / 12%);
 
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
@@ -31,9 +34,11 @@
     --color-text: #f0f0f0;
     --color-text-muted: #a8a8ad;
     --color-border: #8a8a8a;
-    --color-accent: #7c9cff;
-    --color-on-accent: #0d0d0d;
-    --color-focus: #7c9cff;
+    --color-line: #3a3a3e;
+    --color-accent: #d0a8f5;
+    --color-on-accent: #1a0d26;
+    --color-focus: #d0a8f5;
+    --shadow-popover: 0 4px 16px rgb(0 0 0 / 50%);
   }
 }
 
