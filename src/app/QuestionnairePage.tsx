@@ -55,7 +55,8 @@ function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnair
 }
 
 function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
-  // Only the answers the candidate changed; the rest fall back to the profile prefill.
+  // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
+  // answer stays in here as undefined, so it doesn't fall back.
   const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
@@ -72,7 +73,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
       ) : (
         <Stack gap={6}>
           {shown.map(({ question, Component }) => {
-            const value = changed[question.id] ?? question.prefill;
+            const value = question.id in changed ? changed[question.id] : question.prefill;
             return (
               <Component
                 key={question.id}
