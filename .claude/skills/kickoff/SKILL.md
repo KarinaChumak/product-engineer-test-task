@@ -19,6 +19,8 @@ Read before asking, so your questions are about decisions, not facts you could l
 
 Write down every open question whose answer would change the architecture, the data model, the main user flows or the scope. Examples: how users and their data are separated, how people sign in, whether data is computed live or ahead of time, which roles exist, what the first release leaves out.
 
+Add the stack's open choices: the `# Project` section of `.claude/CLAUDE.md` says what the stack has already decided and what's left open, such as the API server or translations. Don't ask about what's decided. Ask about each open one that Phase 1 needs, so no ticket has to stop and ask later.
+
 Present each one as a decision, not an open question:
 
 > **Multi-tenancy:** one database with an `org_id` on every row (recommended: simplest to run, fine until a customer needs isolation) / a schema per org / a database per org.
@@ -31,7 +33,7 @@ Present each one as a decision, not an open question:
 
 ## 3. Write the files
 
-1. **`claude-notes/product.md`** from [product-template.md](product-template.md): problem, users, principles, scope, out of scope, open questions. Keep it to one page.
+1. **`claude-notes/product.md`** from [product-template.md](product-template.md): problem, users, glossary, principles, scope, out of scope, open questions. Keep it to one page. The glossary names every thing Phase 1 works with, in the words the code will use. Where two words compete ("booking" or "appointment"), say which one the code uses and why, and confirm it with the user.
 2. **`claude-notes/decisions.md`**: add one entry per decision at the end of the file, in its existing format, with `Kickoff` as the ID:
 
    ```markdown

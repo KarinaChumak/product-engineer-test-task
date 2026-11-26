@@ -1,6 +1,6 @@
 ---
 name: plan-phase
-description: Break the next phase in the plan into tickets, each a behavior the user can see, delivered end to end in PRs under 500 lines. Use when a phase is nearly done, when kickoff plans Phase 1, or when the user runs /plan-phase.
+description: Break the next phase in the plan into small tickets, each a behavior the user can see, delivered end to end in one PR. Use when a phase is nearly done, when kickoff plans Phase 1, or when the user runs /plan-phase.
 ---
 
 # Plan the next phase
@@ -19,13 +19,17 @@ Each ticket is one behavior a user can see, delivered end to end in the same PR:
 
 - Never split by layer. Not "all the types", then "all the copy", then "all the tests".
 - Name a ticket after what the user can do: "Sign in and see an empty dashboard", not "Auth service".
-- The first ticket of a project is the walking skeleton: the thinnest path through every layer. Shared pieces (a contract, a layout, a registry) appear inside that first slice, not as tickets of their own.
+- The first ticket of a project is the walking skeleton: the thinnest path through every layer, such as one page that loads one thing from the API and shows it. Shared pieces (a contract, a layout, a registry) appear inside that first slice, not as tickets of their own.
 
 ## 3. Size
 
-- Estimate changed lines per ticket, tests included. Lockfiles, generated files, snapshots and data files don't count.
-- Over 500 lines: split the ticket into PRs, each still a complete slice of a smaller behavior. Example: "a select question renders, takes an answer and adds it to the payload, with keys and tests", then "screening rules for select answers, with the rejection path and tests". List the PRs in the ticket.
-- Well under 100 lines: merge it into a neighbouring ticket unless it stands alone.
+Each ticket is one PR. Estimates run low, often by half, and review adds more, so plan well under the 500-line limit.
+
+- Estimate changed lines per ticket, file by file, tests included. Lockfiles, generated files, snapshots and data files don't count.
+- The first 2–3 tickets of a project: about 150 lines each. They set the patterns (data fetching, page structure, components, tests) that every later ticket copies, so they get the most review rounds. Keep them small enough that reworking a pattern is cheap.
+- Every other ticket: at most about 300 lines.
+- Bigger than that: split it into separate tickets, each still a complete behavior, with `After` linking them. Example: "the page lists the customer's bookings, or says there are none", then "a booking can be cancelled", then "cancelling asks for a reason". Never one ticket with several stacked PRs.
+- Well under 50 lines: merge it into a neighbouring ticket unless it stands alone.
 
 ## 4. Order and parallel lanes
 
@@ -46,8 +50,7 @@ In `claude-notes/plan.md`, add a `## Phase N: <Name>` section after the previous
   - The range survives a page reload (test)
   - The picker works by keyboard (e2e)
 - Touches: src/dashboard/filters, src/api/stats
-- Size: ~350 lines
-- PRs: one
+- Size: ~250 lines
 - After: T-02
 - Branch: none yet
 ```

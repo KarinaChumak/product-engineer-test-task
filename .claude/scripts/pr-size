@@ -50,10 +50,19 @@ count() {
   fi
 }
 
-while IFS=$'\t' read -r added deleted path; do
+# A renamed file counts only the lines that changed in it. With -z, a rename's record has an empty
+# path, followed by the old and the new path as fields of their own.
+while IFS= read -r -d '' record; do
+  added=${record%%$'\t'*}
+  rest=${record#*$'\t'}
+  deleted=${rest%%$'\t'*}
+  path=${rest#*$'\t'}
+  if [ -z "$path" ]; then
+    IFS= read -r -d '' _ && IFS= read -r -d '' path
+  fi
   [ "$added" = - ] && continue # binary
   count $((added + deleted)) "$path"
-done < <(git diff --numstat --no-renames "$from")
+done < <(git diff --numstat -z -M "$from")
 while IFS= read -r path; do
   [ -f "$path" ] && count "$(wc -l <"$path" | tr -d ' ')" "$path"
 done < <(git ls-files --others --exclude-standard)
@@ -61,6 +70,6 @@ done < <(git ls-files --others --exclude-standard)
 echo "pr-size: $total changed lines against $base (limit $limit); $skipped more in ignored files"
 printf '%s' "$rows" | sort -rn | head -10 | sed 's/^/  /'
 if [ "$total" -gt "$limit" ]; then
-  echo "Over the limit. Split the work into PRs that are each a complete smaller behavior, or ask a human to add the size-exception label."
+  echo "Over the limit. Split the work into smaller tickets that each land on main on their own, or ask a human to add the size-exception label."
   exit 1
 fi

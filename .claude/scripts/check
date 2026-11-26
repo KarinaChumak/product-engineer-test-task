@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-# Everything CI checks.
+# Everything CI checks. The install comes first, as in CI: it fails when the lockfile is out of
+# date or a dependency has a build script that pnpm-workspace.yaml doesn't allow or deny.
+pnpm install --frozen-lockfile --reporter=silent
 pnpm -s format:check
 pnpm -s lint
 pnpm -s typecheck

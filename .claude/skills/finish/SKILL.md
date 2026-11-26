@@ -1,6 +1,6 @@
 ---
 name: finish
-description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, then pushes and opens the PR. Run it automatically when a ticket's work is done, or when the user runs /finish.
+description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, opens the PR, then fixes what CI and the CI review find. Run it automatically when a ticket's work is done, or when the user runs /finish.
 ---
 
 # Finish a ticket
@@ -14,7 +14,7 @@ For each "done when" of the ticket (or of this PR, if the ticket has several), n
 ## 2. Check and size
 
 1. Run `.claude/scripts/check` and fix what fails.
-2. Run `.claude/scripts/pr-size`. If it's over the limit, stop and propose how to split the branch into PRs that are each a complete smaller behavior. Only a human can add the `size-exception` label.
+2. Run `.claude/scripts/pr-size`. If it's over the limit, stop and propose how to split the work into smaller tickets that each land on `main` on their own. Only a human can add the `size-exception` label.
 
 Commit what you have before the review, so the reviewer sees all of it.
 
@@ -66,15 +66,25 @@ To change an earlier decision, add a new entry that says which one it supersedes
    - **Testing:** how each "done when" was proved, the `check` result, and screenshot paths.
    - **Decisions:** the new entries.
    - **Local review:** how many findings the reviewer agent reported, one line per finding that was fixed, and each one you pushed back on with the reason.
-3. Push the branch and open the PR, ready for review: `gh pr create --base main --title "<what the user can now do>" --body-file <file>`. If the branch already has a PR, update its description instead. Opening it starts the CI review, if the repo has one.
+3. Push the branch and open the PR, ready for review: `gh pr create --base main --title "<ID>: <what the PR changes>" --body-file <file>`. Keep the title to a few words a reviewer can scan, such as `T-04: Date range filter on the dashboard`, not a user story. If the branch already has a PR, update its description instead. Opening it starts the CI review, if the repo has one.
 
 Never merge the PR, and don't turn on auto-merge.
 
-## 8. Report
+## 8. Wait for CI and the CI review
+
+Don't hand the PR over while CI or the CI review can still ask for changes.
+
+1. Wait for the PR's checks to finish, the CI review among them: `gh pr checks <number> --watch`. It takes minutes, so run it in the background if you can. If the PR has no checks, skip to the report.
+2. If a check failed, read its log (`gh run view <run-id> --log-failed`), fix the cause, run `.claude/scripts/check`, commit and push.
+3. If the PR has unresolved review threads or new review comments, run the `/address-review` skill.
+4. If you pushed, wait for the checks once more and fix what fails. The CI review doesn't run again on a push, so don't wait for new comments.
+
+## 9. Report
 
 Tell the user, briefly:
 
-- The PR link.
+- The PR link, and that its checks pass.
 - What the local review found, what was fixed, and what you pushed back on.
+- What CI and the CI review flagged, and what you fixed or left open for the user.
 - Anything that changes later tickets.
-- Next: reviewers comment on the PR; when there are comments, say "address the comments" (the `/address-review` skill). After the merge, run `.claude/scripts/ticket remove <ID>` from the main checkout.
+- Next: when people comment on the PR, say "address the comments" (the `/address-review` skill). After the merge, run `.claude/scripts/ticket remove <ID>` from the main checkout.

@@ -6,6 +6,8 @@ CLAUDE.local.md
 .claude/ai-setup-pending/
 .claude/worktrees/
 .claude/ticket.env
+# The desktop app's dev-server config: written per machine, with ports that differ per worktree.
+.claude/launch.json
 node_modules/
 dist/
 coverage/
