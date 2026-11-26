@@ -7,6 +7,7 @@ export const en = {
   'job.error.server': 'Our server ran into a problem. Please try again in a moment.',
   'job.error.network': 'We couldn’t reach the server. Check your internet connection.',
   'job.error.retry': 'Try again',
+  'job.error.retrying': 'Trying again…',
 };
 
 export type MessageKey = keyof typeof en;

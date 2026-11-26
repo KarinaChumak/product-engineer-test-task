@@ -74,4 +74,29 @@ describe('QuestionnairePage', () => {
     expect(await screen.findByRole('heading', { name: 'Frontend Developer (React)' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('keeps focus on the retry button while it loads the job again', async () => {
+    const user = userEvent.setup();
+    let respond = () => {};
+    server.use(
+      http.get(
+        '/api/jobs/:id/questionnaire',
+        () => HttpResponse.json({ error: 'internal' }, { status: 500 }),
+        { once: true },
+      ),
+      http.get(
+        '/api/jobs/:id/questionnaire',
+        () => new Promise<Response>((resolve) => (respond = () => resolve(HttpResponse.json(noQuestions)))),
+      ),
+    );
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('button', { name: 'Try again' }));
+
+    const retrying = await screen.findByRole('button', { name: 'Trying again…' });
+    expect(retrying).toHaveFocus();
+    expect(retrying).toHaveAttribute('aria-disabled', 'true');
+    respond();
+    expect(await screen.findByRole('heading', { name: 'Frontend Developer (React)' })).toBeInTheDocument();
+  });
 });
