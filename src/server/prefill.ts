@@ -29,7 +29,9 @@ function accepts(question: ClientQuestion, value: AnswerValue): boolean {
     case 'select':
       return typeof value === 'string' && question.options.some((option) => option.value === value);
     case 'numeric':
-      return Number.isInteger(value) && Number(value) >= question.min && Number(value) <= question.max;
+      return (
+        typeof value === 'number' && Number.isInteger(value) && value >= question.min && value <= question.max
+      );
     default:
       return false;
   }

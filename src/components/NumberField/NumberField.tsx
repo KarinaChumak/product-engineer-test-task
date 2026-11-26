@@ -39,12 +39,11 @@ export function NumberField({
 }: NumberFieldProps) {
   const id = useId();
   const annotationId = `${id}-annotation`;
-  const format = (number: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(number);
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+  const shown = value === undefined ? '' : formatter.format(value);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
-    const shown = value === undefined ? '' : format(value);
     const caret = input.selectionStart ?? input.value.length;
     let digitsBeforeCaret = digitsIn(input.value.slice(0, caret)).length;
     let digits = digitsIn(input.value);
@@ -69,7 +68,7 @@ export function NumberField({
     }
 
     const next = digits === '' ? undefined : Number(digits);
-    const formatted = next === undefined ? '' : format(next);
+    const formatted = next === undefined ? '' : formatter.format(next);
 
     // Write the formatted text and caret now, so the caret stays after the digit just typed
     // instead of jumping to the end when separators appear or a non-digit is dropped.
@@ -98,7 +97,7 @@ export function NumberField({
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        value={value === undefined ? '' : format(value)}
+        value={shown}
         onChange={handleChange}
         required={required}
         aria-describedby={annotation ? annotationId : undefined}

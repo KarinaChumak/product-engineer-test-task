@@ -165,7 +165,7 @@ describe('QuestionnairePage', () => {
     );
     renderAt('/jobs/job-short');
 
-    const salary = await screen.findByRole('textbox', { name: 'What is your salary expectation?' });
+    const salary = await screen.findByRole('textbox', salaryQuestion);
     await user.type(salary, '95000');
 
     expect(salary).toHaveValue('95.000');
