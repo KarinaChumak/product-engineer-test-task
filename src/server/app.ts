@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
-import { toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
+import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
 import type { JobSummary } from '@/shared/questionnaire';
 
@@ -44,7 +44,8 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
       );
       return {};
     });
-    return c.json(toJobQuestionnaire(config, (message) => warn(`[${id}] ${message}`), profile));
+    const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
+    return c.json(toJobQuestionnaire(job, profile));
   });
 
   app.onError((error, c) => {
