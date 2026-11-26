@@ -6,11 +6,18 @@ import { join } from 'node:path';
 
 export type JobSource = (id: string) => Promise<unknown>;
 
-export function jobsFromDirectory(dir: string): JobSource {
+/** A file that isn't valid JSON is skipped with a warning, so it can't break the other jobs. */
+export function jobsFromDirectory(dir: string, warn: (message: string) => void): JobSource {
   return async (id) => {
     const files = (await readdir(dir)).filter((file) => file.endsWith('.json'));
     for (const file of files) {
-      const config: unknown = JSON.parse(await readFile(join(dir, file), 'utf8'));
+      let config: unknown;
+      try {
+        config = JSON.parse(await readFile(join(dir, file), 'utf8'));
+      } catch (error) {
+        warn(`Skipped ${file}: ${error instanceof Error ? error.message : String(error)}`);
+        continue;
+      }
       if (typeof config === 'object' && config !== null && 'id' in config && config.id === id) return config;
     }
     return undefined;

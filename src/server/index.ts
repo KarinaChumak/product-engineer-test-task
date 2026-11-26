@@ -5,8 +5,11 @@ import { jobsFromDirectory } from '@/server/jobs';
 const port = Number(process.env.API_PORT ?? 8787);
 
 const app = createApp({
-  loadJob: jobsFromDirectory('jobs'),
+  loadJob: jobsFromDirectory('jobs', (message) => console.warn(`jobs: ${message}`)),
   warn: (message) => console.warn(`normalize: ${message}`),
 });
 
-serve({ fetch: app.fetch, port }, () => console.log(`API listening on http://localhost:${port}`));
+// Loopback only: Vite proxies /api from localhost, and nothing else should reach the API.
+serve({ fetch: app.fetch, port, hostname: 'localhost' }, () =>
+  console.log(`API listening on http://localhost:${port}`),
+);
