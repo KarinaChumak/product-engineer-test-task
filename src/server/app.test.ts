@@ -9,7 +9,9 @@ function appWith(loadJob: JobSource) {
 
 describe('GET /api/jobs/:id/questionnaire', () => {
   it('returns job-short with its questions', async () => {
-    const response = await appWith(jobsFromDirectory('jobs')).request('/api/jobs/job-short/questionnaire');
+    const response = await appWith(jobsFromDirectory('jobs', () => {})).request(
+      '/api/jobs/job-short/questionnaire',
+    );
 
     expect(response.status).toBe(200);
     const questionnaire = (await response.json()) as JobQuestionnaire;
@@ -43,7 +45,9 @@ describe('GET /api/jobs/:id/questionnaire', () => {
   });
 
   it('returns 404 for an unknown job', async () => {
-    const response = await appWith(jobsFromDirectory('jobs')).request('/api/jobs/job-missing/questionnaire');
+    const response = await appWith(jobsFromDirectory('jobs', () => {})).request(
+      '/api/jobs/job-missing/questionnaire',
+    );
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not_found' });
