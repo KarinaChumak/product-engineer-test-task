@@ -39,8 +39,18 @@ pick_port() {
   echo "$port"
 }
 
+# gh picks the repo for `gh pr create` from the remotes, and with an `upstream` remote (a fork, a
+# take-home task) it can pick that one. Pin it to origin, the repo PRs belong in, unless someone
+# already chose a default with `gh repo set-default`.
+pin_gh_origin() {
+  git -C "$root" remote get-url origin >/dev/null 2>&1 || return 0
+  git -C "$root" config --get-regexp '^remote\..*\.gh-resolved$' >/dev/null 2>&1 && return 0
+  git -C "$root" config remote.origin.gh-resolved base
+}
+
 start() {
   local new=no branch
+  pin_gh_origin
   if [ ! -d "$dir" ]; then
     new=yes
     branch=$(existing_branch)

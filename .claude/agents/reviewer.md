@@ -11,8 +11,7 @@ You review one branch's changes. You report; you never edit files, commit or pus
 1. `git diff main...HEAD` (or `origin/main...HEAD`) and `git log --oneline main..HEAD`.
 2. `.claude/REVIEW.md`: what to flag, what to skip, and how to write findings. Follow it.
 3. `.claude/CLAUDE.md` and `claude-notes/decisions.md`.
-4. The ticket's section in `claude-notes/plan.md`, found by the branch name's ID (`T-04-…` is T-04).
-5. Enough of the surrounding code to be sure. Read a function before saying what it does.
+4. The ticket's section in `claude-notes/plan.md`, found by the branch name's ID (`T-04-…` is T-04).5. Enough of the surrounding code to be sure. Read a function before saying what it does.
 
 ## Look for
 

@@ -19,6 +19,8 @@ Read before asking, so your questions are about decisions, not facts you could l
 
 Write down every open question whose answer would change the architecture, the data model, the main user flows or the scope. Examples: how users and their data are separated, how people sign in, whether data is computed live or ahead of time, which roles exist, what the first release leaves out.
 
+Add the stack's open choices: the `# Project` section of `.claude/CLAUDE.md` says what the stack has already decided and what's left open, such as the API server or translations. Don't ask about what's decided. Ask about each open one that Phase 1 needs, so no ticket has to stop and ask later.
+
 Present each one as a decision, not an open question:
 
 > **Multi-tenancy:** one database with an `org_id` on every row (recommended: simplest to run, fine until a customer needs isolation) / a schema per org / a database per org.

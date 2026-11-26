@@ -1,6 +1,6 @@
 {
   "template": "ai-repo-template",
-  "template_commit": "9449f31",
+  "template_commit": "0a69b6b",
   "stack": "react-vite",
   "mode": "solo",
   "notes": "in-repo",

@@ -11,6 +11,9 @@ Read by every reviewer of this repo: `/code-review`, the `reviewer` subagent, an
 ## Flag
 
 - Missing loading, empty, and error states for anything that fetches.
+- A hook that wraps a TanStack Query result in a status type of its own instead of returning it.
+- A generic component in `src/components/` with product words in its name or props.
+- Styling outside `src/components/`: CSS files, `className` or HTML elements in a page or feature.
 - `useEffect` used to derive state from props or other state.
 - Unstable keys (`key={index}` on lists that reorder), missing effect cleanup.
 - Accessibility regressions: interactive elements without an accessible name, click handlers on non-interactive elements, color as the only signal.
@@ -23,12 +26,12 @@ Read by every reviewer of this repo: `/code-review`, the `reviewer` subagent, an
 - Types, translation keys or helpers added without the behavior that uses them, or UI added without its keys and tests.
 - Tests that assert implementation details instead of behavior.
 - Errors swallowed in a `catch` without being handled or reported.
+- Names that don't say exactly what the thing is or does: a function without a specific verb, a generic noun (`data`, `item`, `info`), or a name for a vaguer or bigger thing than the code handles. Suggest the name.
 
 ## Skip
 
 - Formatting and import order. The formatter and linter own them.
 - Lockfiles and generated files.
-- Naming preferences unless the name is misleading.
 
 ## Rules for findings
 

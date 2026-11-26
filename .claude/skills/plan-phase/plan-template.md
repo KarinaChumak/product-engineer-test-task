@@ -18,6 +18,5 @@ Lanes: T-01, then T-02 ‖ T-03.
   - <checkable: a test or a screenshot can prove it>
 - Touches: <folders or modules>
 - Size: ~<n> lines
-- PRs: one
 - After: none
 - Branch: none yet

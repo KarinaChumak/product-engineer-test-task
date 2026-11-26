@@ -33,9 +33,10 @@ In the ticket's section, set `Status: in progress` and `Branch: <branch>`. If th
 
 ## 5. Propose, then build
 
-- Propose the approach in a few lines: what changes in which files, how each "done when" will be proved, and the PR split if the ticket has more than one. Wait for the user's approval.
+- Propose the approach in a few lines: what changes in which files, with an estimate of changed lines per file, how each "done when" will be proved, the names of new modules, components, hooks and functions (each saying exactly what it is or does), and any dependency you'll add. Wait for the user's approval.
+- If the estimate is over the ticket's `Size`, or over 300 lines, don't build it as one PR. Propose splitting it into smaller tickets in `plan.md`, each a complete behavior, and build only the first.
 - Questions that only affect this ticket: decide, and mention the choice in the proposal. Questions that affect other tickets: ask, since they become entries in `claude-notes/decisions.md`.
-- Build in small commits. Keep each PR a complete slice of behavior, with its types, copy, keys and tests, under 500 changed lines.
+- Build in small commits, with the types, copy, keys and tests of each behavior. Run `.claude/scripts/pr-size` after each commit. Past 400 lines, stop and tell the user before going on.
 
 ## 6. Finish
 
