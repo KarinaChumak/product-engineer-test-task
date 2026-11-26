@@ -11,7 +11,7 @@ Given a component name in PascalCase, create under `src/components/<Name>/`:
 3. `<Name>.test.tsx`: a Testing Library test that renders the component and asserts on what the user sees, queried by role.
 4. `index.ts`: re-exports the component and its props type.
 
-The component is generic. Pick the name a design system would use (Badge, Header, Dialog), and give props UI names (`hint`, `tone`, `label`), never product words from the glossary. Check `src/components/` first: extending an existing component with a prop is often better than a new one.
+The component is generic. Pick the name a design system would use (Badge, Header, Dialog), and give props UI names (`hint`, `tone`, `label`), never product words. Check `src/components/` first: extending an existing component with a prop is often better than a new one.
 
 Follow `src/components/Tag/` as the reference. Import with the `@/components/...` alias.
 

@@ -46,8 +46,7 @@ These scripts are the entry points in this repo. Use them instead of calling the
 # Conventions
 
 - Decisions that affect more than one ticket are in `claude-notes/decisions.md`. Read it before proposing an approach. To change a decision, add a new entry at the end that says which one it supersedes; don't edit old entries.
-- Name code after the glossary in `claude-notes/product.md`, so the code calls things what the product calls them. A term that isn't there yet goes into the glossary first.
-- Function names start with a verb (`getBrowserLanguage`, not `browserLanguage`), and booleans read as a yes/no question (`isOpen`, `hasPrefill`).
+- A name says exactly what the thing is or does. A function is a specific verb plus the specific thing it acts on: `getJobQuestionnaire`, `setDraftAnswer`, `clearDraft`, not `job()`, `getData()` or `handleChange()`. Name the thing itself, not its container or a vaguer word (`useJobQuestionnaire` when it loads a job's questions, not `useJob`), and use the same word for it everywhere. Booleans read as a yes/no question (`isOpen`, `hasPrefill`).
 - Edit files with the Edit and Write tools, never with a script (Python, Perl, Node or `sed -i`): the user reviews each edit, and a script can do anything.
 - Open pull requests, never merge them. A human merges.
 - Components live in `src/components/<Name>/` with `<Name>.tsx`, `<Name>.module.css`, `<Name>.test.tsx` and `index.ts`. Use `/scaffold-component` to create one.

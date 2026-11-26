@@ -3,7 +3,6 @@ paths:
   - 'src/app/**'
 ---
 
-- Name files, components and hooks after the glossary in `claude-notes/product.md`.
 - Compose components from `src/components/`. No HTML elements, CSS or `className` here; ESLint and `src/test/conventions.test.ts` enforce it. A missing look is a new prop or component in `src/components/`.
 - Request functions live in `src/app/api.ts`. Each query has a `use<Thing>` hook in `src/app` that returns the `useQuery` result unchanged, as `useJobs` does:
 

@@ -26,7 +26,7 @@ Read by every reviewer of this repo: `/code-review`, the `reviewer` subagent, an
 - Types, translation keys or helpers added without the behavior that uses them, or UI added without its keys and tests.
 - Tests that assert implementation details instead of behavior.
 - Errors swallowed in a `catch` without being handled or reported.
-- Names that don't use the glossary in `claude-notes/product.md`, or that break the naming rules in `.claude/CLAUDE.md`. Suggest the name.
+- Names that don't say exactly what the thing is or does: a function without a specific verb, a generic noun (`data`, `item`, `info`), or a name for a vaguer or bigger thing than the code handles. Suggest the name.
 
 ## Skip
 
