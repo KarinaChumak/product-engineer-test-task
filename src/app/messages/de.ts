@@ -13,4 +13,7 @@ export const de: Record<MessageKey, string> = {
   'job.error.network': 'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung.',
   'job.error.retry': 'Erneut versuchen',
   'job.error.retrying': 'Wird erneut versucht…',
+  'jobSwitcher.nav': 'Jobs',
+  'jobSwitcher.label': 'Job wechseln',
+  'jobSwitcher.placeholder': 'Job auswählen',
 };

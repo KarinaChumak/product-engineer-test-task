@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
+import { jobListHandler } from '@/test/jobs';
 import { renderAt } from '@/test/render';
 import { server } from '@/test/server';
 
@@ -11,6 +12,8 @@ function serveJob(id: string) {
     ),
   );
 }
+
+beforeEach(() => server.use(jobListHandler()));
 
 describe('routes', () => {
   it('opens job-short at /', async () => {

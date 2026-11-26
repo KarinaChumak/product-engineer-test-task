@@ -9,6 +9,23 @@ const options = [
   { label: '3 months', value: '3_months' },
 ];
 
+describe('Select with a hidden label', () => {
+  it('still names the select by its label', () => {
+    render(
+      <Select
+        label="Switch job"
+        labelHidden
+        options={options}
+        value="1_month"
+        onValueChange={() => {}}
+        placeholder="Choose a job"
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Switch job' })).toHaveTextContent('1 month');
+  });
+});
+
 function ControlledSelect({
   initial,
   required = true,

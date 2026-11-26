@@ -17,6 +17,8 @@ export interface SelectProps {
   required?: boolean;
   /** Shown next to the label and read as the field's description, such as a tag. */
   annotation?: ReactNode;
+  /** Keep the label for screen readers only, for a compact select whose options say what it's for. */
+  labelHidden?: boolean;
 }
 
 export function Select({
@@ -27,6 +29,7 @@ export function Select({
   placeholder,
   required = false,
   annotation,
+  labelHidden = false,
 }: SelectProps) {
   const id = useId();
   const labelId = `${id}-label`;
@@ -34,7 +37,7 @@ export function Select({
 
   return (
     <div className={styles.field}>
-      <div className={styles.header}>
+      <div className={labelHidden ? styles.visuallyHidden : styles.header}>
         <span id={labelId} className={styles.label}>
           {label}
           {required && (

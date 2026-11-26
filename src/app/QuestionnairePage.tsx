@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
 import { useParams } from 'react-router';
 import { NotFoundError } from '@/app/api';
+import { JobSwitcher } from '@/app/JobSwitcher';
 import { getBrowserLanguage, messages } from '@/app/messages';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
 import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
@@ -20,7 +22,8 @@ import type { AnswerValue, JobQuestionnaire } from '@/shared/questionnaire';
 /** The page at `/jobs/:jobId`: the questionnaire of that job. */
 export function QuestionnairePage() {
   const { jobId } = useParams();
-  return jobId ? <QuestionnaireView jobId={jobId} /> : <NotFoundPage />;
+  // Keyed by job, so switching jobs starts from fresh answers instead of the last job's.
+  return jobId ? <QuestionnaireView key={jobId} jobId={jobId} /> : <NotFoundPage />;
 }
 
 function QuestionnaireView({ jobId }: { jobId: string }) {
@@ -31,8 +34,11 @@ function QuestionnaireView({ jobId }: { jobId: string }) {
 
   return (
     <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
+      <JobSwitcher currentJobId={jobId} />
       <Page>
-        <QuestionnaireContent query={query} />
+        <Card>
+          <QuestionnaireContent query={query} />
+        </Card>
       </Page>
     </IntlProvider>
   );

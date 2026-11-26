@@ -6,6 +6,7 @@
   --space-6: 24px;
   --space-8: 32px;
   --radius-2: 6px;
+  --radius-3: 12px;
   --radius-pill: 999px;
   --touch-target: 44px;
   --page-width: 720px;
@@ -19,6 +20,8 @@
   --color-text: #1a1a1a;
   --color-text-muted: #5f6368;
   --color-border: #767676;
+  /* The lightest grey that keeps a field's outline at 3:1 against the card (WCAG 1.4.11). */
+  --color-field-border: #949494;
   --color-line: #d3d4d6;
   --color-accent: #5e2f82;
   --color-on-accent: #ffffff;
@@ -26,6 +29,7 @@
   --color-on-accent-soft: #5e2f82;
   --color-focus: #5e2f82;
   --shadow-popover: 0 4px 16px rgb(0 0 0 / 12%);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 4%), 0 8px 24px rgb(0 0 0 / 6%);
 
   color-scheme: light dark;
   font-family: system-ui, sans-serif;
@@ -39,6 +43,7 @@
     --color-text: #f0f0f0;
     --color-text-muted: #a8a8ad;
     --color-border: #8a8a8a;
+    --color-field-border: #646464;
     --color-line: #3a3a3e;
     --color-accent: #d0a8f5;
     --color-on-accent: #1a0d26;
@@ -46,6 +51,7 @@
     --color-on-accent-soft: #e2bdff;
     --color-focus: #d0a8f5;
     --shadow-popover: 0 4px 16px rgb(0 0 0 / 50%);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 40%);
   }
 }
 
@@ -58,6 +64,6 @@
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--color-surface);
   color: var(--color-text);
 }
