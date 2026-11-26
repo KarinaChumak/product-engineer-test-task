@@ -39,26 +39,12 @@ function QuestionnaireView({ jobId }: { jobId: string }) {
 }
 
 function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnaire> }) {
-  // After a failure, "Try again" shows the loading state until the refetch settles.
-  if (query.isPending || (query.isError && query.isFetching)) {
-    return <Skeleton label={<FormattedMessage id="job.loading" />} />;
-  }
-  if (query.isError) {
+  // A failed query that refetches goes back to pending, so a failure before means it's retrying.
+  const failedBefore = query.errorUpdatedAt > 0;
+  if (query.isPending && !failedBefore) return <Skeleton label={<FormattedMessage id="job.loading" />} />;
+  if (query.isError || query.isPending) {
     if (query.error instanceof NotFoundError) return <JobNotFound />;
-    // fetch rejects with a TypeError when the server can't be reached at all.
-    const reason = query.error instanceof TypeError ? 'job.error.network' : 'job.error.server';
-    return (
-      <Notice
-        role="alert"
-        title={<FormattedMessage id="job.error.title" />}
-        description={<FormattedMessage id={reason} />}
-        action={
-          <Button onClick={() => void query.refetch()}>
-            <FormattedMessage id="job.error.retry" />
-          </Button>
-        }
-      />
-    );
+    return <LoadError error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />;
   }
   return <QuestionList questionnaire={query.data} />;
 }
@@ -90,5 +76,33 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
         </Stack>
       )}
     </>
+  );
+}
+
+interface LoadErrorProps {
+  /** `null` while retrying: React Query clears the error, so the last one stays on screen. */
+  error: Error | null;
+  retrying: boolean;
+  onRetry: () => void;
+}
+
+function LoadError({ error, retrying, onRetry }: LoadErrorProps) {
+  const [shown, setShown] = useState(error);
+  if (error && error !== shown) setShown(error);
+  // fetch rejects with a TypeError when the server can't be reached at all.
+  const reason = shown instanceof TypeError ? 'job.error.network' : 'job.error.server';
+
+  return (
+    <Notice
+      role="alert"
+      title={<FormattedMessage id="job.error.title" />}
+      description={<FormattedMessage id={reason} />}
+      action={
+        // aria-disabled, not disabled, so the button keeps focus while it retries.
+        <Button aria-disabled={retrying} onClick={() => !retrying && onRetry()}>
+          <FormattedMessage id={retrying ? 'job.error.retrying' : 'job.error.retry'} />
+        </Button>
+      }
+    />
   );
 }
