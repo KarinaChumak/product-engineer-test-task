@@ -7,10 +7,29 @@ import type {
   SelectOption,
 } from '@/shared/questionnaire';
 
-// Turns a recruiter's config into the candidate's questionnaire, field by field, so screening rules (`must_be_*`)
-// never leave the server. A skeleton: Phase 2 adds the remaining types and the full set of repairs.
+// Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
+// question: today its profile field. The candidate's questionnaire is read from that `Job`, and so will
+// T-04's answer checks and screening, so they agree on every repair. Server-only data lives beside each
+// client question, never inside it, so it can't leave the server.
+// A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
 export type Warn = (message: string) => void;
+
+/** A question as the server knows it. `client` is what the candidate sees, and nothing else is sent. */
+export interface JobQuestion {
+  client: ClientQuestion;
+  /** The profile field to prefill the answer from. */
+  profileField?: string;
+}
+
+/** A job config after its repairs. Server-only: send `toJobQuestionnaire(job)` instead. */
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  language?: Language;
+  questions: JobQuestion[];
+}
 
 type Raw = Record<string, unknown>;
 
@@ -79,11 +98,8 @@ export function toJobSummary(raw: unknown): JobSummary | undefined {
   return { id, title: asString(raw.title) || id, company: asString(raw.company) ?? '' };
 }
 
-/**
- * Turns a job config into the questionnaire the candidate sees. With a `profile`, each question
- * with a `profile_field` gets its `prefill` from it.
- */
-export function toJobQuestionnaire(raw: unknown, warn: Warn, profile: Profile = {}): JobQuestionnaire {
+/** Parses a job config and repairs it, warning about each repair. Throws when the config isn't an object. */
+export function parseJob(raw: unknown, warn: Warn): Job {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
   const language = toLanguage(raw.language, warn);
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
@@ -95,11 +111,27 @@ export function toJobQuestionnaire(raw: unknown, warn: Warn, profile: Profile = 
     ...(language && { language }),
     questions: questions.flatMap((question) => {
       if (!isRecord(question)) return [];
-      const normalized = normalizeQuestion(question, warn);
-      if (!normalized) return [];
-      const field = asString(question.profile_field);
-      const prefill = field === undefined ? undefined : prefillFor(normalized, field, profile);
-      return [prefill === undefined ? normalized : { ...normalized, prefill }];
+      const client = normalizeQuestion(question, warn);
+      if (!client) return [];
+      const profileField = asString(question.profile_field);
+      return [{ client, ...(profileField && { profileField }) }];
+    }),
+  };
+}
+
+/**
+ * The questionnaire the candidate sees: only each question's `client` part. With a `profile`, each
+ * question with a profile field gets its `prefill` from it.
+ */
+export function toJobQuestionnaire(job: Job, profile: Profile = {}): JobQuestionnaire {
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company,
+    ...(job.language && { language: job.language }),
+    questions: job.questions.map(({ client, profileField }) => {
+      const prefill = profileField === undefined ? undefined : prefillFor(client, profileField, profile);
+      return prefill === undefined ? client : { ...client, prefill };
     }),
   };
 }
