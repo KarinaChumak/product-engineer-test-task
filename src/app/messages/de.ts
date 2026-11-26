@@ -12,4 +12,5 @@ export const de: Record<MessageKey, string> = {
   'job.error.server': 'Auf unserem Server ist ein Fehler aufgetreten. Versuche es gleich noch einmal.',
   'job.error.network': 'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung.',
   'job.error.retry': 'Erneut versuchen',
+  'job.error.retrying': 'Wird erneut versucht…',
 };
