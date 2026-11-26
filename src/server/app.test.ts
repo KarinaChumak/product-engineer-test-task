@@ -12,7 +12,9 @@ function appWith(loadJob: JobSource, loadProfile = realProfile) {
 
 describe('GET /api/jobs/:id/questionnaire', () => {
   it('returns job-short with notice_period prefilled from the profile', async () => {
-    const response = await appWith(jobsFromDirectory('jobs')).request('/api/jobs/job-short/questionnaire');
+    const response = await appWith(jobsFromDirectory('jobs', () => {})).request(
+      '/api/jobs/job-short/questionnaire',
+    );
 
     expect(response.status).toBe(200);
     const job = (await response.json()) as JobQuestionnaire;
@@ -48,16 +50,21 @@ describe('GET /api/jobs/:id/questionnaire', () => {
   });
 
   it('does not prefill a profile value that is not one of the options', async () => {
-    const response = await appWith(jobsFromDirectory('jobs'), async () => ({
-      notice_period: 'never',
-    })).request('/api/jobs/job-short/questionnaire');
+    const response = await appWith(
+      jobsFromDirectory('jobs', () => {}),
+      async () => ({
+        notice_period: 'never',
+      }),
+    ).request('/api/jobs/job-short/questionnaire');
 
     const job = (await response.json()) as JobQuestionnaire;
     expect(job.questions.find((q) => q.id === 'notice_period')).not.toHaveProperty('prefill');
   });
 
   it('returns 404 for an unknown job', async () => {
-    const response = await appWith(jobsFromDirectory('jobs')).request('/api/jobs/job-missing/questionnaire');
+    const response = await appWith(jobsFromDirectory('jobs', () => {})).request(
+      '/api/jobs/job-missing/questionnaire',
+    );
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not_found' });
