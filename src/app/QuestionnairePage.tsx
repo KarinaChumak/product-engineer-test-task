@@ -6,6 +6,7 @@ import { useParams } from 'react-router';
 import { NotFoundError } from '@/app/api';
 import { getBrowserLanguage, messages } from '@/app/messages';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
+import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -13,7 +14,8 @@ import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
 import { PageHeader } from '@/components/PageHeader';
 import { Skeleton } from '@/components/Skeleton';
-import type { JobQuestionnaire } from '@/shared/questionnaire';
+import { Stack } from '@/components/Stack';
+import type { AnswerValue, JobQuestionnaire } from '@/shared/questionnaire';
 
 /** The page at `/jobs/:jobId`: the questionnaire of that job. */
 export function QuestionnairePage() {
@@ -44,13 +46,34 @@ function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnair
     if (query.error instanceof NotFoundError) return <JobNotFound />;
     return <LoadError error={query.error} retrying={query.isFetching} onRetry={() => void query.refetch()} />;
   }
+  return <QuestionList questionnaire={query.data} />;
+}
+
+function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const shown = questionnaire.questions.flatMap((question) => {
+    const Component = getQuestionComponent(question);
+    return Component ? [{ question, Component }] : [];
+  });
+
   return (
     <>
-      <PageHeader eyebrow={query.data.company} title={query.data.title} />
-      {query.data.questions.length === 0 && (
+      <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
+      {shown.length === 0 ? (
         <EmptyState icon={<ClipboardList aria-hidden="true" />}>
           <FormattedMessage id="job.noQuestions" />
         </EmptyState>
+      ) : (
+        <Stack gap={6}>
+          {shown.map(({ question, Component }) => (
+            <Component
+              key={question.id}
+              question={question}
+              value={answers[question.id]}
+              onChange={(next) => setAnswers((current) => ({ ...current, [question.id]: next }))}
+            />
+          ))}
+        </Stack>
       )}
     </>
   );
