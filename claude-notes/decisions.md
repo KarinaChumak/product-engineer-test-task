@@ -49,3 +49,11 @@ There's no sign-in. The server treats `profile.json` (`talent-4711`) as the curr
 ## Kickoff: Styling follows Instaffo's current stack
 
 Supersedes "Styling with CSS Modules and Radix primitives" only to record where it comes from. The decision itself is unchanged. CSS Modules and Radix are what Instaffo uses today: its class names (`index-module__variant_body-m__…`) come from CSS Modules, and the page carries Radix's `data-radix-collection-item` attributes. Lucide and Geist are free stand-ins. Instaffo uses Font Awesome 6 Pro (Duotone, Thin, Sharp) and Aeonik Pro, which are paid and can't be shipped in this repo. Why: the candidate flow should look and behave like Instaffo's. Rejected: the free tier of Font Awesome (it lacks the Pro styles, so it wouldn't match either).
+
+## T-01: The client fetches a job's questionnaire
+
+The client asks for the questions a job asks, not the job itself, so the names say so: `GET /api/jobs/:id/questionnaire` returns a `JobQuestionnaire` (`src/shared/questionnaire.ts`), built on the server by `toJobQuestionnaire`. The client reads it through `useJobQuestionnaire`, and `QuestionnairePage` renders it. The questionnaire still carries the job's title, company and language to show the questions in. Later endpoints about a job (applications, completion status) stay under `/api/jobs/:id/…`. Why: "job" names the recruiter's whole config, which the client never sees. Rejected: `GET /api/jobs/:id` with a `ClientJob` type.
+
+## T-01: The UI falls back to the browser language
+
+Supersedes "UI copy with react-intl" only for where the locale comes from. The locale is the job's `language` when it is `de` or `en`. When the job has none, or one the app doesn't support, `JobQuestionnaire.language` is left unset and the UI uses the browser's language. An unsupported value is logged as a warning. Why: a job without a language says nothing about the candidate, and the browser does. Rejected: defaulting to `en`, which hides typos like `"DE"` in a job config.
