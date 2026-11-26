@@ -19,7 +19,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-01 Open job-short and answer the notice-period question, prefilled from the profile
 
-- Status: in progress
+- Status: in review
 - Done when:
   - `GET /api/jobs/job-short/questionnaire` returns the questionnaire with every screening rule removed, and with `notice_period` prefilled from `profile.json` (test)
   - An unknown job ID returns 404, and the page shows a "job not found" state (test)
@@ -32,11 +32,12 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - PRs: five
   - (1) `GET /api/jobs/:id/questionnaire` returns the job's questionnaire with every screening rule removed, and 404 for an unknown ID; `.claude/scripts/dev` starts the API next to Vite
   - (2) The page shows the job's title, a loading skeleton, "job not found" and a plain error; TanStack Query, react-intl, MSW in tests, and the layout components (screens define no CSS)
-  - (3) A failed load says what happened and offers "Try again", which refetches; a path that names no job shows "job not found"
+  - (3) A failed load says what happened and offers "Try again", which refetches; a job without questions says so; React Router serves `/jobs/:jobId`, and a path that names no job shows "job not found"
   - (4) Answer the notice-period select with its options as written, by mouse or keyboard; types not supported yet aren't rendered
   - (5) The notice period is prefilled from the profile and marked "from your profile" until the candidate picks another option
 - After: none
 - Branch: T-01-api, T-01a-open-job, T-01b-load-errors, T-01c-notice-period, T-01d-profile-prefill
+- Outcome: `GET /api/jobs/:id/questionnaire` serves the job's questionnaire with profile prefills. `QuestionnairePage` at `/jobs/:jobId` loads it with TanStack Query, shows a skeleton, "not found", an empty state and errors with "Try again", and renders questions through `getQuestionComponent` (select only). Later tickets: add a map entry and an adapter per type, style only inside `src/components`, mock the network in tests with MSW (`@/test/server`); any console warning or error fails a test. T-02 and T-05 still name `GET /api/jobs/…` for the questionnaire and need the `/questionnaire` path.
 
 ### T-02 Answer the salary question in a number field, prefilled from the profile
 

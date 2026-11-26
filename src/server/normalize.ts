@@ -1,3 +1,4 @@
+import { prefillFor, type Profile } from '@/server/prefill';
 import type { ClientQuestion, JobQuestionnaire, Language, SelectOption } from '@/shared/questionnaire';
 
 // Turns a recruiter's config into the candidate's questionnaire, field by field, so screening rules (`must_be_*`)
@@ -57,8 +58,11 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
   }
 }
 
-/** Turns a job config into the questionnaire the candidate sees. */
-export function toJobQuestionnaire(raw: unknown, warn: Warn): JobQuestionnaire {
+/**
+ * Turns a job config into the questionnaire the candidate sees. With a `profile`, each question
+ * with a `profile_field` gets its `prefill` from it.
+ */
+export function toJobQuestionnaire(raw: unknown, warn: Warn, profile: Profile = {}): JobQuestionnaire {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
   const language: Language = raw.language === 'de' ? 'de' : 'en';
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
@@ -69,8 +73,12 @@ export function toJobQuestionnaire(raw: unknown, warn: Warn): JobQuestionnaire {
     company: asString(raw.company) ?? '',
     language,
     questions: questions.flatMap((question) => {
-      const normalized = isRecord(question) ? normalizeQuestion(question, warn) : undefined;
-      return normalized ? [normalized] : [];
+      if (!isRecord(question)) return [];
+      const normalized = normalizeQuestion(question, warn);
+      if (!normalized) return [];
+      const field = asString(question.profile_field);
+      const prefill = field === undefined ? undefined : prefillFor(normalized, field, profile);
+      return [prefill === undefined ? normalized : { ...normalized, prefill }];
     }),
   };
 }

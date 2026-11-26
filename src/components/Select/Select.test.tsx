@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Select } from '@/components/Select';
 
 const options = [
@@ -9,7 +9,15 @@ const options = [
   { label: '3 months', value: '3_months' },
 ];
 
-function ControlledSelect({ initial, required = true }: { initial?: string; required?: boolean }) {
+function ControlledSelect({
+  initial,
+  required = true,
+  annotation,
+}: {
+  initial?: string;
+  required?: boolean;
+  annotation?: ReactNode;
+}) {
   const [value, setValue] = useState(initial);
   return (
     <Select
@@ -19,6 +27,7 @@ function ControlledSelect({ initial, required = true }: { initial?: string; requ
       onValueChange={setValue}
       placeholder="Choose an option"
       required={required}
+      annotation={annotation}
     />
   );
 }
@@ -56,6 +65,14 @@ describe('Select', () => {
       '1 month',
       '3 months',
     ]);
+  });
+
+  it('shows the annotation and describes the field with it', () => {
+    render(<ControlledSelect initial="3_months" annotation="From your profile" />);
+
+    const combobox = screen.getByRole('combobox', { name: 'What is your notice period?' });
+    expect(combobox).toHaveTextContent('3 months');
+    expect(combobox).toHaveAccessibleDescription('From your profile');
   });
 
   it('picks another option by mouse', async () => {

@@ -5,8 +5,6 @@ import { renderAt } from '@/test/render';
 import { server } from '@/test/server';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
 
-const anyJob = '/api/jobs/:id/questionnaire';
-
 const noQuestions: JobQuestionnaire = {
   id: 'job-short',
   title: 'Frontend Developer (React)',
@@ -48,9 +46,16 @@ const questionnaire: JobQuestionnaire = {
   ],
 };
 
+const prefilledQuestionnaire: JobQuestionnaire = {
+  ...questionnaire,
+  questions: questionnaire.questions.map((question) =>
+    question.id === 'notice_period' ? { ...question, prefill: '3_months' } : question,
+  ),
+};
+
 describe('QuestionnairePage', () => {
-  it('shows a loading state while the questionnaire loads', () => {
-    server.use(http.get(anyJob, () => delay('infinite')));
+  it('shows a loading state while the job loads', () => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => delay('infinite')));
     renderAt('/jobs/job-short');
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading the job…');
@@ -66,7 +71,7 @@ describe('QuestionnairePage', () => {
 
   it('shows the notice-period select with its options as written', async () => {
     const user = userEvent.setup();
-    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
     await user.click(await screen.findByRole('combobox', { name: 'What is your notice period?' }));
@@ -80,7 +85,7 @@ describe('QuestionnairePage', () => {
 
   it('keeps the option the candidate picks', async () => {
     const user = userEvent.setup();
-    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
     await user.click(await screen.findByRole('combobox'));
@@ -89,8 +94,53 @@ describe('QuestionnairePage', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
   });
 
+  it('marks the prefilled answer as from your profile, in English for an English job', async () => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    const select = await screen.findByRole('combobox', { name: 'What is your notice period?' });
+    expect(select).toHaveTextContent('3 months');
+    expect(select).toHaveAccessibleDescription('From your profile');
+  });
+
+  it('shows the UI copy in German for a German job', async () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ ...prefilledQuestionnaire, language: 'de' }),
+      ),
+    );
+    renderAt('/jobs/job-short');
+
+    expect(await screen.findByRole('combobox')).toHaveAccessibleDescription('Aus deinem Profil');
+  });
+
+  it('drops the profile mark when the candidate picks another option', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
+    expect(screen.queryByText('From your profile')).not.toBeInTheDocument();
+  });
+
+  it('marks the answer as from your profile again when the candidate picks the profile value back', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: '3 months' }));
+
+    expect(screen.getByRole('combobox')).toHaveAccessibleDescription('From your profile');
+  });
+
   it('does not render question types that are not supported yet', async () => {
-    server.use(http.get(anyJob, () => HttpResponse.json(questionnaire)));
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox');
@@ -99,21 +149,29 @@ describe('QuestionnairePage', () => {
   });
 
   it('says so when the job has no questions to answer', async () => {
-    server.use(http.get(anyJob, () => HttpResponse.json(noQuestions)));
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(noQuestions)));
     renderAt('/jobs/job-short');
 
     expect(await screen.findByText('This job has no questions for you to answer.')).toBeInTheDocument();
   });
 
   it('shows a job-not-found state for an unknown job', async () => {
-    server.use(http.get(anyJob, () => HttpResponse.json({ error: 'not_found' }, { status: 404 })));
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ error: 'not_found' }, { status: 404 }),
+      ),
+    );
     renderAt('/jobs/job-missing');
 
     expect(await screen.findByRole('heading', { name: 'Job not found' })).toBeInTheDocument();
   });
 
-  it('says the server had a problem when the questionnaire fails with a 500', async () => {
-    server.use(http.get(anyJob, () => HttpResponse.json({ error: 'internal' }, { status: 500 })));
+  it('says the server had a problem when the job fails with a 500', async () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ error: 'internal' }, { status: 500 }),
+      ),
+    );
     renderAt('/jobs/job-short');
 
     const alert = await screen.findByRole('alert');
@@ -122,17 +180,23 @@ describe('QuestionnairePage', () => {
   });
 
   it('says the server could not be reached on a network error', async () => {
-    server.use(http.get(anyJob, () => HttpResponse.error()));
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.error()));
     renderAt('/jobs/job-short');
 
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t reach the server.');
   });
 
-  it('loads the questionnaire again on "Try again"', async () => {
+  it('loads the job again on "Try again"', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get(anyJob, () => HttpResponse.json({ error: 'internal' }, { status: 500 }), { once: true }),
-      http.get(anyJob, () => HttpResponse.json(noQuestions)),
+      http.get(
+        '/api/jobs/:id/questionnaire',
+        () => HttpResponse.json({ error: 'internal' }, { status: 500 }),
+        {
+          once: true,
+        },
+      ),
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(noQuestions)),
     );
     renderAt('/jobs/job-short');
 

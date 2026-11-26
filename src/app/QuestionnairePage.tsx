@@ -64,7 +64,8 @@ function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnair
 }
 
 function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
-  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  // Only the answers the candidate changed; the rest fall back to the profile prefill.
+  const [changed, setChanged] = useState<Record<string, AnswerValue>>({});
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
     return Component ? [{ question, Component }] : [];
@@ -79,14 +80,18 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
         </EmptyState>
       ) : (
         <Stack gap={6}>
-          {shown.map(({ question, Component }) => (
-            <Component
-              key={question.id}
-              question={question}
-              value={answers[question.id]}
-              onChange={(next) => setAnswers((current) => ({ ...current, [question.id]: next }))}
-            />
-          ))}
+          {shown.map(({ question, Component }) => {
+            const value = changed[question.id] ?? question.prefill;
+            return (
+              <Component
+                key={question.id}
+                question={question}
+                value={value}
+                onChange={(next) => setChanged((answers) => ({ ...answers, [question.id]: next }))}
+                fromProfile={question.prefill !== undefined && value === question.prefill}
+              />
+            );
+          })}
         </Stack>
       )}
     </>

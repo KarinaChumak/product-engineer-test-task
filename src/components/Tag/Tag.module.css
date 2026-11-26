@@ -1,0 +1,19 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-on-accent-soft);
+  font-size: var(--font-size-s);
+}
+
+.icon {
+  display: inline-flex;
+}
+
+.icon svg {
+  width: var(--icon-s);
+  height: var(--icon-s);
+}

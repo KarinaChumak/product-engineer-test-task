@@ -1,6 +1,6 @@
 import * as RadixSelect from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import styles from './Select.module.css';
 
 export interface SelectOption {
@@ -15,10 +15,22 @@ export interface SelectProps {
   onValueChange: (value: string) => void;
   placeholder: string;
   required?: boolean;
+  /** Shown next to the label and read as the field's description, such as a tag. */
+  annotation?: ReactNode;
 }
 
-export function Select({ label, options, value, onValueChange, placeholder, required = false }: SelectProps) {
-  const labelId = `${useId()}-label`;
+export function Select({
+  label,
+  options,
+  value,
+  onValueChange,
+  placeholder,
+  required = false,
+  annotation,
+}: SelectProps) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const annotationId = `${id}-annotation`;
 
   return (
     <div className={styles.field}>
@@ -31,9 +43,14 @@ export function Select({ label, options, value, onValueChange, placeholder, requ
             </span>
           )}
         </span>
+        {annotation && <span id={annotationId}>{annotation}</span>}
       </div>
       <RadixSelect.Root value={value ?? ''} onValueChange={onValueChange} required={required}>
-        <RadixSelect.Trigger className={styles.trigger} aria-labelledby={labelId}>
+        <RadixSelect.Trigger
+          className={styles.trigger}
+          aria-labelledby={labelId}
+          aria-describedby={annotation ? annotationId : undefined}
+        >
           <RadixSelect.Value placeholder={placeholder} />
           <RadixSelect.Icon className={styles.chevron}>
             <ChevronDown aria-hidden="true" />
