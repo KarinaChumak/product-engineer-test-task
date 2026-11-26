@@ -1,0 +1,25 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--color-accent);
+}
+
+.icon svg {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.text {
+  margin: 0;
+}
