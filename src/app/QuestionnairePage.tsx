@@ -22,8 +22,7 @@ import type { AnswerValue, JobQuestionnaire } from '@/shared/questionnaire';
 /** The page at `/jobs/:jobId`: the questionnaire of that job. */
 export function QuestionnairePage() {
   const { jobId } = useParams();
-  // Keyed by job, so switching jobs starts from fresh answers instead of the last job's.
-  return jobId ? <QuestionnaireView key={jobId} jobId={jobId} /> : <NotFoundPage />;
+  return jobId ? <QuestionnaireView jobId={jobId} /> : <NotFoundPage />;
 }
 
 function QuestionnaireView({ jobId }: { jobId: string }) {
@@ -37,7 +36,8 @@ function QuestionnaireView({ jobId }: { jobId: string }) {
       <JobSwitcher currentJobId={jobId} />
       <Page>
         <Card>
-          <QuestionnaireContent query={query} />
+          {/* Keyed by job, so switching jobs starts from fresh answers, while the switcher above keeps focus. */}
+          <QuestionnaireContent key={jobId} query={query} />
         </Card>
       </Page>
     </IntlProvider>

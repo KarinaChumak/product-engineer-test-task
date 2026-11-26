@@ -107,6 +107,20 @@ describe('JobSwitcher', () => {
     expect(await screen.findByRole('heading', { name: 'Title of job-long' })).toBeInTheDocument();
   });
 
+  it('keeps keyboard focus on the switcher after it opens another job', async () => {
+    const user = userEvent.setup();
+    server.use(jobListHandler());
+    serveQuestionnaires();
+    renderAt('/jobs/job-short');
+
+    (await screen.findByRole('combobox', { name: 'Switch job' })).focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard('{ArrowUp}{Enter}');
+    await screen.findByRole('heading', { name: 'Title of job-long' });
+
+    expect(screen.getByRole('combobox', { name: 'Switch job' })).toHaveFocus();
+  });
+
   it('asks to choose a job on a page that names no job', async () => {
     server.use(jobListHandler());
     renderAt('/settings');

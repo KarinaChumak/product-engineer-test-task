@@ -34,6 +34,17 @@ describe('GET /api/jobs', () => {
 
     expect(await response.json()).toEqual([{ id: 'job-untitled', title: 'job-untitled', company: 'Acme' }]);
   });
+
+  it('lists a duplicated job id once, as the first config with it, the one the questionnaire opens', async () => {
+    const jobs = storeOf(
+      { id: 'job-twice', title: 'First', company: 'Acme' },
+      { id: 'job-twice', title: 'Second', company: 'Acme' },
+    );
+
+    const response = await createApp({ ...silent, jobs }).request('/api/jobs');
+
+    expect(await response.json()).toEqual([{ id: 'job-twice', title: 'First', company: 'Acme' }]);
+  });
 });
 
 describe('GET /api/jobs/:id/questionnaire', () => {
