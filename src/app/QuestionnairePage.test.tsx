@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { jobListHandler } from '@/test/jobs';
@@ -237,5 +237,30 @@ describe('QuestionnairePage', () => {
     expect(retrying).toHaveAttribute('aria-disabled', 'true');
     respond();
     expect(await screen.findByRole('heading', { name: 'Frontend Developer (React)' })).toBeInTheDocument();
+  });
+
+  it('keeps the questionnaire and the picked answer when reloading it in the background fails', async () => {
+    const user = userEvent.setup();
+    let requests = 0;
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => {
+        requests += 1;
+        return requests === 1
+          ? HttpResponse.json(questionnaire)
+          : HttpResponse.json({ error: 'internal' }, { status: 500 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    await user.click(await screen.findByRole('combobox', noticePeriod));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+
+    // Coming back to the tab reloads the questionnaire in the background.
+    act(() => window.dispatchEvent(new Event('visibilitychange')));
+    await waitFor(() => expect(requests).toBe(2));
+    // Let the failed response reach the page.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
   });
 });
