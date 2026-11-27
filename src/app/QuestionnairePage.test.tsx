@@ -39,8 +39,8 @@ const questionnaire: JobQuestionnaire = {
     },
     {
       type: 'text',
-      id: 'project',
-      question: 'Which project are you proud of?',
+      id: 'proud_project',
+      question: 'Which frontend project are you most proud of? 🚀🔥 Tell us what YOU built! 💪',
       required: false,
       multiline: true,
     },
@@ -151,11 +151,41 @@ describe('QuestionnairePage', () => {
   });
 
   it('does not render question types that are not supported yet', async () => {
-    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
+    // A type the client has no component for yet, as a newer server could send it.
+    const dateQuestion = { type: 'date', id: 'start_date', question: 'When can you start?', required: true };
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ ...questionnaire, questions: [...questionnaire.questions, dateQuestion] }),
+      ),
+    );
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox', noticePeriod);
-    expect(screen.queryByText('Which project are you proud of?')).not.toBeInTheDocument();
+    expect(screen.queryByText('When can you start?')).not.toBeInTheDocument();
+  });
+
+  it('shows the free-text question exactly as the recruiter wrote it, emoji included, in a textarea', async () => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
+    renderAt('/jobs/job-short');
+
+    const project = await screen.findByRole('textbox', {
+      name: 'Which frontend project are you most proud of? 🚀🔥 Tell us what YOU built! 💪',
+    });
+    expect(project.tagName).toBe('TEXTAREA');
+  });
+
+  it('shows a single-line field for a text question that is not multiline', async () => {
+    const singleLine: JobQuestionnaire = {
+      ...noQuestions,
+      questions: [
+        { type: 'text', id: 'country', question: 'Country of residence', required: true, multiline: false },
+      ],
+    };
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(singleLine)));
+    renderAt('/jobs/job-short');
+
+    const country = await screen.findByRole('textbox', { name: 'Country of residence' });
+    expect(country.tagName).toBe('INPUT');
   });
 
   it('answers the salary question in a number field grouped for the job language', async () => {

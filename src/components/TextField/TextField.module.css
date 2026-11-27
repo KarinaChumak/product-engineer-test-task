@@ -1,0 +1,63 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.required {
+  color: var(--color-accent);
+}
+
+.control {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-2);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.control:hover {
+  border-color: var(--color-accent);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* The textarea and its replica share one grid cell, so the cell, and the textarea in it,
+   is as tall as the replica's text. */
+.grower {
+  display: grid;
+}
+
+.grower > * {
+  grid-area: 1 / 1;
+}
+
+.textarea {
+  overflow: hidden;
+  resize: none;
+  line-height: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.replica {
+  visibility: hidden;
+}

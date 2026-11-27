@@ -57,7 +57,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-03 Answer the free-text question
 
-- Status: todo
+- Status: in review
 - Done when:
   - A text question shows a single-line field, and one with `multiline: true` shows a textarea that grows with its content (test)
   - The question text appears exactly as the recruiter wrote it, emoji included (test)
@@ -65,7 +65,8 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~150 lines
 - PRs: one
 - After: T-01
-- Branch: none yet
+- Branch: T-03-free-text-question
+- Outcome: `TextField` (a generic single-line field, or with `multiline` a textarea that grows with its text through a CSS grid replica, no JS measuring) answers text questions through the `text` map entry; an emptied field reports `undefined`. Every `ClientQuestion` type now has a component, so the "unsupported type isn't rendered" test sends a `date` question. TextField and NumberField repeat the same label, required marker and annotation markup and CSS: T-05's date field should pull them into a shared generic field component instead of copying them a third time. T-06 adds error states to `TextField` as well.
 
 ### T-04 Submit job-short and see the same end screen whatever the result
 
