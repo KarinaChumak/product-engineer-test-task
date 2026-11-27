@@ -514,10 +514,14 @@ describe('QuestionnairePage already completed', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows that the job is already completed when the server refuses a second submission', async () => {
+  it('shows that the job is already completed when the server refuses a second submission, and reloads the job', async () => {
     const user = userEvent.setup();
+    let loads = 0;
     server.use(
-      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)),
+      http.get('/api/jobs/:id/questionnaire', () => {
+        loads += 1;
+        return HttpResponse.json(prefilledQuestionnaire);
+      }),
       http.post('/api/jobs/job-short/prequalification', () =>
         HttpResponse.json({ error: 'already_completed' }, { status: 409 }),
       ),
@@ -528,6 +532,8 @@ describe('QuestionnairePage already completed', () => {
 
     expect(await screen.findByRole('heading', completedHeading)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // So reopening the job later shows it as completed from the cache, too.
+    await waitFor(() => expect(loads).toBe(2));
   });
 
   it('keeps the result on screen when the reload after submitting says the job is completed', async () => {

@@ -78,6 +78,8 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     });
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
     // Without a candidate id nothing can have been stored under it, and the POST would refuse to store it.
+    // Unlike the profile, a submissions file that can't be read is a 500: the answers couldn't be stored
+    // either, so the page shows its retry error instead of a form that can't be sent.
     const isCompleted = profile.id ? await submissions.has(profile.id, job.id) : false;
     return c.json(toJobQuestionnaire(job, profile, isCompleted));
   });
