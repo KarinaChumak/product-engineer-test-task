@@ -1,7 +1,7 @@
 import * as RadixSelect from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { useId, type ReactNode } from 'react';
-import { FieldError } from '@/components/FieldError';
+import { FieldError, joinDescriptionIds } from '@/components/FieldError';
 import styles from './Select.module.css';
 
 export interface SelectOption {
@@ -57,9 +57,7 @@ export function Select({
         <RadixSelect.Trigger
           className={styles.trigger}
           aria-labelledby={labelId}
-          aria-describedby={
-            [annotation ? annotationId : '', error ? errorId : ''].join(' ').trim() || undefined
-          }
+          aria-describedby={joinDescriptionIds(!!annotation && annotationId, !!error && errorId)}
           aria-invalid={error ? true : undefined}
         >
           <RadixSelect.Value placeholder={placeholder} />

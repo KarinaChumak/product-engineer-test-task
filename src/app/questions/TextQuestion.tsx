@@ -1,4 +1,3 @@
-import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
 import { FromProfileTag } from '@/app/questions/FromProfileTag';
 import type { QuestionProps } from '@/app/questions/types';
 import { TextField } from '@/components/TextField';
@@ -19,7 +18,7 @@ export function TextQuestion({
       multiline={question.multiline}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
-      error={error && <AnswerErrorMessage question={question} error={error} />}
+      error={error}
     />
   );
 }

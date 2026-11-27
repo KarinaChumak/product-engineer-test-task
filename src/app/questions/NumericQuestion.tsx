@@ -1,5 +1,4 @@
 import { useIntl } from 'react-intl';
-import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
 import { FromProfileTag } from '@/app/questions/FromProfileTag';
 import type { QuestionProps } from '@/app/questions/types';
 import { NumberField } from '@/components/NumberField';
@@ -21,7 +20,7 @@ export function NumericQuestion({
       locale={intl.locale}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
-      error={error && <AnswerErrorMessage question={question} error={error} />}
+      error={error}
     />
   );
 }

@@ -9,6 +9,7 @@ import { getBrowserLanguage, messages } from '@/app/messages';
 import type { MessageKey } from '@/app/messages/en';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
+import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
 import { useSubmitPrequalification } from '@/app/useSubmitPrequalification';
 import { Alert } from '@/components/Alert';
@@ -72,7 +73,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     const Component = getQuestionComponent(question);
     if (!Component) return [];
     const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
-    return [{ question, Component, value }];
+    return [{ question, Component, value, error: answerErrors[question.id] }];
   });
 
   // The candidate learns whether their answers go on to the employer, never which one decided it.
@@ -139,17 +140,19 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
           </EmptyState>
         ) : (
           <Stack gap={6}>
-            {shown.map(({ question, Component, value }) => (
+            {shown.map(({ question, Component, value, error }) => (
               <Component
                 key={question.id}
                 question={question}
                 value={value}
                 onChange={(next) => {
                   setChanged((answers) => ({ ...answers, [question.id]: next }));
-                  setAnswerErrors((errors) => ({ ...errors, [question.id]: undefined }));
+                  setAnswerErrors((errors) =>
+                    errors[question.id] ? { ...errors, [question.id]: undefined } : errors,
+                  );
                 }}
                 fromProfile={question.prefill !== undefined && value === question.prefill}
-                error={answerErrors[question.id]}
+                error={error && <AnswerErrorMessage question={question} error={error} />}
               />
             ))}
           </Stack>

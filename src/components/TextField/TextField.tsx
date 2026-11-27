@@ -1,5 +1,5 @@
 import { useId, type ChangeEvent, type ReactNode } from 'react';
-import { FieldError } from '@/components/FieldError';
+import { FieldError, joinDescriptionIds } from '@/components/FieldError';
 import styles from './TextField.module.css';
 
 export interface TextFieldProps {
@@ -41,7 +41,7 @@ export function TextField({
     value: text,
     onChange: setTextFromInput,
     required,
-    'aria-describedby': [annotation ? annotationId : '', error ? errorId : ''].join(' ').trim() || undefined,
+    'aria-describedby': joinDescriptionIds(!!annotation && annotationId, !!error && errorId),
     'aria-invalid': error ? true : undefined,
   };
 
