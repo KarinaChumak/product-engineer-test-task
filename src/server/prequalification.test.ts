@@ -6,10 +6,7 @@ import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 // The payload is what the employer gets if the candidate passes, so its shape is pinned to the README
 // contract here, including every way an answer can be empty.
 
-const question = (client: ClientQuestion, rules: JobQuestion['rules'] = {}): JobQuestion => ({
-  client,
-  rules,
-});
+const question = (client: ClientQuestion): JobQuestion => ({ client });
 const base = (id: string) => ({ id, question: `${id}?`, required: false });
 
 const notice = question({
@@ -19,7 +16,7 @@ const notice = question({
   options: [{ label: '1 month', value: '1_month' }],
 });
 const stack = question({ ...base('stack'), type: 'select', maxChoices: 3, options: [] });
-const salary = question({ ...base('salary'), type: 'numeric', min: 0, max: 300000 }, { mustBeBelow: 90000 });
+const salary = question({ ...base('salary'), type: 'numeric', min: 0, max: 300000 });
 const note = question({ ...base('note'), type: 'text', multiline: true });
 
 const job: Job = { id: 'job-x', title: 'X', company: 'Acme', questions: [notice, stack, salary, note] };
@@ -57,7 +54,7 @@ describe('isPrequalificationRequest', () => {
 });
 
 describe('buildPrequalificationPayload', () => {
-  it('builds the README contract: job id, answers and screening', () => {
+  it('builds the README contract: job id and answers (PR 2 adds screening)', () => {
     expect(build({ notice: '1_month', stack: ['react', 'vue'], salary: 85000, note: 'Hi' })).toEqual({
       job_id: 'job-x',
       answers: [
@@ -66,7 +63,6 @@ describe('buildPrequalificationPayload', () => {
         { id: 'salary', value: 85000 },
         { id: 'note', value: 'Hi' },
       ],
-      screening: { passed: true, failed: [] },
     });
   });
 
@@ -140,25 +136,6 @@ describe('buildPrequalificationPayload', () => {
       };
 
       expect(build({ constructor: 'x' }, tricky).answers).toEqual([{ id: 'constructor', value: 'x' }]);
-    });
-  });
-
-  describe('screening', () => {
-    it('screens the answers it keeps', () => {
-      expect(build({ salary: 95000 }).screening).toEqual({ passed: false, failed: ['salary'] });
-    });
-
-    it('fails a ruled question whose answer was left out as empty', () => {
-      const payload = build({ salary: [] });
-
-      expect(payload.answers).toEqual([]);
-      expect(payload.screening).toEqual({ passed: false, failed: ['salary'] });
-    });
-
-    it('passes a job without rules whatever was answered', () => {
-      const noRules: Job = { ...job, questions: [notice, note] };
-
-      expect(build({}, noRules).screening).toEqual({ passed: true, failed: [] });
     });
   });
 

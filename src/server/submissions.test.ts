@@ -6,11 +6,7 @@ import { submissionsFromFile, type Submission } from '@/server/submissions';
 
 const submissionFor = (jobId: string, salary: number): Submission => ({
   candidate_id: 'talent-4711',
-  payload: {
-    job_id: jobId,
-    answers: [{ id: 'salary', value: salary }],
-    screening: { passed: true, failed: [] },
-  },
+  payload: { job_id: jobId, answers: [{ id: 'salary', value: salary }] },
 });
 
 let directory: string;

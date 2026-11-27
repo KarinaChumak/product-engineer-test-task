@@ -68,7 +68,7 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     if (!candidateId) throw new Error('The profile has no id to store the answers under');
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
     await submissions.save({ candidate_id: candidateId, payload: buildPrequalificationPayload(job, body) });
-    // The same empty answer whatever the screening result, so the candidate can't tell.
+    // Always an empty reply, so it can't tell the candidate the screening result PR 2 adds to the payload.
     return c.body(null, 201);
   });
 

@@ -167,7 +167,7 @@ describe('POST /api/jobs/:id/prequalification', () => {
     title: 'Salary',
     company: 'Acme',
     questions: [
-      { type: 'numeric', id: 'salary', question: 'Salary?', required: true, must_be_below: 90000 },
+      { type: 'numeric', id: 'salary', question: 'Salary?', required: true },
       { type: 'text', id: 'note', question: 'Anything else?' },
     ],
   });
@@ -189,43 +189,17 @@ describe('POST /api/jobs/:id/prequalification', () => {
             { id: 'notice_period', value: '3_months' },
             { id: 'salary_expectation', value: 95000 },
           ],
-          screening: { passed: true, failed: [] },
         },
       },
     ]);
   });
 
-  it.each([
-    ['passes', 85000, { passed: true, failed: [] }],
-    ['fails at the threshold', 90000, { passed: false, failed: ['salary'] }],
-    ['fails above the threshold', 95000, { passed: false, failed: ['salary'] }],
-  ])('stores a screening in which a salary below the rule %s', async (_, salary, screening) => {
-    const { app, saved } = appStoringIn({ jobs: salaryJob });
-
-    await submitAnswers(app, 'job-salary', { answers: { salary } });
-
-    expect(saved[0]?.payload.screening).toEqual(screening);
-  });
-
-  it('fails the rule of a question left without an answer', async () => {
-    const { app, saved } = appStoringIn({ jobs: salaryJob });
-
-    await submitAnswers(app, 'job-salary', { answers: { note: 'Hi' } });
-
-    expect(saved[0]?.payload).toMatchObject({
-      answers: [{ id: 'note', value: 'Hi' }],
-      screening: { passed: false, failed: ['salary'] },
-    });
-  });
-
-  it('answers the same, without the screening or a threshold, whether the candidate passed or failed', async () => {
+  it('answers with an empty 201, so the reply says nothing about what was stored', async () => {
     const { app } = appStoringIn({ jobs: salaryJob });
 
-    const passed = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
-    const failed = await submitAnswers(app, 'job-salary', { answers: { salary: 95000 } });
+    const response = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
 
-    expect([passed.status, await passed.text()]).toEqual([201, '']);
-    expect([failed.status, await failed.text()]).toEqual([201, '']);
+    expect([response.status, await response.text()]).toEqual([201, '']);
   });
 
   it.each([
