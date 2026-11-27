@@ -55,11 +55,11 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
  */
 export function findInvalidAnswers(job: Job, request: PrequalificationRequest): Record<string, AnswerError> {
   const errors: Record<string, AnswerError> = {};
-  for (const { client } of job.questions) {
-    const value = getSentAnswer(request, client.id);
+  for (const { client: question } of job.questions) {
+    const value = getSentAnswer(request, question.id);
     const error =
-      value === undefined ? (client.required ? 'required' : undefined) : findAnswerError(client, value);
-    if (error) errors[client.id] = error;
+      value === undefined ? (question.required ? 'required' : undefined) : findAnswerError(question, value);
+    if (error) errors[question.id] = error;
   }
   return errors;
 }

@@ -24,7 +24,7 @@ function passesRules(rules: ScreeningRules, answer: AnswerValue | undefined): bo
 /** Screens the answers by question id against the job's rules. */
 export function screenAnswers(job: Job, answers: ReadonlyMap<string, AnswerValue>): Screening {
   const failed = job.questions
-    .filter(({ client, rules }) => !passesRules(rules, answers.get(client.id)))
-    .map(({ client }) => client.id);
+    .filter(({ client: question, rules }) => !passesRules(rules, answers.get(question.id)))
+    .map(({ client: question }) => question.id);
   return { passed: failed.length === 0, failed };
 }

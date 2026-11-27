@@ -5,7 +5,7 @@ import type { Submission } from '@/server/submissions';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
 
 // Everything else comes from the real `jobs/` and `profile.json`. Normalization warnings are expected.
-const silent = { warn: () => {} };
+const silent = { warn: () => {}, logSubmission: () => {} };
 
 /** A store holding just these configs. */
 const storeOf = (...configs: Record<string, unknown>[]): JobStore => ({
@@ -218,6 +218,24 @@ describe('POST /api/jobs/:id/prequalification', () => {
     ]);
   });
 
+  it('logs the stored submission, the payload an employer integration would receive', async () => {
+    const logged: Submission[] = [];
+    const { app, saved } = appStoringIn({ logSubmission: (submission) => logged.push(submission) });
+
+    await submitAnswers(app, 'job-short', validShortAnswers);
+
+    expect(logged).toEqual(saved);
+  });
+
+  it('logs nothing when the answers are refused', async () => {
+    const logged: Submission[] = [];
+    const { app } = appStoringIn({ logSubmission: (submission) => logged.push(submission) });
+
+    await submitAnswers(app, 'job-short', { answers: {} });
+
+    expect(logged).toEqual([]);
+  });
+
   it.each([
     ['passes', 85000, { passed: true, failed: [] }],
     ['fails at the threshold', 90000, { passed: false, failed: ['salary'] }],
@@ -318,6 +336,7 @@ describe('POST /api/jobs/:id/prequalification', () => {
     expect(response.status).toBe(422);
     expect(await response.json()).toEqual({
       error: 'invalid_answers',
+      message: 'Some answers are not valid for their questions. The answers were not screened or stored.',
       fields: {
         notice_period: 'not_an_option',
         salary_expectation: 'out_of_range',
@@ -332,7 +351,7 @@ describe('POST /api/jobs/:id/prequalification', () => {
 
     const response = await submitAnswers(app, 'job-short', { answers: { notice_period: '  ' } });
 
-    expect(await response.json()).toEqual({
+    expect(await response.json()).toMatchObject({
       error: 'invalid_answers',
       fields: { notice_period: 'required', salary_expectation: 'required' },
     });
@@ -368,6 +387,11 @@ describe('POST /api/jobs/:id/prequalification', () => {
     const response = await submitAnswers(app, 'job-short', body);
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: 'invalid_body',
+      message:
+        'The request body must be { "answers": { "<question id>": <value> } }. The answers were not screened or stored.',
+    });
     expect(saved).toEqual([]);
   });
 

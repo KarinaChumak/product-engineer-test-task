@@ -2,8 +2,13 @@ import { Hono } from 'hono';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
 import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
-import { buildPrequalificationPayload, isPrequalificationRequest } from '@/server/prequalification';
-import { submissionsFromFile, type SubmissionStore } from '@/server/submissions';
+import {
+  buildPrequalificationPayload,
+  collectJobAnswers,
+  isPrequalificationRequest,
+} from '@/server/prequalification';
+import { screenAnswers } from '@/server/screening';
+import { submissionsFromFile, type Submission, type SubmissionStore } from '@/server/submissions';
 import { findInvalidAnswers } from '@/server/validation';
 import type { InvalidAnswersResponse } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
@@ -15,6 +20,8 @@ export interface AppDeps {
   warn: Warn;
   /** Reports an error that ended a request with a 500. */
   logError: (error: unknown) => void;
+  /** Reports a stored submission, the payload an employer integration would receive. */
+  logSubmission: (submission: Submission) => void;
 }
 
 /** The real sources: `jobs/`, `profile.json`, `data/submissions.json` and the console. */
@@ -24,11 +31,16 @@ const defaultDeps = (): AppDeps => ({
   submissions: submissionsFromFile('data/submissions.json'),
   warn: (message) => console.warn(`normalize: ${message}`),
   logError: (error) => console.error(error),
+  logSubmission: (submission) =>
+    console.info(`prequalification: stored ${JSON.stringify(submission, null, 2)}`),
 });
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
-  const { jobs, loadProfile, submissions, warn, logError } = { ...defaultDeps(), ...overrides };
+  const { jobs, loadProfile, submissions, warn, logError, logSubmission } = {
+    ...defaultDeps(),
+    ...overrides,
+  };
   const app = new Hono();
 
   app.get('/api/jobs', async (c) => {
@@ -63,16 +75,38 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     const config = await jobs.find(id);
     if (config === undefined) return c.json({ error: 'not_found' }, 404);
     const body: unknown = await c.req.json().catch(() => undefined);
-    if (!isPrequalificationRequest(body)) return c.json({ error: 'invalid_body' }, 400);
+    if (!isPrequalificationRequest(body)) {
+      const message =
+        'The request body must be { "answers": { "<question id>": <value> } }. The answers were not screened or stored.';
+      return c.json({ error: 'invalid_body', message }, 400);
+    }
+
+    // 1. Check the answers against the questions the candidate saw. Screening never runs on invalid input.
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
     const fields = findInvalidAnswers(job, body);
-    if (Object.keys(fields).length > 0)
-      return c.json({ error: 'invalid_answers', fields } satisfies InvalidAnswersResponse, 422);
+    if (Object.keys(fields).length > 0) {
+      const message =
+        'Some answers are not valid for their questions. The answers were not screened or stored.';
+      return c.json({ error: 'invalid_answers', message, fields } satisfies InvalidAnswersResponse, 422);
+    }
 
-    // Unlike prefill, storing needs the candidate, so a profile that can't be read is a server error.
+    // 2. Screen them: this decides whether the answers go on to the employer.
+    const answers = collectJobAnswers(job, body);
+    const screening = screenAnswers(job, answers);
+
+    // 3. Store them under the candidate. Unlike prefill, this needs the candidate, so a profile that can't be
+    // read is a server error.
     const { id: candidateId } = await loadProfile();
     if (!candidateId) throw new Error('The profile has no id to store the answers under');
-    await submissions.save({ candidate_id: candidateId, payload: buildPrequalificationPayload(job, body) });
+    const submission = {
+      candidate_id: candidateId,
+      payload: buildPrequalificationPayload(job.id, answers, screening),
+    };
+    await submissions.save(submission);
+    // Integration point: this is where the payload would go to the employer's system, when screening passed.
+    // Until there is one, it's stored and logged.
+    logSubmission(submission);
+
     // The same empty answer whatever the screening result, so the candidate can't tell.
     return c.body(null, 201);
   });

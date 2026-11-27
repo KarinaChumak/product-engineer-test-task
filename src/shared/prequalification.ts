@@ -28,5 +28,7 @@ export type AnswerError =
 /** The body of a 422: the refused answers by question id. */
 export interface InvalidAnswersResponse {
   error: 'invalid_answers';
+  /** For whoever reads the response, not for the candidate: the client shows its own copy. */
+  message: string;
   fields: Record<string, AnswerError>;
 }
