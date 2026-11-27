@@ -15,5 +15,8 @@ playwright-report/
 test-results/
 .verify/
 
+# Submitted applications, written by the API
+data/
+
 # TypeScript incremental build cache
 *.tsbuildinfo

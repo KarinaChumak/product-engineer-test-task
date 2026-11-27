@@ -8,18 +8,27 @@ import type {
 } from '@/shared/questionnaire';
 
 // Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
-// question: today its profile field. The candidate's questionnaire is read from that `Job`, and so will
-// T-04's answer checks and screening, so they agree on every repair. Server-only data lives beside each
+// question: its profile field and screening rules. The candidate's questionnaire and the screening of an
+// application are both read from that `Job`, so they agree on every repair. Server-only data lives beside each
 // client question, never inside it, so it can't leave the server.
 // A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
 export type Warn = (message: string) => void;
+
+/** The screening rules on a question, each only on a type it's allowed on. */
+export interface ScreeningRules {
+  /** Numeric: passes when the answer is at least this. */
+  mustBeAtLeast?: number;
+  /** Numeric: passes when the answer is below this (strict). */
+  mustBeBelow?: number;
+}
 
 /** A question as the server knows it. `client` is what the candidate sees, and nothing else is sent. */
 export interface JobQuestion {
   client: ClientQuestion;
   /** The profile field to prefill the answer from. */
   profileField?: string;
+  rules: ScreeningRules;
 }
 
 /** A job config after its repairs. Server-only: send `toJobQuestionnaire(job)` instead. */
@@ -83,6 +92,23 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
   }
 }
 
+const numericRules = { must_be_at_least: 'mustBeAtLeast', must_be_below: 'mustBeBelow' } as const;
+
+/** The question's screening rules. A rule on a type it isn't allowed on, or without a number, is ignored. */
+function parseRules(raw: Raw, client: ClientQuestion, warn: Warn): ScreeningRules {
+  const rules: ScreeningRules = {};
+  for (const [key, name] of Object.entries(numericRules)) {
+    if (!(key in raw)) continue;
+    const threshold = raw[key];
+    if (client.type !== 'numeric')
+      warn(`Ignored ${key} on "${client.id}": it only applies to numeric questions`);
+    else if (typeof threshold !== 'number' || !Number.isFinite(threshold))
+      warn(`Ignored ${key} on "${client.id}": it isn't a number`);
+    else rules[name] = threshold;
+  }
+  return rules;
+}
+
 function toLanguage(value: unknown, warn: Warn): Language | undefined {
   if (value === 'de' || value === 'en') return value;
   if (value !== undefined)
@@ -114,7 +140,7 @@ export function parseJob(raw: unknown, warn: Warn): Job {
       const client = normalizeQuestion(question, warn);
       if (!client) return [];
       const profileField = asString(question.profile_field);
-      return [{ client, ...(profileField && { profileField }) }];
+      return [{ client, ...(profileField && { profileField }), rules: parseRules(question, client, warn) }];
     }),
   };
 }

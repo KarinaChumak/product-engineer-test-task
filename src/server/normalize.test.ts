@@ -31,6 +31,35 @@ describe('parseJob language', () => {
 
 const salary = { type: 'numeric', id: 'salary', question: 'Salary?', min: 0, max: 200000 };
 
+describe('parseJob screening rules', () => {
+  it('keeps the numeric rules of a numeric question', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ ...salary, must_be_at_least: 30000, must_be_below: 90000 }],
+    });
+
+    expect(parsed.questions[0]?.rules).toEqual({ mustBeAtLeast: 30000, mustBeBelow: 90000 });
+    expect(warnings).toEqual([]);
+  });
+
+  it('ignores a numeric rule on a question of another type, with a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'text', id: 'city', question: 'City?', must_be_at_least: 3 }],
+    });
+
+    expect(parsed.questions[0]?.rules).toEqual({});
+    expect(warnings).toEqual([expect.stringContaining('must_be_at_least on "city"')]);
+  });
+
+  it('ignores a rule whose threshold is not a number, with a warning', () => {
+    const { job: parsed, warnings } = parse({ ...job, questions: [{ ...salary, must_be_below: '90000' }] });
+
+    expect(parsed.questions[0]?.rules).toEqual({});
+    expect(warnings).toEqual([expect.stringContaining('must_be_below on "salary"')]);
+  });
+});
+
 describe('toJobQuestionnaire', () => {
   it('sends only the client question, without its profile field or screening rules', () => {
     const { job: parsed } = parse({

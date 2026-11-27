@@ -70,7 +70,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-04 Submit job-short and see the same end screen whatever the result
 
-- Status: todo
+- Status: in progress
 - Done when:
   - `POST /api/jobs/job-short/applications` checks the answers against the normalized job (select value in the options, integer within `min`/`max`, text up to its limit) and returns 422 with field errors when they're invalid (test)
   - The server computes `screening` and stores a payload that matches the README contract in `data/submissions.json`. Optional questions left empty are omitted from it (test)
@@ -79,10 +79,12 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
   - While the request is in flight, the submit button shows a pending state and is disabled, so a double click sends one request (test)
   - The response and the client bundle never contain `screening` or a threshold (test)
 - Touches: src/server (applications route, validation, screening, storage), src/shared (payload types), src/app (submit button, end screen)
-- Size: ~400 lines
-- PRs: one
+- Size: ~500 lines with tests, so split into two PRs, the second started once the first is on `main`
+- PRs: two
+  - (1) Submit and end screen: the POST route computes `screening` and stores the contract payload, omitting empty optional answers; the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; neither the response nor the bundle contains `screening` or a threshold
+  - (2) Answer validation on the server: the POST route checks each answer against the normalized job and returns 422 with field errors, which the form shows as the same error above the button
 - After: T-01
-- Branch: none yet
+- Branch: claude/t-04-implementation-8525f6 (PR 1)
 
 ### T-05 Can't apply to the same job twice
 
