@@ -374,6 +374,32 @@ describe('QuestionnairePage submit', () => {
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
   });
 
+  it('sends the pick on a multi-choice question as a list of choices', async () => {
+    const user = userEvent.setup();
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({
+          ...noQuestions,
+          questions: [{ ...questionnaire.questions[0], id: 'focus', maxChoices: 2 }],
+        }),
+      ),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return new HttpResponse(null, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox', noticePeriod));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
+    await user.click(screen.getByRole('button', submitAnswers));
+
+    await screen.findByRole('heading', answersRecorded);
+    expect(sent).toEqual([{ answers: { focus: ['1_month'] } }]);
+  });
+
   it('never tells the candidate an application was sent, since only answers that pass reach the employer', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(() => new HttpResponse(null, { status: 201 }));

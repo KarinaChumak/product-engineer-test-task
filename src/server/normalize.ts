@@ -8,9 +8,9 @@ import type {
 } from '@/shared/questionnaire';
 
 // Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
-// question: its profile field and screening rules. The candidate's questionnaire and the screening of an
-// candidate's prequalification answers are both read from that `Job`, so they agree on every repair. Server-only data lives beside each
-// client question, never inside it, so it can't leave the server.
+// question: its profile field and screening rules. The candidate's questionnaire, and the check and the
+// screening of their prequalification answers, are all read from that `Job`, so they agree on every
+// repair. Server-only data lives beside each client question, never inside it, so it can't leave the server.
 // A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
 export type Warn = (message: string) => void;

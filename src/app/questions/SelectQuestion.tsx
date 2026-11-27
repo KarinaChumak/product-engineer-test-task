@@ -11,12 +11,15 @@ export function SelectQuestion({
   fromProfile,
 }: QuestionProps<SelectQuestionData>) {
   const intl = useIntl();
+  // A multi-choice answer is a list, even while this offers one pick until a multi-select exists.
+  const isMultiChoice = question.maxChoices > 1;
+  const choice = Array.isArray(value) ? value[0] : value;
   return (
     <Select
       label={question.question}
       options={question.options}
-      value={typeof value === 'string' ? value : undefined}
-      onValueChange={onChange}
+      value={typeof choice === 'string' ? choice : undefined}
+      onValueChange={(next) => onChange(isMultiChoice ? [next] : next)}
       placeholder={intl.formatMessage({ id: 'question.placeholder' })}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}

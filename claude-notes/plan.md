@@ -70,7 +70,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-04 Submit job-short and see the same end screen whatever the result
 
-- Status: in progress (PR 1 of 2 in review)
+- Status: in review (PR 1 merged, PR 2 in review)
 - Done when:
   - `POST /api/jobs/job-short/prequalification` checks the answers against the normalized job (select value in the options, integer within `min`/`max`, text up to its limit) and returns 422 with field errors when they're invalid (test)
   - The server computes `screening` and stores a payload that matches the README contract in `data/submissions.json`. Optional questions left empty are omitted from it (test)
@@ -84,8 +84,9 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
   - (1) Submit and end screen: the POST route stores the answers in the contract payload's shape (without `screening` yet) in `data/submissions.json`, omitting empty optional answers, and always answers an empty 201; the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; the client bundle contains no `screening` or rule. The payload builder has its own edge-case test file
   - (2) The server's decisions: screening (rules parsed beside `client` in `JobQuestion.rules`, `screenAnswers`, `screening` added to the stored payload, its own edge-case test file) and answer validation (each answer checked against the normalized job, 422 with field errors, shown as the same error above the button). The screening code and its 39-case test file were written and reviewed on this branch, so they can be restored from commit `371b7ba` (`src/server/screening.ts`, `src/server/screening.test.ts`, `parseRules` in `normalize.ts`)
 - After: T-01
-- Branch: claude/t-04-implementation-8525f6 (PR 1)
+- Branch: claude/t-04-implementation-8525f6 (PR 1, merged), claude/t-04-screening-validation (PR 2)
 - Outcome (PR 1): the answers are a prequalification, not an application (see decisions), so the route and types say so. `POST /api/jobs/:id/prequalification` takes `{ answers: { [id]: value } }`, builds `{ job_id, answers }` with `buildPrequalificationPayload` (blank and missing answers left out), and stores `{ candidate_id, payload }` under `talent-4711:<job>` in `data/submissions.json`. It always answers an empty 201. Until PR 2 the stored payload has no `screening`, so it doesn't fully match the contract yet. The form posts through `useSubmitPrequalification`, shows "Submitting…" while in flight, keeps the answers with an `Alert` above the button on any failure, and on a 2xx shows "Your answers have been recorded", saying they go to the employer if the candidate fits; new generic components `Form` and `Alert` (with `--color-danger` tokens). Answers aren't checked against their question yet: PR 2 adds that, ideally sharing one check with `prefill.ts`'s `accepts`. T-05's duplicate check can read the same key.
+- Outcome (PR 2): the stored payload now has `screening`, from `screenAnswers` against `JobQuestion.rules` (numeric rules only; `must_be_true` is logged as ignored until boolean questions exist). Before storing, `findAnswerErrors` (`src/server/validation.ts`) checks every answer against its normalized question and the route answers 422 `{ error: 'invalid_answers', fields: { [id]: AnswerError } }` (see decisions); prefill uses the same check. The form shows one "Some of your answers can't be accepted" message for a 422. For T-06: `InvalidAnswersError` in `api.ts` is where to read `fields` and map each `AnswerError` code to a field message; `maxTextAnswerLength` (5,000) is shared, so the text field can show the limit. Phase 2's boolean ticket adds `must_be_true` to `ScreeningRules` and a `boolean` case to `findAnswerError`.
 
 ### T-05 Can't apply to the same job twice
 
