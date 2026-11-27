@@ -1,4 +1,4 @@
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
 import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
@@ -38,13 +38,6 @@ const defaultDeps = (): AppDeps => ({
   logSubmission: (submission) =>
     console.info(`prequalification: stored ${JSON.stringify(submission, null, 2)}`),
 });
-
-/** The 409 for a second prequalification of the same job. The stored one stays as it was. */
-const alreadyCompleted = (c: Context) => {
-  const message =
-    'The candidate has already submitted answers for this job. The new answers were not screened or stored.';
-  return c.json({ error: 'already_completed', message } satisfies AlreadyCompletedResponse, 409);
-};
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
@@ -118,7 +111,11 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
       candidate_id: candidateId,
       payload: buildPrequalificationPayload(job.id, answers, screening),
     };
-    if (!(await submissions.saveIfNew(submission))) return alreadyCompleted(c);
+    if (!(await submissions.saveIfNew(submission))) {
+      const message =
+        'The candidate has already submitted answers for this job. The new answers were not screened or stored.';
+      return c.json({ error: 'already_completed', message } satisfies AlreadyCompletedResponse, 409);
+    }
     // Integration point: this is where the payload would go to the employer's system, when screening passed.
     // Until there is one, it's stored and logged.
     logSubmission(submission);
