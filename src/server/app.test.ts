@@ -228,6 +228,17 @@ describe('POST /api/jobs/:id/applications', () => {
     expect([failed.status, await failed.text()]).toEqual([201, '']);
   });
 
+  it.each([
+    ['blank', '   '],
+    ['empty', ''],
+  ])('leaves out an optional text answer that is %s', async (_, note) => {
+    const { app, saved } = appStoringIn({ jobs: salaryJob });
+
+    await apply(app, 'job-salary', { answers: { salary: 85000, note } });
+
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
+  });
+
   it('leaves out answers to questions the job does not ask', async () => {
     const { app, saved } = appStoringIn({ jobs: salaryJob });
 

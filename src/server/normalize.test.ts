@@ -52,6 +52,16 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_at_least on "city"')]);
   });
 
+  it('ignores must_be_true on a question that is not boolean, with a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'text', id: 'country', question: 'Country?', must_be_true: true }],
+    });
+
+    expect(parsed.questions[0]?.rules).toEqual({});
+    expect(warnings).toEqual([expect.stringContaining('must_be_true on "country"')]);
+  });
+
   it('ignores a rule whose threshold is not a number, with a warning', () => {
     const { job: parsed, warnings } = parse({ ...job, questions: [{ ...salary, must_be_below: '90000' }] });
 

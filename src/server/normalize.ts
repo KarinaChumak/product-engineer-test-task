@@ -106,6 +106,9 @@ function parseRules(raw: Raw, client: ClientQuestion, warn: Warn): ScreeningRule
       warn(`Ignored ${key} on "${client.id}": it isn't a number`);
     else rules[name] = threshold;
   }
+  // Boolean questions, the only type it applies to, aren't supported yet (Phase 2).
+  if ('must_be_true' in raw)
+    warn(`Ignored must_be_true on "${client.id}": it only applies to boolean questions`);
   return rules;
 }
 

@@ -30,15 +30,19 @@ export function isApplicationRequest(body: unknown): body is ApplicationRequest 
   return isRecord(body) && isRecord(body.answers) && Object.values(body.answers).every(isAnswerValue);
 }
 
+/** Whether a sent value says nothing: blank text or no choices. */
+const isEmptyAnswer = (value: AnswerValue): boolean =>
+  (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
+
 /**
  * The payload for the job's questions, in their order, with the screening result. Answers to questions the
- * job doesn't ask are left out, and so are questions without an answer.
+ * job doesn't ask are left out, and so are questions without an answer, or with an empty one.
  */
 export function buildApplicationPayload(job: Job, request: ApplicationRequest): ApplicationPayload {
   const answers = new Map<string, AnswerValue>();
   for (const { client } of job.questions) {
     const value = Object.hasOwn(request.answers, client.id) ? request.answers[client.id] : undefined;
-    if (value !== undefined) answers.set(client.id, value);
+    if (value !== undefined && !isEmptyAnswer(value)) answers.set(client.id, value);
   }
   return {
     job_id: job.id,
