@@ -9,6 +9,7 @@ export function NumericQuestion({
   value,
   onChange,
   fromProfile,
+  error,
 }: QuestionProps<NumericQuestionData>) {
   const intl = useIntl();
   return (
@@ -19,6 +20,7 @@ export function NumericQuestion({
       locale={intl.locale}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
+      error={error}
     />
   );
 }

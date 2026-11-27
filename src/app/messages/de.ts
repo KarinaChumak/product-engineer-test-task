@@ -26,6 +26,15 @@ export const de: Record<MessageKey, string> = {
   'prequalification.notPassed.title': 'Du erfüllst die Anforderungen dieses Jobs nicht',
   'prequalification.notPassed.body':
     'Danke, dass du die Fragen zu {title} bei {company} beantwortet hast. Deine Antworten entsprechen nicht dem, was das Unternehmen für diesen Job verlangt, deshalb leiten wir sie nicht weiter.',
+  'answerError.required': 'Beantworte diese Frage, um fortzufahren.',
+  'answerError.wrong_type':
+    'Diese Antwort hat ein Format, das wir nicht annehmen können. Gib sie noch einmal ein.',
+  'answerError.not_an_option': 'Wähle eine der Optionen.',
+  'answerError.repeated_choice': 'Wähle jede Option nur einmal.',
+  'answerError.too_many_choices': 'Wähle höchstens {maxChoices} Optionen.',
+  'answerError.not_an_integer': 'Gib eine ganze Zahl ohne Nachkommastellen ein.',
+  'answerError.out_of_range': 'Gib eine Zahl von {min} bis {max} ein.',
+  'answerError.too_long': 'Kürze deine Antwort auf höchstens {maxLength} Zeichen.',
   'prequalification.completed.title': 'Du hast die Fragen zu diesem Job schon beantwortet',
   'prequalification.completed.body':
     'Du hast die Fragen zu {title} bei {company} schon beantwortet. Die Fragen eines Jobs kannst du nur einmal beantworten, hier gibt es also nichts mehr zu tun.',

@@ -11,7 +11,7 @@ Phases run in order. Each has a one-line goal and exit below. Only the phases th
 
 ## Phase 1: Walking skeleton
 
-Lanes: T-01, then T-02 ‖ T-03 ‖ T-04, then T-05 ‖ T-06.
+Lanes: T-01, then T-02 ‖ T-03 ‖ T-04, then T-05 ‖ T-06, then T-07.
 
 Out of plan: a job switcher in the top bar and the questionnaire card (branch `job-switcher`), asked for by the user between T-01 and T-02 to make switching jobs easier during development and demos.
 
@@ -104,7 +104,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-06 See input errors before submitting
 
-- Status: todo
+- Status: in review
 - Done when:
   - An empty required field shows an error with colour, an icon and text when the candidate tries to submit, and focus moves to the first error (test)
   - A number outside the field's `min`/`max` shows a format message that doesn't reveal any screening threshold (test)
@@ -115,4 +115,22 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~280 lines
 - PRs: one
 - After: T-02, T-03, T-04
+- Branch: claude/t-06-field-errors-d34c23
+- Outcome: Submit runs the shared `findInvalidAnswers` (`src/shared/answerValidation.ts`) and the server's 422 codes go through the same path: `Select`, `NumberField` and `TextField` take an `error`, shown by the new `FieldError`, and `Form`'s `invalidFocusRequest` focuses the first invalid field. Messages are `answerError.<code>` in `en` and `de`. A new question type (T-05's date, Phase 2's boolean) adds its case to `findAnswerError` and passes `error` through its adapter. The three fields still repeat the label, annotation and error markup; the shared field component T-03 suggested is still to do.
+
+### T-07 See a field's error as soon as the candidate leaves it
+
+Asked for by the user after T-06's PR was opened. It didn't fit in that PR's size limit.
+
+- Status: todo
+- Done when:
+  - Leaving a field the candidate touched (focus moves to another question or out of the form) shows its error the same way T-06 does, with no submit (test)
+  - Once a field shows its error, the error updates as the candidate types and disappears as soon as the answer is valid (test)
+  - Fields the candidate hasn't touched show no error until they submit; submit still shows every error and focuses the first (test)
+  - Opening a select and picking an option doesn't count as leaving it, so the list never opens with an error under it (test)
+  - The server's 422 errors still show on their fields until that answer changes (test)
+- Touches: src/components (an `onBlur` on Select, NumberField and TextField; Select ignores a blur while its list is open), src/app (`QuestionList` derives errors from `findInvalidAnswers` on every render, shown for touched fields or after a submit, replacing the stored client errors), the question adapters
+- Size: ~150 lines
+- PRs: one
+- After: T-06
 - Branch: none yet

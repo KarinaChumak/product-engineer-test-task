@@ -113,4 +113,20 @@ describe('Select', () => {
 
     expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
   });
+
+  it('marks the select invalid and reads its error', () => {
+    render(
+      <Select
+        label="Notice period"
+        options={options}
+        value={undefined}
+        onValueChange={() => {}}
+        placeholder="Choose"
+        error="Choose one."
+      />,
+    );
+
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('combobox')).toHaveAccessibleDescription('Choose one.');
+  });
 });

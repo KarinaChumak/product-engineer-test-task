@@ -3,7 +3,13 @@ import type { QuestionProps } from '@/app/questions/types';
 import { TextField } from '@/components/TextField';
 import type { TextQuestion as TextQuestionData } from '@/shared/questionnaire';
 
-export function TextQuestion({ question, value, onChange, fromProfile }: QuestionProps<TextQuestionData>) {
+export function TextQuestion({
+  question,
+  value,
+  onChange,
+  fromProfile,
+  error,
+}: QuestionProps<TextQuestionData>) {
   return (
     <TextField
       label={question.question}
@@ -12,6 +18,7 @@ export function TextQuestion({ question, value, onChange, fromProfile }: Questio
       multiline={question.multiline}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
+      error={error}
     />
   );
 }

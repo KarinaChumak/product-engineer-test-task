@@ -167,4 +167,11 @@ describe('NumberField', () => {
 
     expect(field()).toHaveAccessibleDescription('From your profile');
   });
+
+  it('marks the field invalid and reads its error', () => {
+    render(<NumberField label={label} value={5} onValueChange={() => {}} locale="en" error="Too small." />);
+
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('textbox')).toHaveAccessibleDescription('Too small.');
+  });
 });

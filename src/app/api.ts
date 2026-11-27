@@ -1,12 +1,26 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import type { PrequalificationRequest, PrequalificationResult } from '@/shared/prequalification';
+import {
+  isAnswerError,
+  type AnswerError,
+  type InvalidAnswersResponse,
+  type PrequalificationRequest,
+  type PrequalificationResult,
+} from '@/shared/prequalification';
 import type { JobQuestionnaire, JobSummary } from '@/shared/questionnaire';
 
 /** The server answered 404: there's nothing to retry. */
 export class NotFoundError extends Error {}
 
 /** The server answered 422: some answers aren't valid, so sending them again won't help. */
-export class InvalidAnswersError extends Error {}
+export class InvalidAnswersError extends Error {
+  constructor(
+    message: string,
+    /** Why each refused answer was refused, by question id. */
+    readonly fields: Record<string, AnswerError>,
+  ) {
+    super(message);
+  }
+}
 
 /** The server answered 409: the candidate has already submitted answers for this job. */
 export class AlreadyCompletedError extends Error {}
@@ -36,8 +50,13 @@ export async function submitPrequalification(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
-  // T-06 reads the field errors from the body to show them on their fields.
-  if (response.status === 422) throw new InvalidAnswersError(`POST ${url} returned 422`);
+  if (response.status === 422) {
+    // A body that isn't the API's, such as a proxy's error page, still counts as invalid answers. Codes the
+    // client has no message for are left out; the alert above the button still says the answers were refused.
+    const body = (await response.json().catch(() => ({}))) as Partial<InvalidAnswersResponse>;
+    const known = Object.entries(body.fields ?? {}).filter(([, code]) => isAnswerError(code));
+    throw new InvalidAnswersError(`POST ${url} returned 422`, Object.fromEntries(known));
+  }
   if (response.status === 409) throw new AlreadyCompletedError(`POST ${url} returned 409`);
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;

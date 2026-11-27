@@ -35,6 +35,10 @@
   border-color: var(--color-accent);
 }
 
+.control[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
 .control:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

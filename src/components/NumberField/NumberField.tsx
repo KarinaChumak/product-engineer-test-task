@@ -5,6 +5,7 @@ import {
   type NumberFormatValues,
   type SourceInfo,
 } from 'react-number-format';
+import { FieldError, joinDescriptionIds } from '@/components/FieldError';
 import styles from './NumberField.module.css';
 
 export interface NumberFieldProps {
@@ -17,6 +18,8 @@ export interface NumberFieldProps {
   required?: boolean;
   /** Shown next to the label and read as the field's description, such as a tag. */
   annotation?: ReactNode;
+  /** What's wrong with the value. Shown under the field, which is then marked invalid. */
+  error?: ReactNode;
 }
 
 // Beyond this many digits a number loses precision in JavaScript.
@@ -45,9 +48,11 @@ export function NumberField({
   locale,
   required = false,
   annotation,
+  error,
 }: NumberFieldProps) {
   const id = useId();
   const annotationId = `${id}-annotation`;
+  const errorId = `${id}-error`;
 
   function setValueFromInput({ floatValue }: NumberFormatValues, { source }: SourceInfo) {
     // The library also reports changes that came from the `value` prop; only the user's count.
@@ -70,7 +75,8 @@ export function NumberField({
     allowNegative: false,
     isAllowed: hasAllowedLength,
     required,
-    'aria-describedby': annotation ? annotationId : undefined,
+    'aria-describedby': joinDescriptionIds(!!annotation && annotationId, !!error && errorId),
+    'aria-invalid': error ? true : undefined,
   });
 
   return (
@@ -87,6 +93,7 @@ export function NumberField({
         {annotation && <span id={annotationId}>{annotation}</span>}
       </div>
       <NumberFormatBase {...inputProps} removeFormatting={keepDigits} />
+      {error && <FieldError id={errorId}>{error}</FieldError>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import * as RadixSelect from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { useId, type ReactNode } from 'react';
+import { FieldError, joinDescriptionIds } from '@/components/FieldError';
 import styles from './Select.module.css';
 
 export interface SelectOption {
@@ -17,6 +18,8 @@ export interface SelectProps {
   required?: boolean;
   /** Shown next to the label and read as the field's description, such as a tag. */
   annotation?: ReactNode;
+  /** What's wrong with the value. Shown under the field, which is then marked invalid. */
+  error?: ReactNode;
   /** Keep the label for screen readers only, for a compact select whose options say what it's for. */
   labelHidden?: boolean;
 }
@@ -29,11 +32,13 @@ export function Select({
   placeholder,
   required = false,
   annotation,
+  error,
   labelHidden = false,
 }: SelectProps) {
   const id = useId();
   const labelId = `${id}-label`;
   const annotationId = `${id}-annotation`;
+  const errorId = `${id}-error`;
 
   return (
     <div className={styles.field}>
@@ -52,7 +57,8 @@ export function Select({
         <RadixSelect.Trigger
           className={styles.trigger}
           aria-labelledby={labelId}
-          aria-describedby={annotation ? annotationId : undefined}
+          aria-describedby={joinDescriptionIds(!!annotation && annotationId, !!error && errorId)}
+          aria-invalid={error ? true : undefined}
         >
           <RadixSelect.Value placeholder={placeholder} />
           <RadixSelect.Icon className={styles.chevron}>
@@ -74,6 +80,7 @@ export function Select({
           </RadixSelect.Content>
         </RadixSelect.Portal>
       </RadixSelect.Root>
+      {error && <FieldError id={errorId}>{error}</FieldError>}
     </div>
   );
 }

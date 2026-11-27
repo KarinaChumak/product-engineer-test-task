@@ -9,7 +9,7 @@ import {
 } from '@/server/prequalification';
 import { screenAnswers } from '@/server/screening';
 import { submissionsFromFile, type Submission, type SubmissionStore } from '@/server/submissions';
-import { findInvalidAnswers } from '@/server/validation';
+import { findInvalidAnswers } from '@/shared/answerValidation';
 import type {
   AlreadyCompletedResponse,
   InvalidAnswersResponse,
@@ -91,7 +91,10 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
 
     // 1. Check the answers against the questions the candidate saw. Screening never runs on invalid input.
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
-    const fields = findInvalidAnswers(job, body);
+    const fields = findInvalidAnswers(
+      job.questions.map(({ client }) => client),
+      body,
+    );
     if (Object.keys(fields).length > 0) {
       const message =
         'Some answers are not valid for their questions. The answers were not screened or stored.';

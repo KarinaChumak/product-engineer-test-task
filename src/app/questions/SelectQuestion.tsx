@@ -9,6 +9,7 @@ export function SelectQuestion({
   value,
   onChange,
   fromProfile,
+  error,
 }: QuestionProps<SelectQuestionData>) {
   const intl = useIntl();
   // A multi-choice answer is a list, even while this offers one pick until a multi-select exists.
@@ -23,6 +24,7 @@ export function SelectQuestion({
       placeholder={intl.formatMessage({ id: 'question.placeholder' })}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
+      error={error}
     />
   );
 }
