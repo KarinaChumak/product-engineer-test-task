@@ -120,6 +120,28 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     expect(job.questions.find((q) => q.id === 'notice_period')).not.toHaveProperty('prefill');
   });
 
+  it('does not prefill a multi-choice question, whose answer is a list, from a single profile value', async () => {
+    const jobs = storeOf({
+      id: 'job-multi',
+      questions: [
+        {
+          type: 'select',
+          id: 'notice',
+          question: 'Notice?',
+          max_choices: 2,
+          profile_field: 'notice_period',
+          options: [{ label: '3 months', value: '3_months' }],
+        },
+      ],
+    });
+    const app = createApp({ ...silent, jobs, loadProfile: async () => ({ notice_period: '3_months' }) });
+
+    const response = await app.request('/api/jobs/job-multi/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions[0]).not.toHaveProperty('prefill');
+  });
+
   it('still returns the questionnaire, without prefill, when the profile cannot be read', async () => {
     const warnings: string[] = [];
     const app = createApp({

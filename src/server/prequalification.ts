@@ -32,7 +32,7 @@ export function isPrequalificationRequest(body: unknown): body is Prequalificati
 /**
  * The payload for the job's questions, in their order, with the screening result. Answers to questions the
  * job doesn't ask are left out, and so are questions without an answer, or with an empty one. Check the
- * answers with `findAnswerErrors` first: this stores what it's given.
+ * answers with `findInvalidAnswers` first: this stores what it's given.
  */
 export function buildPrequalificationPayload(
   job: Job,

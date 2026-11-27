@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Job } from '@/server/normalize';
-import { findAnswerError, findAnswerErrors } from '@/server/validation';
+import { findAnswerError, findInvalidAnswers } from '@/server/validation';
 import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 
 const base = { question: 'Question?', required: false };
@@ -97,11 +97,11 @@ describe('findAnswerError', () => {
   });
 });
 
-describe('findAnswerErrors', () => {
+describe('findInvalidAnswers', () => {
   it('finds nothing wrong with valid answers', () => {
     const job = jobOf(single, numeric, text);
 
-    expect(findAnswerErrors(job, { answers: { notice: 'vue', salary: 50000, note: 'Hi' } })).toEqual({});
+    expect(findInvalidAnswers(job, { answers: { notice: 'vue', salary: 50000, note: 'Hi' } })).toEqual({});
   });
 
   it.each<[string, Record<string, AnswerValue>]>([
@@ -111,11 +111,11 @@ describe('findAnswerErrors', () => {
   ])('refuses a required answer that is %s', (_, answers) => {
     const job = jobOf({ ...text, required: true });
 
-    expect(findAnswerErrors(job, { answers })).toEqual({ note: 'required' });
+    expect(findInvalidAnswers(job, { answers })).toEqual({ note: 'required' });
   });
 
   it('refuses a required multi-choice answer with no choices', () => {
-    expect(findAnswerErrors(jobOf({ ...multi, required: true }), { answers: { stack: [] } })).toEqual({
+    expect(findInvalidAnswers(jobOf({ ...multi, required: true }), { answers: { stack: [] } })).toEqual({
       stack: 'required',
     });
   });
@@ -125,23 +125,25 @@ describe('findAnswerErrors', () => {
     ['blank', { note: '   ' }],
     ['an empty list', { stack: [] }],
   ])('accepts an optional answer that is %s', (_, answers) => {
-    expect(findAnswerErrors(jobOf(text, multi), { answers })).toEqual({});
+    expect(findInvalidAnswers(jobOf(text, multi), { answers })).toEqual({});
   });
 
   it('checks an optional answer that is given', () => {
-    expect(findAnswerErrors(jobOf(numeric), { answers: { salary: 1 } })).toEqual({ salary: 'out_of_range' });
+    expect(findInvalidAnswers(jobOf(numeric), { answers: { salary: 1 } })).toEqual({
+      salary: 'out_of_range',
+    });
   });
 
   it('takes 0 for an answer to a required question, not for an empty one', () => {
     const job = jobOf({ ...numeric, min: 0, required: true });
 
-    expect(findAnswerErrors(job, { answers: { salary: 0 } })).toEqual({});
+    expect(findInvalidAnswers(job, { answers: { salary: 0 } })).toEqual({});
   });
 
   it('reports every refused answer at once, not only the first', () => {
     const job = jobOf({ ...single, required: true }, numeric, text);
 
-    expect(findAnswerErrors(job, { answers: { salary: 1.5, note: 'x'.repeat(5001) } })).toEqual({
+    expect(findInvalidAnswers(job, { answers: { salary: 1.5, note: 'x'.repeat(5001) } })).toEqual({
       notice: 'required',
       salary: 'not_an_integer',
       note: 'too_long',
@@ -149,18 +151,18 @@ describe('findAnswerErrors', () => {
   });
 
   it('ignores answers to questions the job does not ask', () => {
-    expect(findAnswerErrors(jobOf(text), { answers: { made_up: 42 } })).toEqual({});
+    expect(findInvalidAnswers(jobOf(text), { answers: { made_up: 42 } })).toEqual({});
   });
 
   it('does not take an inherited key such as toString for an answer', () => {
     const job = jobOf({ ...text, id: 'toString', required: true });
 
-    expect(findAnswerErrors(job, { answers: {} })).toEqual({ toString: 'required' });
+    expect(findInvalidAnswers(job, { answers: {} })).toEqual({ toString: 'required' });
   });
 
   it('never refuses an answer for failing a screening rule', () => {
     const job: Job = { ...jobOf(numeric), questions: [{ client: numeric, rules: { mustBeBelow: 90000 } }] };
 
-    expect(findAnswerErrors(job, { answers: { salary: 95000 } })).toEqual({});
+    expect(findInvalidAnswers(job, { answers: { salary: 95000 } })).toEqual({});
   });
 });

@@ -4,7 +4,7 @@ import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/
 import { profileFromFile, type Profile } from '@/server/prefill';
 import { buildPrequalificationPayload, isPrequalificationRequest } from '@/server/prequalification';
 import { submissionsFromFile, type SubmissionStore } from '@/server/submissions';
-import { findAnswerErrors } from '@/server/validation';
+import { findInvalidAnswers } from '@/server/validation';
 import type { InvalidAnswersResponse } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
 
@@ -65,7 +65,7 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     const body: unknown = await c.req.json().catch(() => undefined);
     if (!isPrequalificationRequest(body)) return c.json({ error: 'invalid_body' }, 400);
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
-    const fields = findAnswerErrors(job, body);
+    const fields = findInvalidAnswers(job, body);
     if (Object.keys(fields).length > 0)
       return c.json({ error: 'invalid_answers', fields } satisfies InvalidAnswersResponse, 422);
 

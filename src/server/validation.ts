@@ -53,7 +53,7 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
  * answer, or with an empty one, is `required`. Answers to questions the job doesn't ask are ignored, as the
  * payload leaves them out.
  */
-export function findAnswerErrors(job: Job, request: PrequalificationRequest): Record<string, AnswerError> {
+export function findInvalidAnswers(job: Job, request: PrequalificationRequest): Record<string, AnswerError> {
   const errors: Record<string, AnswerError> = {};
   for (const { client } of job.questions) {
     const value = getSentAnswer(request, client.id);
