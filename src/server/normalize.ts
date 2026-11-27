@@ -159,12 +159,13 @@ export function parseJob(raw: unknown, warn: Warn): Job {
  * The questionnaire the candidate sees: only each question's `client` part. With a `profile`, each
  * question with a profile field gets its `prefill` from it.
  */
-export function toJobQuestionnaire(job: Job, profile: Profile = {}): JobQuestionnaire {
+export function toJobQuestionnaire(job: Job, profile: Profile = {}, isCompleted = false): JobQuestionnaire {
   return {
     id: job.id,
     title: job.title,
     company: job.company,
     ...(job.language && { language: job.language }),
+    isCompleted,
     questions: job.questions.map(({ client, profileField }) => {
       const prefill = profileField === undefined ? undefined : prefillFor(client, profileField, profile);
       return prefill === undefined ? client : { ...client, prefill };

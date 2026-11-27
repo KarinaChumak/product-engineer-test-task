@@ -53,5 +53,7 @@ export interface JobQuestionnaire {
   company: string;
   /** Unset when the job has no supported language; the UI then uses the browser's. */
   language?: Language;
+  /** The candidate has already submitted answers for this job, so they can't answer it again. */
+  isCompleted: boolean;
   questions: ClientQuestion[];
 }

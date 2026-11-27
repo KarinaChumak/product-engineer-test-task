@@ -26,6 +26,9 @@ export const de: Record<MessageKey, string> = {
   'prequalification.notPassed.title': 'Du erfüllst die Anforderungen dieses Jobs nicht',
   'prequalification.notPassed.body':
     'Danke, dass du die Fragen zu {title} bei {company} beantwortet hast. Deine Antworten entsprechen nicht dem, was das Unternehmen für diesen Job verlangt, deshalb leiten wir sie nicht weiter.',
+  'prequalification.completed.title': 'Du hast die Fragen zu diesem Job schon beantwortet',
+  'prequalification.completed.body':
+    'Du hast die Fragen zu {title} bei {company} schon beantwortet. Die Fragen eines Jobs kannst du nur einmal beantworten, hier gibt es also nichts mehr zu tun.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Job wechseln',
   'jobSwitcher.placeholder': 'Job auswählen',

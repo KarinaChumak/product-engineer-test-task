@@ -27,7 +27,7 @@ describe('submissionsFromFile', () => {
   it('creates the file and its folder, keyed by candidate and job', async () => {
     const path = join(directory, 'data', 'submissions.json');
 
-    await submissionsFromFile(path).save(submissionFor('job-short', 95000));
+    expect(await submissionsFromFile(path).saveIfNew(submissionFor('job-short', 95000))).toBe(true);
 
     expect(await readStored(path)).toEqual({ 'talent-4711:job-short': submissionFor('job-short', 95000) });
   });
@@ -36,7 +36,7 @@ describe('submissionsFromFile', () => {
     const path = join(directory, 'submissions.json');
     const store = submissionsFromFile(path);
 
-    await Promise.all(['job-a', 'job-b', 'job-c'].map((jobId) => store.save(submissionFor(jobId, 1))));
+    await Promise.all(['job-a', 'job-b', 'job-c'].map((jobId) => store.saveIfNew(submissionFor(jobId, 1))));
 
     expect(Object.keys((await readStored(path)) as object).sort()).toEqual([
       'talent-4711:job-a',
@@ -44,5 +44,37 @@ describe('submissionsFromFile', () => {
       'talent-4711:job-c',
     ]);
     expect(await readdir(directory)).toEqual(['submissions.json']);
+  });
+
+  it('refuses a second submission for the same candidate and job, keeping the first', async () => {
+    const path = join(directory, 'submissions.json');
+    const store = submissionsFromFile(path);
+    await store.saveIfNew(submissionFor('job-short', 95000));
+
+    expect(await store.saveIfNew(submissionFor('job-short', 50000))).toBe(false);
+
+    expect(await readStored(path)).toEqual({ 'talent-4711:job-short': submissionFor('job-short', 95000) });
+  });
+
+  it('stores only one of two submissions for the same job sent at once', async () => {
+    const path = join(directory, 'submissions.json');
+    const store = submissionsFromFile(path);
+
+    const results = await Promise.all([
+      store.saveIfNew(submissionFor('job-short', 95000)),
+      store.saveIfNew(submissionFor('job-short', 50000)),
+    ]);
+
+    expect(results).toEqual([true, false]);
+    expect(await readStored(path)).toEqual({ 'talent-4711:job-short': submissionFor('job-short', 95000) });
+  });
+
+  it('says whether the candidate has submitted for a job', async () => {
+    const store = submissionsFromFile(join(directory, 'submissions.json'));
+    await store.saveIfNew(submissionFor('job-short', 95000));
+
+    expect(await store.has('talent-4711', 'job-short')).toBe(true);
+    expect(await store.has('talent-4711', 'job-long')).toBe(false);
+    expect(await store.has('talent-0001', 'job-short')).toBe(false);
   });
 });

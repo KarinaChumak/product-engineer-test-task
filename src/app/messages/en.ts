@@ -23,6 +23,9 @@ export const en = {
   'prequalification.notPassed.title': 'You don’t fit this job’s requirements',
   'prequalification.notPassed.body':
     'Thanks for answering the questions for {title} at {company}. Your answers don’t meet what the company asks for this job, so we won’t send them on.',
+  'prequalification.completed.title': 'You’ve already answered the questions for this job',
+  'prequalification.completed.body':
+    'You answered the questions for {title} at {company}. Each job’s questions can be answered only once, so there’s nothing more to do here.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Switch job',
   'jobSwitcher.placeholder': 'Choose a job',

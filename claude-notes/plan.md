@@ -90,7 +90,8 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-05 Can't apply to the same job twice
 
-- Status: todo
+- Status: in review
+- Outcome: `SubmissionStore.saveIfNew` stores one prequalification per candidate and job (checked and written in one queued step), a second POST gets `409 already_completed`, and `GET /api/jobs/:id/questionnaire` carries `isCompleted`, which shows an "already completed" screen that doesn't reveal the result. `.claude/scripts/e2e` now runs on one worker, and e2e specs that answer job-short clear its submission first with `e2e/submissions.ts`; later specs that submit a job must do the same.
 - Done when:
   - A second POST for the same candidate and job returns 409 and doesn't change the stored payload, including two requests sent at once (test)
   - `GET /api/jobs/:id` says the job is already completed, and reopening it shows an "already completed" screen instead of the form (test)
@@ -99,7 +100,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~200 lines
 - PRs: one
 - After: T-04
-- Branch: none yet
+- Branch: claude/t-05-already-completed-2a31c8
 
 ### T-06 See input errors before submitting
 

@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { clearSubmission } from './submissions';
+
+test.beforeEach(() => clearSubmission('job-short'));
 
 test('the multiline text question grows with its content', async ({ page }) => {
   await page.goto('/jobs/job-short');
