@@ -1,11 +1,29 @@
 // @vitest-environment node
 import { createApp, type AppDeps } from '@/server/app';
 import type { JobStore } from '@/server/jobs';
-import type { Submission } from '@/server/submissions';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { submissionsFromFile, type Submission, type SubmissionStore } from '@/server/submissions';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
 
-// Everything else comes from the real `jobs/` and `profile.json`. Normalization warnings are expected.
-const silent = { warn: () => {}, logSubmission: () => {} };
+/** A store that keeps its submissions in `saved`, one per candidate and job, like the real one. */
+const submissionsIn = (saved: Submission[]): SubmissionStore => {
+  const has = async (candidateId: string, jobId: string) =>
+    saved.some((s) => s.candidate_id === candidateId && s.payload.job_id === jobId);
+  return {
+    has,
+    saveIfNew: async (submission) => {
+      if (await has(submission.candidate_id, submission.payload.job_id)) return false;
+      saved.push(submission);
+      return true;
+    },
+  };
+};
+
+// Everything else comes from the real `jobs/` and `profile.json`, but never the real `data/submissions.json`.
+// Normalization warnings are expected.
+const silent = { warn: () => {}, logSubmission: () => {}, submissions: submissionsIn([]) };
 
 /** A store holding just these configs. */
 const storeOf = (...configs: Record<string, unknown>[]): JobStore => ({
@@ -157,6 +175,35 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     expect(warnings).toEqual([expect.stringContaining('ENOENT')]);
   });
 
+  it('says the job is not completed before the candidate submits, and completed after', async () => {
+    const app = createApp({ ...silent, submissions: submissionsIn([]) });
+    const isCompleted = async () =>
+      ((await (await app.request('/api/jobs/job-short/questionnaire')).json()) as JobQuestionnaire)
+        .isCompleted;
+
+    const before = await isCompleted();
+    await app.request('/api/jobs/job-short/prequalification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: { notice_period: '3_months', salary_expectation: 95000 } }),
+    });
+
+    expect([before, await isCompleted()]).toEqual([false, true]);
+  });
+
+  it('says the job is completed only for the candidate who submitted', async () => {
+    const saved: Submission[] = [];
+    const submissions = submissionsIn(saved);
+    await submissions.saveIfNew({
+      candidate_id: 'talent-0001',
+      payload: { job_id: 'job-short', answers: [], screening: { passed: true, failed: [] } },
+    });
+
+    const response = await createApp({ ...silent, submissions }).request('/api/jobs/job-short/questionnaire');
+
+    expect(((await response.json()) as JobQuestionnaire).isCompleted).toBe(false);
+  });
+
   it('returns 404 for an unknown job', async () => {
     const response = await createApp(silent).request('/api/jobs/job-missing/questionnaire');
 
@@ -171,7 +218,7 @@ describe('POST /api/jobs/:id/prequalification', () => {
     const saved: Submission[] = [];
     const app = createApp({
       ...silent,
-      submissions: { save: async (s) => void saved.push(s) },
+      submissions: submissionsIn(saved),
       ...overrides,
     });
     return { app, saved };
@@ -227,6 +274,51 @@ describe('POST /api/jobs/:id/prequalification', () => {
     expect(logged).toEqual(saved);
   });
 
+  it('refuses a second submission for the same job with a 409 that says nothing about the result, keeping the first', async () => {
+    const logged: Submission[] = [];
+    const { app, saved } = appStoringIn({ logSubmission: (submission) => logged.push(submission) });
+    await submitAnswers(app, 'job-short', validShortAnswers);
+    const [first] = saved;
+
+    const response = await submitAnswers(app, 'job-short', {
+      answers: { notice_period: 'immediately', salary_expectation: 60000 },
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'already_completed',
+      message:
+        'The candidate has already submitted answers for this job. The new answers were not screened or stored.',
+    });
+    expect(saved).toEqual([first]);
+    expect(logged).toEqual([first]);
+  });
+
+  it('stores only one of two submissions for the same job sent at once, to the real file', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'submissions-'));
+    try {
+      const path = join(directory, 'submissions.json');
+      const app = createApp({ ...silent, submissions: submissionsFromFile(path) });
+
+      const responses = await Promise.all([
+        submitAnswers(app, 'job-short', validShortAnswers),
+        submitAnswers(app, 'job-short', {
+          answers: { notice_period: 'immediately', salary_expectation: 60000 },
+        }),
+      ]);
+
+      expect(responses.map((response) => response.status)).toEqual([201, 409]);
+      const stored = JSON.parse(await readFile(path, 'utf8')) as Record<string, Submission>;
+      expect(Object.keys(stored)).toEqual(['talent-4711:job-short']);
+      expect(stored['talent-4711:job-short']?.payload.answers).toContainEqual({
+        id: 'salary_expectation',
+        value: 95000,
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it('logs nothing when the answers are refused', async () => {
     const logged: Submission[] = [];
     const { app } = appStoringIn({ logSubmission: (submission) => logged.push(submission) });
@@ -260,10 +352,12 @@ describe('POST /api/jobs/:id/prequalification', () => {
   });
 
   it('tells the candidate whether they passed, and nothing about which rule or threshold', async () => {
-    const { app } = appStoringIn({ jobs: salaryJob });
-
-    const passed = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
-    const failed = await submitAnswers(app, 'job-salary', { answers: { salary: 95000 } });
+    const passed = await submitAnswers(appStoringIn({ jobs: salaryJob }).app, 'job-salary', {
+      answers: { salary: 85000 },
+    });
+    const failed = await submitAnswers(appStoringIn({ jobs: salaryJob }).app, 'job-salary', {
+      answers: { salary: 95000 },
+    });
 
     expect([passed.status, await passed.json()]).toEqual([201, { passed: true }]);
     expect([failed.status, await failed.json()]).toEqual([201, { passed: false }]);

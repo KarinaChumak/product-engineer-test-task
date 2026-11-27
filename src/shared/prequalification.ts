@@ -40,3 +40,10 @@ export interface InvalidAnswersResponse {
   message: string;
   fields: Record<string, AnswerError>;
 }
+
+/** The body of a 409: the candidate has already submitted answers for this job. It doesn't say the result. */
+export interface AlreadyCompletedResponse {
+  error: 'already_completed';
+  /** For whoever reads the response, not for the candidate: the client shows its own copy. */
+  message: string;
+}

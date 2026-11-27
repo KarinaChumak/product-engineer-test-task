@@ -8,6 +8,9 @@ export class NotFoundError extends Error {}
 /** The server answered 422: some answers aren't valid, so sending them again won't help. */
 export class InvalidAnswersError extends Error {}
 
+/** The server answered 409: the candidate has already submitted answers for this job. */
+export class AlreadyCompletedError extends Error {}
+
 export async function fetchJobQuestionnaire(jobId: string, signal: AbortSignal): Promise<JobQuestionnaire> {
   const url = `/api/jobs/${encodeURIComponent(jobId)}/questionnaire`;
   const response = await fetch(url, { signal });
@@ -35,6 +38,7 @@ export async function submitPrequalification(
   });
   // T-06 reads the field errors from the body to show them on their fields.
   if (response.status === 422) throw new InvalidAnswersError(`POST ${url} returned 422`);
+  if (response.status === 409) throw new AlreadyCompletedError(`POST ${url} returned 409`);
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;
 }
