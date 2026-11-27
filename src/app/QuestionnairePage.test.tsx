@@ -520,6 +520,22 @@ describe('QuestionnairePage submit', () => {
     expect(sent).toEqual([]);
   });
 
+  it.each([
+    [
+      'a code the client has no message for',
+      () => HttpResponse.json({ fields: { salary: 'made_up' } }, { status: 422 }),
+    ],
+    ['a body that is not JSON', () => new HttpResponse('<h1>Bad gateway</h1>', { status: 422 })],
+  ])('shows only the alert for a 422 with %s', async (_, respond) => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(respond);
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Some of your answers can’t be accepted/);
+    expect(screen.getByRole('textbox', salaryQuestion)).not.toHaveAttribute('aria-invalid');
+  });
+
   it('shows the server’s field errors on their fields and moves focus to the first', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(() =>

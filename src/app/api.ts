@@ -1,9 +1,10 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import type {
-  AnswerError,
-  InvalidAnswersResponse,
-  PrequalificationRequest,
-  PrequalificationResult,
+import {
+  isAnswerError,
+  type AnswerError,
+  type InvalidAnswersResponse,
+  type PrequalificationRequest,
+  type PrequalificationResult,
 } from '@/shared/prequalification';
 import type { JobQuestionnaire, JobSummary } from '@/shared/questionnaire';
 
@@ -47,8 +48,11 @@ export async function submitPrequalification(
     body: JSON.stringify(request),
   });
   if (response.status === 422) {
-    const { fields } = (await response.json()) as Partial<InvalidAnswersResponse>;
-    throw new InvalidAnswersError(`POST ${url} returned 422`, fields ?? {});
+    // A body that isn't the API's, such as a proxy's error page, still counts as invalid answers. Codes the
+    // client has no message for are left out; the alert above the button still says the answers were refused.
+    const body = (await response.json().catch(() => ({}))) as Partial<InvalidAnswersResponse>;
+    const known = Object.entries(body.fields ?? {}).filter(([, code]) => isAnswerError(code));
+    throw new InvalidAnswersError(`POST ${url} returned 422`, Object.fromEntries(known));
   }
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;

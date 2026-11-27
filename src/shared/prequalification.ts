@@ -19,19 +19,26 @@ export interface PrequalificationResult {
 /** The longest text answer the server stores, in characters. */
 export const maxTextAnswerLength = 5000;
 
+const answerErrors = [
+  'required',
+  'wrong_type',
+  'not_an_option',
+  'repeated_choice',
+  'too_many_choices',
+  'not_an_integer',
+  'out_of_range',
+  'too_long',
+] as const;
+
 /**
  * Why the server refused an answer. Each says what's wrong with the input only: a screening rule never
  * makes an answer invalid, so none of them can reveal a threshold.
  */
-export type AnswerError =
-  | 'required'
-  | 'wrong_type'
-  | 'not_an_option'
-  | 'repeated_choice'
-  | 'too_many_choices'
-  | 'not_an_integer'
-  | 'out_of_range'
-  | 'too_long';
+export type AnswerError = (typeof answerErrors)[number];
+
+/** Whether a value from a response is one of the codes above. */
+export const isAnswerError = (value: unknown): value is AnswerError =>
+  (answerErrors as readonly unknown[]).includes(value);
 
 /** The body of a 422: the refused answers by question id. */
 export interface InvalidAnswersResponse {
