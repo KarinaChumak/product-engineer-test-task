@@ -65,15 +65,33 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
   // answer stays in here as undefined, so it doesn't fall back.
   const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
-  // The refused answers, from the last submit's check or the server; changing an answer drops its error.
-  const [answerErrors, setAnswerErrors] = useState<Partial<Record<string, AnswerError>>>({});
+  // The questions the candidate has left at least once. Each shows its error from then on.
+  const [touchedIds, setTouchedIds] = useState<ReadonlySet<string>>(new Set());
+  // After a submit every question shows its error, touched or not.
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  // The answers the server refused in its last 422. Changing an answer drops its error.
+  const [serverErrors, setServerErrors] = useState<Partial<Record<string, AnswerError>>>({});
   const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const submission = useSubmitPrequalification(questionnaire.id);
-  const shown = questionnaire.questions.flatMap((question) => {
+  const answerable = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
     if (!Component) return [];
     const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
-    return [{ question, Component, value, error: answerErrors[question.id] }];
+    return [{ question, Component, value }];
+  });
+  const answers = Object.fromEntries(
+    answerable.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
+  );
+  // The same check the server runs, on every render, so a shown error follows the answer as it changes.
+  const invalidAnswers = findInvalidAnswers(
+    answerable.map(({ question }) => question),
+    { answers },
+  );
+  const shown = answerable.map((item) => {
+    const isErrorShown = hasSubmitted || touchedIds.has(item.question.id);
+    const error =
+      (isErrorShown ? invalidAnswers[item.question.id] : undefined) ?? serverErrors[item.question.id];
+    return { ...item, error };
   });
 
   // The candidate learns whether their answers go on to the employer, never which one decided it.
@@ -114,30 +132,22 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
 
   const submitAnswers = () => {
     if (submission.isPending) return;
-    const answers = Object.fromEntries(
-      shown.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
-    );
-    const showAnswerErrors = (errors: Record<string, AnswerError>) => {
-      setAnswerErrors(errors);
-      setInvalidFocusRequest((request) => request + 1);
-    };
-    // The same check the server runs, so most refusals show without a round trip.
-    const errors = findInvalidAnswers(
-      shown.map(({ question }) => question),
-      { answers },
-    );
-    if (Object.keys(errors).length > 0) {
+    setHasSubmitted(true);
+    // Most refusals show without a round trip.
+    if (Object.keys(invalidAnswers).length > 0) {
       // Nothing is sent, so an earlier send's error no longer applies.
       submission.reset();
-      showAnswerErrors(errors);
+      setInvalidFocusRequest((request) => request + 1);
       return;
     }
-    setAnswerErrors({});
+    setServerErrors({});
     submission.mutate(
       { answers },
       {
         onError: (error) => {
-          if (error instanceof InvalidAnswersError) showAnswerErrors(error.fields);
+          if (!(error instanceof InvalidAnswersError)) return;
+          setServerErrors(error.fields);
+          setInvalidFocusRequest((request) => request + 1);
         },
       },
     );
@@ -160,10 +170,13 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
                 value={value}
                 onChange={(next) => {
                   setChanged((answers) => ({ ...answers, [question.id]: next }));
-                  setAnswerErrors((errors) =>
+                  setServerErrors((errors) =>
                     errors[question.id] ? { ...errors, [question.id]: undefined } : errors,
                   );
                 }}
+                onBlur={() =>
+                  setTouchedIds((ids) => (ids.has(question.id) ? ids : new Set(ids).add(question.id)))
+                }
                 fromProfile={question.prefill !== undefined && value === question.prefill}
                 error={error && <AnswerErrorMessage question={question} error={error} />}
               />

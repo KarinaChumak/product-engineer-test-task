@@ -574,6 +574,27 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('keeps the server’s error on a field the candidate leaves, until they change that answer', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(() =>
+      HttpResponse.json(
+        { error: 'invalid_answers', message: 'Invalid', fields: { salary: 'out_of_range' } },
+        { status: 422 },
+      ),
+    );
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+    const salary = screen.getByRole('textbox', salaryQuestion);
+    await waitFor(() => expect(salary).toHaveFocus());
+    // The client's check accepts 95,000, so only the server's error is on the field.
+    await user.tab();
+    expect(salary).toHaveAccessibleDescription('From your profile Enter a number from 20,000 to 300,000.');
+
+    await user.clear(salary);
+    await user.type(salary, '96000');
+    expect(salary).not.toHaveAttribute('aria-invalid');
+  });
+
   it('shows the field errors in German for a German job', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(passed, { ...questionnaire, language: 'de' });
@@ -583,6 +604,103 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
       'Beantworte diese Frage, um fortzufahren.',
     );
+  });
+});
+
+describe('QuestionnairePage errors on leaving a field', () => {
+  const proudProject = { name: /proud of/ };
+  const required = 'Answer this question to continue.';
+  const outOfRange = 'Enter a number from 20,000 to 300,000.';
+
+  /** Opens job-short with no prefills, collecting any prequalification POST, which none of these should send. */
+  const openUnanswered = () => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+
+  it('shows a field’s error when the candidate moves to another question, without submitting', async () => {
+    const user = userEvent.setup();
+    const sent = openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.type(salary, '5');
+    await user.click(screen.getByRole('textbox', proudProject));
+
+    expect(salary).toHaveAttribute('aria-invalid', 'true');
+    expect(salary).toHaveAccessibleDescription(outOfRange);
+    expect(sent).toEqual([]);
+  });
+
+  it('shows a field’s error when focus leaves the form', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.click(salary);
+    await user.click(document.body);
+
+    expect(salary).toHaveAccessibleDescription(required);
+  });
+
+  it('updates a shown error as the candidate types, and drops it once the answer is valid', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.type(salary, '5');
+    await user.tab();
+    expect(salary).toHaveAccessibleDescription(outOfRange);
+
+    await user.clear(salary);
+    expect(salary).toHaveAccessibleDescription(required);
+
+    await user.type(salary, '95000');
+    expect(salary).not.toHaveAttribute('aria-invalid');
+    expect(salary).not.toHaveAccessibleDescription();
+  });
+
+  it('shows no error on questions the candidate hasn’t left until they submit, then shows every one and focuses the first', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    await user.click(await screen.findByRole('textbox', salaryQuestion));
+    await user.tab();
+    const select = screen.getByRole('combobox', noticePeriod);
+    expect(select).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByRole('textbox', salaryQuestion)).toHaveAttribute('aria-invalid', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    expect(select).toHaveAccessibleDescription(required);
+    expect(select).toHaveFocus();
+  });
+
+  it('shows no error under a select while its list is open or after picking, only once the candidate leaves it', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const select = await screen.findByRole('combobox', noticePeriod);
+    await user.click(select);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(select).not.toHaveAttribute('aria-invalid');
+    await user.keyboard('{Escape}');
+    expect(select).toHaveFocus();
+    expect(select).not.toHaveAttribute('aria-invalid');
+
+    await user.tab();
+    expect(select).toHaveAccessibleDescription(required);
+
+    await user.click(select);
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    expect(select).not.toHaveAttribute('aria-invalid');
   });
 });
 
