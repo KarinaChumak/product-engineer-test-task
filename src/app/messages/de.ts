@@ -13,15 +13,15 @@ export const de: Record<MessageKey, string> = {
   'job.error.network': 'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung.',
   'job.error.retry': 'Erneut versuchen',
   'job.error.retrying': 'Wird erneut versucht…',
-  'application.submit': 'Bewerbung senden',
-  'application.submitting': 'Wird gesendet…',
-  'application.error.server':
-    'Wir konnten deine Bewerbung nicht senden, weil auf unserem Server ein Fehler aufgetreten ist. Deine Antworten sind noch da, versuche es also noch einmal.',
-  'application.error.network':
+  'prequalification.submit': 'Antworten absenden',
+  'prequalification.submitting': 'Wird übermittelt…',
+  'prequalification.error.server':
+    'Wir konnten deine Antworten nicht speichern, weil auf unserem Server ein Fehler aufgetreten ist. Deine Antworten sind noch da, versuche es also noch einmal.',
+  'prequalification.error.network':
     'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung und versuche es noch einmal. Deine Antworten sind noch da.',
-  'application.sent.title': 'Bewerbung gesendet',
-  'application.sent.body':
-    'Danke für deine Bewerbung als {title} bei {company}. Das Unternehmen meldet sich bei dir.',
+  'prequalification.recorded.title': 'Deine Antworten wurden gespeichert',
+  'prequalification.recorded.body':
+    'Danke, dass du die Fragen zu {title} bei {company} beantwortet hast. Wenn du zu den Anforderungen des Unternehmens passt, leiten wir deine Antworten weiter.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Job wechseln',
   'jobSwitcher.placeholder': 'Job auswählen',

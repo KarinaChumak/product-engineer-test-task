@@ -8,14 +8,14 @@ describe('Form', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(
-      <Form label="Application" onSubmit={onSubmit}>
-        <Button type="submit">Send</Button>
+      <Form label="Sign up" onSubmit={onSubmit}>
+        <Button type="submit">Submit</Button>
       </Form>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Send' }));
+    await user.click(screen.getByRole('button', { name: 'Submit' }));
 
-    expect(screen.getByRole('form', { name: 'Application' })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Sign up' })).toBeInTheDocument();
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

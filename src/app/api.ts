@@ -1,5 +1,5 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import type { ApplicationRequest } from '@/shared/application';
+import type { PrequalificationRequest } from '@/shared/prequalification';
 import type { JobQuestionnaire, JobSummary } from '@/shared/questionnaire';
 
 /** The server answered 404: there's nothing to retry. */
@@ -19,9 +19,12 @@ export async function fetchJobs(signal: AbortSignal): Promise<JobSummary[]> {
   return (await response.json()) as JobSummary[];
 }
 
-/** Sends the candidate's application. Resolves on any 2xx, which carries nothing about the result. */
-export async function submitApplication(jobId: string, request: ApplicationRequest): Promise<void> {
-  const url = `/api/jobs/${encodeURIComponent(jobId)}/applications`;
+/**
+ * Sends the candidate's prequalification answers. Resolves on any 2xx, which says nothing about whether
+ * they passed screening and go on to the employer.
+ */
+export async function submitPrequalification(jobId: string, request: PrequalificationRequest): Promise<void> {
+  const url = `/api/jobs/${encodeURIComponent(jobId)}/prequalification`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

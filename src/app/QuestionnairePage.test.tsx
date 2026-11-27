@@ -341,14 +341,15 @@ describe('QuestionnairePage', () => {
 });
 
 describe('QuestionnairePage submit', () => {
-  const sendApplication = { name: 'Send application' };
+  const submitAnswers = { name: 'Submit answers' };
+  const answersRecorded = { name: 'Your answers have been recorded' };
 
-  /** Opens the prefilled job-short and answers the application POST with `respond`, counting the requests. */
-  const openWithApplicationAnswer = (respond: () => Response | Promise<Response>) => {
+  /** Opens the prefilled job-short and answers the prequalification POST with `respond`, collecting the requests. */
+  const openWithPrequalificationResponse = (respond: () => Response | Promise<Response>) => {
     const sent: unknown[] = [];
     server.use(
       http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)),
-      http.post('/api/jobs/job-short/applications', async ({ request }) => {
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
         sent.push(await request.json());
         return respond();
       }),
@@ -357,33 +358,59 @@ describe('QuestionnairePage submit', () => {
     return sent;
   };
 
-  it('sends the prefilled and changed answers, leaving out an empty optional one, then says it was sent', async () => {
+  it('submits the prefilled and changed answers, leaving out an empty optional one, then says they were recorded', async () => {
     const user = userEvent.setup();
-    const sent = openWithApplicationAnswer(() => new HttpResponse(null, { status: 201 }));
+    const sent = openWithPrequalificationResponse(() => new HttpResponse(null, { status: 201 }));
 
     await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
-    await user.click(screen.getByRole('button', sendApplication));
+    await user.click(screen.getByRole('button', submitAnswers));
 
-    expect(await screen.findByRole('heading', { name: 'Application sent' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', answersRecorded)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Thanks for applying to Frontend Developer (React) at Kranich Health GmbH.',
+      'If you fit what the company is looking for, we’ll pass your answers on to them.',
     );
     expect(sent).toEqual([{ answers: { notice_period: '1_month', salary: 95000 } }]);
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
   });
 
-  it('shows the button as sending while the request is in flight, and sends one request on a double click', async () => {
+  it('never tells the candidate an application was sent, since only answers that pass reach the employer', async () => {
     const user = userEvent.setup();
-    const sent = openWithApplicationAnswer(() => delay('infinite').then(() => new HttpResponse(null)));
+    openWithPrequalificationResponse(() => new HttpResponse(null, { status: 201 }));
 
-    await user.dblClick(await screen.findByRole('button', sendApplication));
+    await user.click(await screen.findByRole('button', submitAnswers));
 
-    const button = await screen.findByRole('button', { name: 'Sending…' });
+    expect(await screen.findByRole('status')).not.toHaveTextContent(/application|applied|sent/i);
+  });
+
+  it('says the answers were recorded in German for a German job', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({ ...prefilledQuestionnaire, language: 'de' }),
+      ),
+      http.post('/api/jobs/job-short/prequalification', () => new HttpResponse(null, { status: 201 })),
+    );
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('button', { name: 'Antworten absenden' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Deine Antworten wurden gespeichert' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the button as submitting while the request is in flight, and sends one request on a double click', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(() => delay('infinite').then(() => new HttpResponse(null)));
+
+    await user.dblClick(await screen.findByRole('button', submitAnswers));
+
+    const button = await screen.findByRole('button', { name: 'Submitting…' });
     expect(button).toHaveAttribute('aria-disabled', 'true');
     await user.click(button);
     expect(sent).toHaveLength(1);
-    expect(screen.queryByRole('heading', { name: 'Application sent' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', answersRecorded)).not.toBeInTheDocument();
   });
 
   it.each([
@@ -398,15 +425,15 @@ describe('QuestionnairePage submit', () => {
     'keeps the form and its answers and shows an error above the button on %s',
     async (_, respond, message) => {
       const user = userEvent.setup();
-      openWithApplicationAnswer(respond);
+      openWithPrequalificationResponse(respond);
 
       await user.click(await screen.findByRole('combobox', noticePeriod));
       await user.click(screen.getByRole('option', { name: '1 month' }));
-      await user.click(screen.getByRole('button', sendApplication));
+      await user.click(screen.getByRole('button', submitAnswers));
 
       const alert = await screen.findByRole('alert');
       expect(alert).toHaveTextContent(message);
-      expect(alert.compareDocumentPosition(screen.getByRole('button', sendApplication))).toBe(
+      expect(alert.compareDocumentPosition(screen.getByRole('button', submitAnswers))).toBe(
         Node.DOCUMENT_POSITION_FOLLOWING,
       );
       expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');

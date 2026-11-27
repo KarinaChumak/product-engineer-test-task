@@ -9,7 +9,7 @@ import { getBrowserLanguage, messages } from '@/app/messages';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
-import { useSubmitApplication } from '@/app/useSubmitApplication';
+import { useSubmitPrequalification } from '@/app/useSubmitPrequalification';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -61,7 +61,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
   // answer stays in here as undefined, so it doesn't fall back.
   const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
-  const submission = useSubmitApplication(questionnaire.id);
+  const submission = useSubmitPrequalification(questionnaire.id);
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
     if (!Component) return [];
@@ -69,15 +69,16 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     return [{ question, Component, value }];
   });
 
-  // The same screen whatever the screening found: the response doesn't say, and nor does this.
+  // The same screen whatever the screening found: the response doesn't say, and nor does this. It never
+  // says the answers were sent to the employer: they go on only if the candidate passes.
   if (submission.isSuccess) {
     return (
       <Notice
         role="status"
-        title={<FormattedMessage id="application.sent.title" />}
+        title={<FormattedMessage id="prequalification.recorded.title" />}
         description={
           <FormattedMessage
-            id="application.sent.body"
+            id="prequalification.recorded.body"
             values={{ title: questionnaire.title, company: questionnaire.company }}
           />
         }
@@ -121,15 +122,17 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
                 // fetch rejects with a TypeError when the server can't be reached at all.
                 id={
                   submission.error instanceof TypeError
-                    ? 'application.error.network'
-                    : 'application.error.server'
+                    ? 'prequalification.error.network'
+                    : 'prequalification.error.server'
                 }
               />
             </Alert>
           )}
-          {/* aria-disabled, not disabled, so the button keeps focus while the application is sent. */}
+          {/* aria-disabled, not disabled, so the button keeps focus while the answers are submitted. */}
           <Button type="submit" aria-disabled={submission.isPending}>
-            <FormattedMessage id={submission.isPending ? 'application.submitting' : 'application.submit'} />
+            <FormattedMessage
+              id={submission.isPending ? 'prequalification.submitting' : 'prequalification.submit'}
+            />
           </Button>
         </Stack>
       </Form>
