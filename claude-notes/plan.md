@@ -79,12 +79,13 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
   - While the request is in flight, the submit button shows a pending state and is disabled, so a double click sends one request (test)
   - The response and the client bundle never contain `screening` or a threshold (test)
 - Touches: src/server (applications route, validation, screening, storage), src/shared (payload types), src/app (submit button, end screen)
-- Size: ~500 lines with tests, so split into two PRs, the second started once the first is on `main`
-- PRs: two
-  - (1) Submit and end screen: the POST route computes `screening` and stores the contract payload, omitting empty optional answers; the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; neither the response nor the bundle contains `screening` or a threshold
-  - (2) Answer validation on the server: the POST route checks each answer against the normalized job and returns 422 with field errors, which the form shows as the same error above the button
+- Size: ~1,000 lines with tests (the ~400 estimate was low), so split into three PRs, each started once the one before is on `main`
+- PRs: three
+  - (1) Screen and store an application: the POST route computes `screening` and stores the contract payload in `data/submissions.json`, omitting empty optional answers, and answers the same empty 201 whether the candidate passed or failed
+  - (2) Submit and end screen: the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; the client bundle contains no `screening` or rule
+  - (3) Answer validation on the server: the POST route checks each answer against the normalized job and returns 422 with field errors, which the form shows as the same error above the button
 - After: T-01
-- Branch: claude/t-04-implementation-8525f6 (PR 1)
+- Branch: claude/t-04-implementation-8525f6 (PR 1), T-04b-submit-end-screen (PR 2, local until PR 1 merges)
 
 ### T-05 Can't apply to the same job twice
 
