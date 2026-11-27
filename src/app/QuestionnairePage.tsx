@@ -73,21 +73,22 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   const [serverErrors, setServerErrors] = useState<Partial<Record<string, AnswerError>>>({});
   const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const submission = useSubmitPrequalification(questionnaire.id);
-  const answerable = questionnaire.questions.flatMap((question) => {
+  // The questions this page can render, each with its current answer.
+  const renderedQuestions = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
     if (!Component) return [];
     const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
     return [{ question, Component, value }];
   });
   const answers = Object.fromEntries(
-    answerable.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
+    renderedQuestions.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
   );
   // The same check the server runs, on every render, so a shown error follows the answer as it changes.
   const invalidAnswers = findInvalidAnswers(
-    answerable.map(({ question }) => question),
+    renderedQuestions.map(({ question }) => question),
     { answers },
   );
-  const shown = answerable.map((item) => {
+  const shown = renderedQuestions.map((item) => {
     const isErrorShown = hasSubmitted || touchedIds.has(item.question.id);
     const error =
       (isErrorShown ? invalidAnswers[item.question.id] : undefined) ?? serverErrors[item.question.id];

@@ -122,7 +122,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 Asked for by the user after T-06's PR was opened. It didn't fit in that PR's size limit.
 
-- Status: in progress
+- Status: in review
 - Done when:
   - Leaving a field the candidate touched (focus moves to another question or out of the form) shows its error the same way T-06 does, with no submit (test)
   - Once a field shows its error, the error updates as the candidate types and disappears as soon as the answer is valid (test)
@@ -134,3 +134,4 @@ Asked for by the user after T-06's PR was opened. It didn't fit in that PR's siz
 - PRs: one
 - After: T-06
 - Branch: claude/t-07-blur-errors-9253f7
+- Outcome: Select, NumberField and TextField take an `onBlur` (Select ignores the blur while its list is open), and `QuestionProps` requires `onBlur`. `QuestionList` runs `findInvalidAnswers` on every render and shows a question's error once it's in `touchedIds` or after a submit; only the server's 422 errors are stored, until that answer changes. A new question type (the date field) passes `onBlur` through to its field.
