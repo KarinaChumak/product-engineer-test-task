@@ -4,8 +4,8 @@ Phases run in order. Each has a one-line goal and exit below. Only the phases th
 
 ## Phases
 
-1. **Walking skeleton** (current): job-short works end to end, from the API and normalization through prefill, submit, server screening and storage, to the end screen. Exit: a candidate can answer and submit job-short, the server stores a payload that matches the contract, and a second submission is refused.
-2. **Every question type and messy configs**: date, boolean, multi-select and file questions, every screening rule, and full normalization of `bad.json` with logged warnings. Exit: all three jobs render and produce payloads that match the contract, and each `bad.json` fix shows up as a warning.
+1. **Walking skeleton**: job-short works end to end, from the API and normalization through prefill, submit, server screening and storage, to the end screen. Exit: a candidate can answer and submit job-short, the server stores a payload that matches the contract, and a second submission is refused.
+2. **Every question type and messy configs** (current): date, boolean, multi-select and file questions, every screening rule, and full normalization of `bad.json` with logged warnings. Exit: all three jobs render and produce payloads that match the contract, and each `bad.json` fix shows up as a warning.
 3. **Step flow and drafts**: steps from easiest to hardest with progress, a review screen with in-place edits, localStorage drafts, full keyboard operation and `track()` events. Exit: an e2e run through job-long, reloading mid-flow, ends with the same payload as an uninterrupted run.
 4. **Polish and hand-in**: Instaffo look (Geist, Lucide, the salary pill variant), motion with reduced-motion support, an a11y pass, README and presentation notes. Exit: `/design-check` passes on every screen and the hand-over checklist in `.claude/WORKFLOW.md` is done.
 
@@ -133,4 +133,109 @@ Asked for by the user after T-06's PR was opened. It didn't fit in that PR's siz
 - Size: ~150 lines
 - PRs: one
 - After: T-06
+- Branch: none yet
+
+## Phase 2: Every question type and messy configs
+
+Lanes: T-08 ‖ T-09 ‖ T-10, then T-11, then T-12, then T-13, then T-14.
+
+Planned with T-07 counted as done. Every ticket that adds or changes a question adapter waits for T-07 to merge, because T-07 gives each adapter an `onBlur`. T-10 touches only the server's prefill, so it can start now.
+
+T-08 and T-11 both add a type to `ClientQuestion`, `normalizeQuestion`, `findAnswerError` and the adapter map, so they run one after the other. T-09 changes only the select adapter and adds a component, so it runs beside T-08; whichever of T-08 and T-09 merges second rebases over the message files.
+
+Settled while planning, to record in `decisions.md` by the ticket that needs it:
+
+- A missing answer fails a question's rule, as the README says (the open question in `product.md`). `screenAnswers` already does this for numeric rules; T-08 keeps it for `must_be_true`. Every rule question in the three jobs is required anyway.
+- A field's own `min`/`max` is input validation, never a screen-out, even when the recruiter used it as a floor (`react_years`, `min: 5`). The field says "between 5 and 50", which the question text already says. T-14 records it.
+
+### T-08 Answer yes/no questions, and `must_be_true` screens them
+
+- Status: todo
+- Done when:
+  - A boolean question shows two choices, "Yes" and "No" in the UI language ("Ja", "Nein" in `de`), with neither picked at first, and they work by keyboard (arrow keys move, as in a radio group) (test)
+  - The answer is sent and stored as a JSON `true` or `false`, and a required boolean left unanswered shows the `required` error (test)
+  - `must_be_true` on a boolean question is kept as a rule: `false` fails it, and so does no answer to an optional question with the rule. `must_be_true` on any other type is still ignored with a warning (test)
+  - job-long's `eu_work_permit` and `willing_to_relocate` render, at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `RadioGroup` on `@radix-ui/react-radio-group`), src/app (a `BooleanQuestion` adapter, its map entry, "Yes"/"No" messages), src/shared (`BooleanQuestion` in `ClientQuestion`, a `boolean` case in `findAnswerError`), src/server (`normalizeQuestion` and `parseRules` for `boolean`, `mustBeTrue` in `ScreeningRules` and `screenAnswers`)
+- Size: ~300 lines (RadioGroup with CSS and tests ~150, adapter and copy ~35, shared type and check with tests ~35, normalize, rules and screening with tests ~80)
+- After: T-07
+- Branch: none yet
+
+### T-09 Pick several options in a multi-choice question
+
+- Status: todo
+- Done when:
+  - A select question with `max_choices` above 1 shows its options as checkboxes and says how many can be picked ("Pick up to 2") (test)
+  - Once `max_choices` options are picked, the others are disabled until one is unpicked. When `max_choices` is at least the number of options, every option can be picked and no limit is shown (test)
+  - The answer is sent as a list and stored in the payload under `values`; unpicking everything leaves an optional question out of the payload (test)
+  - The checkboxes work by keyboard and are grouped under the question as their legend (test)
+  - job-long's `focus_areas` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `CheckboxGroup` on `@radix-ui/react-checkbox`), src/app (the select adapter picks `CheckboxGroup` for multi-choice and drops the one-pick stand-in, "Pick up to" messages)
+- Size: ~260 lines (CheckboxGroup with CSS and tests ~180, adapter ~30, page and payload tests ~50)
+- After: T-07
+- Branch: none yet
+
+### T-10 job-long's German level and years of experience come prefilled from the profile
+
+- Status: todo
+- Done when:
+  - `GET /api/jobs/job-long/questionnaire` prefills `german_level` (`B1`) from the `languages` entry for `de`, and `years_of_experience` (6) from the profile. `english_level` and `city` are mapped the same way, as the README's profile-field table lists them (test)
+  - A profile value the question can't take (a level that isn't an option, a number out of range) isn't prefilled, as before. An unknown `profile_field` is logged as a warning once, when the job is parsed (test)
+  - Both questions show "from your profile" on job-long (screenshot)
+- Touches: src/server (prefill.ts, `Profile`, the profile-field warning in normalize.ts)
+- Size: ~130 lines
+- After: none
+- Branch: none yet
+
+### T-11 Pick a start date within the job's range
+
+- Status: todo
+- Done when:
+  - A date question shows a date field, and its answer is sent and stored as `YYYY-MM-DD` (test)
+  - `min` and `max` are inclusive, and `"today"` is resolved on the server to the server's current date when the questionnaire is built, so the client gets plain dates. A date outside the range, or not a real date, is refused with a message naming the allowed range in the UI locale's date format (test)
+  - A `min` after `max`, or a value that isn't a date or `"today"`, is dropped with a warning (test)
+  - The field marks a required question, shows its error, and moves focus on submit like the other fields, through a shared `Field` component that holds the label, annotation and error wiring (test)
+  - job-long's `starting_date` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `DateField` on the native date input, a new `Field` used by `DateField`), src/app (a `DateQuestion` adapter, its map entry, date error messages), src/shared (`DateQuestion`, a `date` case in `findAnswerError`), src/server (`normalizeQuestion` for `date`, resolving `"today"`)
+- Size: ~300 lines (Field ~70, DateField with CSS and tests ~110, adapter and copy ~35, shared type and check with tests ~40, normalize with tests ~50). Moving `TextField`, `NumberField` and `Select` onto `Field` is left to Phase 4's a11y pass, to keep this under the limit
+- After: T-08
+- Branch: none yet
+
+### T-12 Attach a file, and it's sent in the payload
+
+- Status: todo
+- Done when:
+  - A file question shows a button that opens the file picker; the chosen file's name and size are shown, with a way to remove it, by mouse or keyboard (test)
+  - The file is read in the browser and sent as `{ content_type, data, file_name }`, with `data` base64, and stored that way in the payload (test)
+  - A required file question with no file shows the `required` error; an optional one without a file is left out of the payload (test)
+  - The server accepts a body big enough for a 5 MB file encoded as base64, and refuses a bigger body with 413 (test)
+  - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `FileField`), src/app (a `FileQuestion` adapter that reads the file, its map entry, messages), src/shared (`FileAnswer` in `AnswerValue`, `FileQuestion`, a `file` case in `findAnswerError` for the shape only), src/server (`normalizeQuestion` for `file`, the request shape check, the body limit)
+- Size: ~300 lines
+- After: T-11
+- Branch: none yet
+
+### T-13 A file of the wrong type or over 5 MB is refused
+
+- Status: todo
+- Done when:
+  - Picking a file that isn't PDF, DOCX, PNG or JPG, or is over 5 MB, shows an error on the field right away, before it is read or sent, saying which types and size are allowed (test)
+  - The server refuses the same files by their content type and decoded size, and a `data` that isn't base64, with the `AnswerError` codes the client shows (test)
+  - The file picker offers only the allowed types (test)
+- Touches: src/shared (the file case in `findAnswerError`, new `AnswerError` codes, the allowed types and size), src/components/FileField (an `accept`), src/app (the adapter's check on pick, messages)
+- Size: ~170 lines
+- After: T-12
+- Branch: none yet
+
+### T-14 job-bad opens with every repair logged, and all three jobs submit contract payloads
+
+- Status: todo
+- Done when:
+  - Parsing `jobs/bad.json` logs one warning per repair, and a test lists them all: the second `notice_period`, `must_be_true` on the text `country`, the unknown `rating` type, `tech_stack`'s `max_choices` capped at its 5 options (test)
+  - The defensive repairs from the kickoff decision each have a test and a warning: a numeric or date `min` above `max` (the range is dropped), a select without options (the question is dropped), question text over 255 characters (cut to 255) (test)
+  - A field's own `min`/`max` is checked as input, never as a screen-out: `react_years` refuses 3 as out of range, and that refusal is never a screening failure (test)
+  - An e2e run answers and submits job-long and job-bad, and each stored payload matches the README contract: every answer shape, `values` for multi-choice, optional empty answers left out, and `screening` (e2e)
+- Touches: src/server (normalize.ts repairs), e2e (job-long and job-bad specs, clearing their submissions first like job-short's)
+- Size: ~250 lines
+- After: T-08, T-09, T-10, T-11, T-12, T-13
 - Branch: none yet
