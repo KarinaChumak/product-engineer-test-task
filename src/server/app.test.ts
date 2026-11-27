@@ -259,6 +259,21 @@ describe('POST /api/jobs/:id/applications', () => {
     expect(saved[0]?.payload.answers).toEqual([{ id: 'stack', values: ['react', 'vue'] }]);
   });
 
+  it.each([
+    ['has no id', async () => ({})],
+    ['cannot be read', () => Promise.reject(new Error('ENOENT: profile.json'))],
+  ])('returns 500 and stores nothing when the profile %s', async (_, loadProfile) => {
+    const errors: unknown[] = [];
+    const { app, saved } = appStoringIn({ loadProfile, logError: (error) => errors.push(error) });
+
+    const response = await apply(app, 'job-short', { answers: { notice_period: '3_months' } });
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'internal' });
+    expect(saved).toEqual([]);
+    expect(errors).toHaveLength(1);
+  });
+
   it('returns 404 for an unknown job and stores nothing', async () => {
     const { app, saved } = appStoringIn();
 

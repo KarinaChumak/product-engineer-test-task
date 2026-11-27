@@ -11,6 +11,8 @@ export interface AppDeps {
   loadProfile: () => Promise<Profile>;
   submissions: SubmissionStore;
   warn: Warn;
+  /** Reports an error that ended a request with a 500. */
+  logError: (error: unknown) => void;
 }
 
 /** The real sources: `jobs/`, `profile.json`, `data/submissions.json` and the console. */
@@ -19,11 +21,12 @@ const defaultDeps = (): AppDeps => ({
   loadProfile: () => profileFromFile('profile.json'),
   submissions: submissionsFromFile('data/submissions.json'),
   warn: (message) => console.warn(`normalize: ${message}`),
+  logError: (error) => console.error(error),
 });
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
-  const { jobs, loadProfile, submissions, warn } = { ...defaultDeps(), ...overrides };
+  const { jobs, loadProfile, submissions, warn, logError } = { ...defaultDeps(), ...overrides };
   const app = new Hono();
 
   app.get('/api/jobs', async (c) => {
@@ -69,7 +72,7 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
   });
 
   app.onError((error, c) => {
-    console.error(error);
+    logError(error);
     return c.json({ error: 'internal' }, 500);
   });
 
