@@ -21,7 +21,7 @@ const submissionKey = ({ candidate_id, payload }: Submission) => `${candidate_id
 export function submissionsFromFile(path: string): SubmissionStore {
   let queue: Promise<unknown> = Promise.resolve();
   /** Runs `task` after every task queued before it, whether those succeeded or not. */
-  const runInTurn = <T>(task: () => Promise<T>): Promise<T> => {
+  const runInTurn = (task: () => Promise<void>): Promise<void> => {
     const run = queue.then(task, task);
     queue = run.catch(() => undefined);
     return run;

@@ -1,4 +1,4 @@
-import type { Job } from '@/server/normalize';
+import { isRecord, type Job } from '@/server/normalize';
 import { screenAnswers, type Screening } from '@/server/screening';
 import type { ApplicationRequest } from '@/shared/application';
 import type { AnswerValue } from '@/shared/questionnaire';
@@ -8,16 +8,13 @@ import type { AnswerValue } from '@/shared/questionnaire';
 
 /** A multi-select answer uses `values`; every other answer uses `value`. */
 export type PayloadAnswer =
-  { id: string; value: string | number | boolean } | { id: string; values: string[] };
+  { id: string; value: Exclude<AnswerValue, string[]> } | { id: string; values: string[] };
 
 export interface ApplicationPayload {
   job_id: string;
   answers: PayloadAnswer[];
   screening: Screening;
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const isAnswerValue = (value: unknown): value is AnswerValue =>
   typeof value === 'string' ||

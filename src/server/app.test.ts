@@ -271,14 +271,22 @@ describe('POST /api/jobs/:id/applications', () => {
   it.each([
     ['no answers object', {}],
     ['an answer that is not a value', { answers: { salary_expectation: { amount: 1 } } }],
-    ['a body that is not JSON', undefined],
   ])('returns 400 for %s and stores nothing', async (_, body) => {
     const { app, saved } = appStoringIn();
 
-    const response =
-      body === undefined
-        ? await app.request('/api/jobs/job-short/applications', { method: 'POST', body: 'not json' })
-        : await apply(app, 'job-short', body);
+    const response = await apply(app, 'job-short', body);
+
+    expect(response.status).toBe(400);
+    expect(saved).toEqual([]);
+  });
+
+  it('returns 400 for a body that is not JSON and stores nothing', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await app.request('/api/jobs/job-short/applications', {
+      method: 'POST',
+      body: 'not json',
+    });
 
     expect(response.status).toBe(400);
     expect(saved).toEqual([]);

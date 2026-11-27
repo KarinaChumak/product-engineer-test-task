@@ -42,7 +42,7 @@ export interface Job {
 
 type Raw = Record<string, unknown>;
 
-const isRecord = (value: unknown): value is Raw =>
+export const isRecord = (value: unknown): value is Raw =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
