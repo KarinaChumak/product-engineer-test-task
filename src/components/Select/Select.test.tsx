@@ -114,6 +114,34 @@ describe('Select', () => {
     expect(screen.getByRole('combobox')).toHaveTextContent('1 month');
   });
 
+  it('says when focus leaves it, but not while its list is open or after picking an option', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+    render(
+      <>
+        <Select
+          label="Notice period"
+          options={options}
+          value={undefined}
+          onValueChange={() => {}}
+          placeholder="Choose"
+          onBlur={onBlur}
+        />
+        <button type="button">Next</button>
+      </>,
+    );
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('combobox')).toHaveFocus();
+    expect(onBlur).not.toHaveBeenCalled();
+
+    await user.tab();
+    expect(onBlur).toHaveBeenCalledOnce();
+  });
+
   it('marks the select invalid and reads its error', () => {
     render(
       <Select

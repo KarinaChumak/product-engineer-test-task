@@ -87,4 +87,24 @@ describe('TextField', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('textbox')).toHaveAccessibleDescription('Tag Too long.');
   });
+
+  it.each([false, true])('says when focus leaves it, multiline: %s', async (multiline) => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+    render(
+      <TextField
+        label={label}
+        value={undefined}
+        onValueChange={() => {}}
+        multiline={multiline}
+        onBlur={onBlur}
+      />,
+    );
+
+    await user.click(screen.getByRole('textbox'));
+    expect(onBlur).not.toHaveBeenCalled();
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledOnce();
+  });
 });

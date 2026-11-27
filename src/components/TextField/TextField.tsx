@@ -14,6 +14,8 @@ export interface TextFieldProps {
   annotation?: ReactNode;
   /** What's wrong with the value. Shown under the field, which is then marked invalid. */
   error?: ReactNode;
+  /** Called when focus leaves the field. */
+  onBlur?: () => void;
 }
 
 /** A field for free text, on one line or, with `multiline`, in a textarea that grows as the text does. */
@@ -25,6 +27,7 @@ export function TextField({
   required = false,
   annotation,
   error,
+  onBlur,
 }: TextFieldProps) {
   const id = useId();
   const annotationId = `${id}-annotation`;
@@ -40,6 +43,7 @@ export function TextField({
     id,
     value: text,
     onChange: setTextFromInput,
+    onBlur,
     required,
     'aria-describedby': joinDescriptionIds(!!annotation && annotationId, !!error && errorId),
     'aria-invalid': error ? true : undefined,

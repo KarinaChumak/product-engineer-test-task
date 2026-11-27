@@ -20,6 +20,8 @@ export interface NumberFieldProps {
   annotation?: ReactNode;
   /** What's wrong with the value. Shown under the field, which is then marked invalid. */
   error?: ReactNode;
+  /** Called when focus leaves the field. */
+  onBlur?: () => void;
 }
 
 // Beyond this many digits a number loses precision in JavaScript.
@@ -49,6 +51,7 @@ export function NumberField({
   required = false,
   annotation,
   error,
+  onBlur,
 }: NumberFieldProps) {
   const id = useId();
   const annotationId = `${id}-annotation`;
@@ -68,6 +71,7 @@ export function NumberField({
     autoComplete: 'off',
     value: value ?? '',
     onValueChange: setValueFromInput,
+    onBlur,
     thousandSeparator: separators.group,
     // Unused by `keepDigits`, but the library refuses a decimal separator equal to the group one.
     decimalSeparator: separators.decimal,

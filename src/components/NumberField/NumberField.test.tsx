@@ -174,4 +174,18 @@ describe('NumberField', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('textbox')).toHaveAccessibleDescription('Too small.');
   });
+
+  it('says when focus leaves it', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+    render(
+      <NumberField label={label} value={undefined} onValueChange={() => {}} locale="en" onBlur={onBlur} />,
+    );
+
+    await user.click(screen.getByRole('textbox'));
+    expect(onBlur).not.toHaveBeenCalled();
+    await user.tab();
+
+    expect(onBlur).toHaveBeenCalledOnce();
+  });
 });

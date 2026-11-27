@@ -122,7 +122,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 Asked for by the user after T-06's PR was opened. It didn't fit in that PR's size limit.
 
-- Status: todo
+- Status: in progress
 - Done when:
   - Leaving a field the candidate touched (focus moves to another question or out of the form) shows its error the same way T-06 does, with no submit (test)
   - Once a field shows its error, the error updates as the candidate types and disappears as soon as the answer is valid (test)
@@ -133,4 +133,4 @@ Asked for by the user after T-06's PR was opened. It didn't fit in that PR's siz
 - Size: ~150 lines
 - PRs: one
 - After: T-06
-- Branch: none yet
+- Branch: claude/t-07-blur-errors-9253f7
