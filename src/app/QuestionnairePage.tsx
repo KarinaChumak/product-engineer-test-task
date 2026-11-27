@@ -9,9 +9,12 @@ import { getBrowserLanguage, messages } from '@/app/messages';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
+import { useSubmitPrequalification } from '@/app/useSubmitPrequalification';
+import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
+import { Form } from '@/components/Form';
 import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
 import { PageHeader } from '@/components/PageHeader';
@@ -58,23 +61,50 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
   // answer stays in here as undefined, so it doesn't fall back.
   const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
+  const submission = useSubmitPrequalification(questionnaire.id);
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
-    return Component ? [{ question, Component }] : [];
+    if (!Component) return [];
+    const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
+    return [{ question, Component, value }];
   });
+
+  // The same screen whatever the screening found: the response doesn't say, and nor does this. It never
+  // says the answers were sent to the employer: they go on only if the candidate passes.
+  if (submission.isSuccess) {
+    return (
+      <Notice
+        role="status"
+        title={<FormattedMessage id="prequalification.recorded.title" />}
+        description={
+          <FormattedMessage
+            id="prequalification.recorded.body"
+            values={{ title: questionnaire.title, company: questionnaire.company }}
+          />
+        }
+      />
+    );
+  }
+
+  const submitAnswers = () => {
+    if (submission.isPending) return;
+    const answers = Object.fromEntries(
+      shown.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
+    );
+    submission.mutate({ answers });
+  };
 
   return (
     <>
       <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
-      {shown.length === 0 ? (
-        <EmptyState icon={<ClipboardList aria-hidden="true" />}>
-          <FormattedMessage id="job.noQuestions" />
-        </EmptyState>
-      ) : (
-        <Stack gap={6}>
-          {shown.map(({ question, Component }) => {
-            const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
-            return (
+      <Form label={questionnaire.title} onSubmit={submitAnswers}>
+        {shown.length === 0 ? (
+          <EmptyState icon={<ClipboardList aria-hidden="true" />}>
+            <FormattedMessage id="job.noQuestions" />
+          </EmptyState>
+        ) : (
+          <Stack gap={6}>
+            {shown.map(({ question, Component, value }) => (
               <Component
                 key={question.id}
                 question={question}
@@ -82,10 +112,27 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
                 onChange={(next) => setChanged((answers) => ({ ...answers, [question.id]: next }))}
                 fromProfile={question.prefill !== undefined && value === question.prefill}
               />
-            );
-          })}
+            ))}
+          </Stack>
+        )}
+        <Stack gap={4}>
+          {submission.isError && (
+            <Alert>
+              <FormattedMessage
+                // fetch rejects with a TypeError when the server can't be reached at all.
+                id={
+                  submission.error instanceof TypeError
+                    ? 'prequalification.error.network'
+                    : 'prequalification.error.server'
+                }
+              />
+            </Alert>
+          )}
+          <Button type="submit" isLoading={submission.isPending}>
+            <FormattedMessage id="prequalification.submit" />
+          </Button>
         </Stack>
-      )}
+      </Form>
     </>
   );
 }

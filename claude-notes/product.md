@@ -16,12 +16,13 @@ When candidates apply on Instaffo, companies add their own screening questions. 
 - Repair, don't drop: a bad config is normalized deterministically and every fix is logged, so the payload still matches the contract.
 - Nothing leaves the browser until an explicit submit. Drafts stay local and are cleared after submit.
 - Everyone sees the same end screen, whether they passed or not.
+- The answers are a prequalification, not an application: they reach the employer only if the candidate passes screening. The UI never says an application was sent; it says the answers were recorded and go to the employer if the candidate fits.
 
 ## Scope
 
 - `GET /api/jobs/:id`: the normalized job, client-safe, with profile prefill.
 - A question flow for every README type (text, date, boolean, numeric, select, file), grouped into steps from easiest to hardest, with progress, a review screen and in-place edits.
-- `POST /api/jobs/:id/applications`: validates the answers again, computes `screening`, builds and stores the contract payload, and refuses a second submission.
+- `POST /api/jobs/:id/prequalification`: validates the answers again, computes `screening`, builds and stores the contract payload, and refuses a second submission.
 - UI in `de` or `en` following `job.language`. Recruiter text is never translated.
 - Instaffo's input look: tokens #5e2f82, #e2bdff, #f5f5f7, #d3d4d6, with Geist and Lucide. Keyboard-operable throughout.
 - A typed `track()` with step events. No answer values in events, and no screening result.

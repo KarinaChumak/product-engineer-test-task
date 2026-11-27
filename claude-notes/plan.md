@@ -70,19 +70,22 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-04 Submit job-short and see the same end screen whatever the result
 
-- Status: todo
+- Status: in progress (PR 1 of 2 in review)
 - Done when:
-  - `POST /api/jobs/job-short/applications` checks the answers against the normalized job (select value in the options, integer within `min`/`max`, text up to its limit) and returns 422 with field errors when they're invalid (test)
+  - `POST /api/jobs/job-short/prequalification` checks the answers against the normalized job (select value in the options, integer within `min`/`max`, text up to its limit) and returns 422 with field errors when they're invalid (test)
   - The server computes `screening` and stores a payload that matches the README contract in `data/submissions.json`. Optional questions left empty are omitted from it (test)
-  - The candidate sees a neutral end screen only after a 2xx response, and it's the same whether they passed or failed (test)
+  - The candidate sees a neutral end screen only after a 2xx response, and it's the same whether they passed or failed. It says the answers were recorded and go to the employer if the candidate fits the job's criteria, never that an application was sent (test)
   - A 422, a 500 or a network error keeps the form and its answers and shows a visible error above the submit button. Field-level 422 errors come in T-06 (test)
   - While the request is in flight, the submit button shows a pending state and is disabled, so a double click sends one request (test)
   - The response and the client bundle never contain `screening` or a threshold (test)
-- Touches: src/server (applications route, validation, screening, storage), src/shared (payload types), src/app (submit button, end screen)
-- Size: ~400 lines
-- PRs: one
+- Touches: src/server (prequalification route, validation, screening, storage), src/shared (payload types), src/app (submit button, end screen)
+- Size: ~1,200 lines with tests (the ~400 estimate was low), split into two PRs by the user's choice. PR 1 is over the 500-line limit and needs the `size-exception` label
+- PRs: two
+  - (1) Submit and end screen: the POST route stores the answers in the contract payload's shape (without `screening` yet) in `data/submissions.json`, omitting empty optional answers, and always answers an empty 201; the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; the client bundle contains no `screening` or rule. The payload builder has its own edge-case test file
+  - (2) The server's decisions: screening (rules parsed beside `client` in `JobQuestion.rules`, `screenAnswers`, `screening` added to the stored payload, its own edge-case test file) and answer validation (each answer checked against the normalized job, 422 with field errors, shown as the same error above the button). The screening code and its 39-case test file were written and reviewed on this branch, so they can be restored from commit `371b7ba` (`src/server/screening.ts`, `src/server/screening.test.ts`, `parseRules` in `normalize.ts`)
 - After: T-01
-- Branch: none yet
+- Branch: claude/t-04-implementation-8525f6 (PR 1)
+- Outcome (PR 1): the answers are a prequalification, not an application (see decisions), so the route and types say so. `POST /api/jobs/:id/prequalification` takes `{ answers: { [id]: value } }`, builds `{ job_id, answers }` with `buildPrequalificationPayload` (blank and missing answers left out), and stores `{ candidate_id, payload }` under `talent-4711:<job>` in `data/submissions.json`. It always answers an empty 201. Until PR 2 the stored payload has no `screening`, so it doesn't fully match the contract yet. The form posts through `useSubmitPrequalification`, shows "Submitting…" while in flight, keeps the answers with an `Alert` above the button on any failure, and on a 2xx shows "Your answers have been recorded", saying they go to the employer if the candidate fits; new generic components `Form` and `Alert` (with `--color-danger` tokens). Answers aren't checked against their question yet: PR 2 adds that, ideally sharing one check with `prefill.ts`'s `accepts`. T-05's duplicate check can read the same key.
 
 ### T-05 Can't apply to the same job twice
 

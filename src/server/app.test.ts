@@ -1,6 +1,7 @@
 // @vitest-environment node
-import { createApp } from '@/server/app';
+import { createApp, type AppDeps } from '@/server/app';
 import type { JobStore } from '@/server/jobs';
+import type { Submission } from '@/server/submissions';
 import type { JobQuestionnaire } from '@/shared/questionnaire';
 
 // Everything else comes from the real `jobs/` and `profile.json`. Normalization warnings are expected.
@@ -139,5 +140,144 @@ describe('GET /api/jobs/:id/questionnaire', () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: 'not_found' });
+  });
+});
+
+describe('POST /api/jobs/:id/prequalification', () => {
+  /** An app whose stored submissions land in the returned array. */
+  const appStoringIn = (overrides: Partial<AppDeps> = {}) => {
+    const saved: Submission[] = [];
+    const app = createApp({
+      ...silent,
+      submissions: { save: async (s) => void saved.push(s) },
+      ...overrides,
+    });
+    return { app, saved };
+  };
+
+  const submitAnswers = (app: ReturnType<typeof createApp>, jobId: string, body: unknown) =>
+    app.request(`/api/jobs/${jobId}/prequalification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  const salaryJob = storeOf({
+    id: 'job-salary',
+    title: 'Salary',
+    company: 'Acme',
+    questions: [
+      { type: 'numeric', id: 'salary', question: 'Salary?', required: true },
+      { type: 'text', id: 'note', question: 'Anything else?' },
+    ],
+  });
+
+  it('stores the contract payload for job-short under the candidate, leaving out an empty optional answer', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await submitAnswers(app, 'job-short', {
+      answers: { notice_period: '3_months', salary_expectation: 95000 },
+    });
+
+    expect(response.status).toBe(201);
+    expect(saved).toEqual([
+      {
+        candidate_id: 'talent-4711',
+        payload: {
+          job_id: 'job-short',
+          answers: [
+            { id: 'notice_period', value: '3_months' },
+            { id: 'salary_expectation', value: 95000 },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it('answers with an empty 201, so the reply says nothing about what was stored', async () => {
+    const { app } = appStoringIn({ jobs: salaryJob });
+
+    const response = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
+
+    expect([response.status, await response.text()]).toEqual([201, '']);
+  });
+
+  it.each([
+    ['blank', '   '],
+    ['empty', ''],
+  ])('leaves out an optional text answer that is %s', async (_, note) => {
+    const { app, saved } = appStoringIn({ jobs: salaryJob });
+
+    await submitAnswers(app, 'job-salary', { answers: { salary: 85000, note } });
+
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
+  });
+
+  it('leaves out answers to questions the job does not ask', async () => {
+    const { app, saved } = appStoringIn({ jobs: salaryJob });
+
+    await submitAnswers(app, 'job-salary', { answers: { salary: 85000, made_up: 'x' } });
+
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
+  });
+
+  it('stores a multi-choice answer as values', async () => {
+    const jobs = storeOf({
+      id: 'job-multi',
+      questions: [{ type: 'select', id: 'stack', question: 'Stack?', max_choices: 2, options: [] }],
+    });
+    const { app, saved } = appStoringIn({ jobs });
+
+    await submitAnswers(app, 'job-multi', { answers: { stack: ['react', 'vue'] } });
+
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'stack', values: ['react', 'vue'] }]);
+  });
+
+  it.each([
+    ['has no id', async () => ({})],
+    ['cannot be read', () => Promise.reject(new Error('ENOENT: profile.json'))],
+  ])('returns 500 and stores nothing when the profile %s', async (_, loadProfile) => {
+    const errors: unknown[] = [];
+    const { app, saved } = appStoringIn({ loadProfile, logError: (error) => errors.push(error) });
+
+    const response = await submitAnswers(app, 'job-short', { answers: { notice_period: '3_months' } });
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'internal' });
+    expect(saved).toEqual([]);
+    expect(errors).toHaveLength(1);
+  });
+
+  it('returns 404 for an unknown job and stores nothing', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await submitAnswers(app, 'job-missing', { answers: {} });
+
+    expect(response.status).toBe(404);
+    expect(saved).toEqual([]);
+  });
+
+  it.each([
+    ['no answers object', {}],
+    ['an answer that is not a value', { answers: { salary_expectation: { amount: 1 } } }],
+  ])('returns 400 for %s and stores nothing', async (_, body) => {
+    const { app, saved } = appStoringIn();
+
+    const response = await submitAnswers(app, 'job-short', body);
+
+    expect(response.status).toBe(400);
+    expect(saved).toEqual([]);
+  });
+
+  it('returns 400 for a body that is not JSON and stores nothing', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await app.request('/api/jobs/job-short/prequalification', {
+      method: 'POST',
+      body: 'not json',
+    });
+
+    expect(response.status).toBe(400);
+    expect(saved).toEqual([]);
   });
 });

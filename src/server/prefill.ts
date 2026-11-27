@@ -5,6 +5,8 @@ import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 // A profile value that the question can't accept is left out.
 
 export interface Profile {
+  /** The candidate's id, which their prequalification answers are stored under. */
+  id?: string;
   notice_period?: string;
   salary_expectation?: { amount?: number };
 }

@@ -4,8 +4,8 @@ import styles from './Notice.module.css';
 export interface NoticeProps {
   title: ReactNode;
   description: ReactNode;
-  /** `alert` for a failure the user should hear about right away. */
-  role?: 'alert';
+  /** `alert` for a failure the user should hear about right away, `status` for an outcome they caused. */
+  role?: 'alert' | 'status';
   /** What the user can do next, such as a "Try again" button. */
   action?: ReactNode;
 }

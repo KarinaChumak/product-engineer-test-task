@@ -8,9 +8,9 @@ import type {
 } from '@/shared/questionnaire';
 
 // Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
-// question: today its profile field. The candidate's questionnaire is read from that `Job`, and so will
-// T-04's answer checks and screening, so they agree on every repair. Server-only data lives beside each
-// client question, never inside it, so it can't leave the server.
+// question: today its profile field. The candidate's questionnaire and the payload of their prequalification
+// answers are both read from that `Job`, so they agree on every repair. Server-only data lives beside each
+// client question, never inside it, so it can't leave the server. T-04's PR 2 adds the screening rules.
 // A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
 export type Warn = (message: string) => void;
@@ -33,7 +33,7 @@ export interface Job {
 
 type Raw = Record<string, unknown>;
 
-const isRecord = (value: unknown): value is Raw =>
+export const isRecord = (value: unknown): value is Raw =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
