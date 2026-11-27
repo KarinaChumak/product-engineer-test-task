@@ -5,7 +5,9 @@ import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 // Takes a question's answer from the candidate's profile, through its `profile_field`.
 // A profile value that the question can't accept is left out.
 
-// The profile is read from a file without checking its shape, so every field may hold anything.
+// The shape the README gives `profile.json`. The file is read without checking it, so `prefillFor`
+// only keeps a value that passes `findAnswerError`, which refuses one of the wrong type. A lookup only
+// guards against a shape that would throw: `languages` that isn't a list.
 export interface Profile {
   /** The candidate's id, which their prequalification answers are stored under. */
   id?: string;
