@@ -47,8 +47,8 @@ export async function submitPrequalification(
     body: JSON.stringify(request),
   });
   if (response.status === 422) {
-    const { fields } = (await response.json()) as InvalidAnswersResponse;
-    throw new InvalidAnswersError(`POST ${url} returned 422`, fields);
+    const { fields } = (await response.json()) as Partial<InvalidAnswersResponse>;
+    throw new InvalidAnswersError(`POST ${url} returned 422`, fields ?? {});
   }
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;

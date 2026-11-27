@@ -113,6 +113,8 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
       { answers },
     );
     if (Object.keys(errors).length > 0) {
+      // Nothing is sent, so an earlier send's error no longer applies.
+      submission.reset();
       showAnswerErrors(errors);
       return;
     }

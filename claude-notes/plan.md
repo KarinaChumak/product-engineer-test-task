@@ -103,7 +103,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-06 See input errors before submitting
 
-- Status: in progress
+- Status: in review
 - Done when:
   - An empty required field shows an error with colour, an icon and text when the candidate tries to submit, and focus moves to the first error (test)
   - A number outside the field's `min`/`max` shows a format message that doesn't reveal any screening threshold (test)
@@ -115,3 +115,4 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - PRs: one
 - After: T-02, T-03, T-04
 - Branch: claude/t-06-field-errors-d34c23
+- Outcome: Submit runs the shared `findInvalidAnswers` (`src/shared/answerValidation.ts`) and the server's 422 codes go through the same path: `Select`, `NumberField` and `TextField` take an `error`, shown by the new `FieldError`, and `Form`'s `invalidFocusRequest` focuses the first invalid field. Messages are `answerError.<code>` in `en` and `de`. A new question type (T-05's date, Phase 2's boolean) adds its case to `findAnswerError` and passes `error` through its adapter. The three fields still repeat the label, annotation and error markup; the shared field component T-03 suggested is still to do.
