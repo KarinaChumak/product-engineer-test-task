@@ -132,6 +132,7 @@ export function parseJob(raw: unknown, warn: Warn): Job {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
   const language = toLanguage(raw.language, warn);
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
+  const seenIds = new Set<string>();
 
   return {
     id: asString(raw.id) ?? '',
@@ -142,6 +143,12 @@ export function parseJob(raw: unknown, warn: Warn): Job {
       if (!isRecord(question)) return [];
       const client = normalizeQuestion(question, warn);
       if (!client) return [];
+      // The README: on duplicate ids only the first question counts. A dropped question doesn't claim its id.
+      if (seenIds.has(client.id)) {
+        warn(`Dropped a second question "${client.id}": only the first question with an id counts`);
+        return [];
+      }
+      seenIds.add(client.id);
       const profileField = asString(question.profile_field);
       return [{ client, ...(profileField && { profileField }), rules: parseRules(question, client, warn) }];
     }),
