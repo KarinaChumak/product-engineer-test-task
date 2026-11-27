@@ -1,5 +1,10 @@
 import { useId, type ReactNode } from 'react';
-import { NumericFormat, type NumberFormatValues, type SourceInfo } from 'react-number-format';
+import {
+  NumberFormatBase,
+  useNumericFormat,
+  type NumberFormatValues,
+  type SourceInfo,
+} from 'react-number-format';
 import styles from './NumberField.module.css';
 
 export interface NumberFieldProps {
@@ -17,15 +22,18 @@ export interface NumberFieldProps {
 // Beyond this many digits a number loses precision in JavaScript.
 const MAX_DIGITS = 15;
 
-/** The locale's digit group separator, such as `,` for `en` and `.` for `de`. */
-function getGroupSeparator(locale: string) {
-  const parts = new Intl.NumberFormat(locale).formatToParts(1000000);
-  return parts.find((part) => part.type === 'group')?.value ?? ',';
+/** The locale's group and decimal separators, such as `,` and `.` for `en`. */
+function getSeparators(locale: string) {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1000000.5);
+  return {
+    group: parts.find((part) => part.type === 'group')?.value ?? ',',
+    decimal: parts.find((part) => part.type === 'decimal')?.value ?? '.',
+  };
 }
 
-// The field holds whole numbers, so it has no decimal separator. The library needs one, and cuts
-// a pasted number at it, so it gets a character nobody types: `95.000` and `95,000` both keep 95000.
-const UNTYPEABLE_DECIMAL_SEPARATOR = '￿';
+// The field holds whole numbers, so every non-digit is dropped: a pasted `95.000` or `95,000`
+// keeps 95000 in any locale, instead of being cut at what the library reads as a decimal point.
+const keepDigits = (text: string) => text.replace(/\D/g, '');
 
 const hasAllowedLength = ({ value }: NumberFormatValues) => value.length <= MAX_DIGITS;
 
@@ -46,6 +54,25 @@ export function NumberField({
     if (source === 'event') onValueChange(floatValue);
   }
 
+  const separators = getSeparators(locale);
+  const inputProps = useNumericFormat({
+    id,
+    className: styles.input,
+    // The library leaves inputMode off on iPhone; a whole, positive number needs only digits there too.
+    inputMode: 'numeric',
+    autoComplete: 'off',
+    value: value ?? '',
+    onValueChange: setValueFromInput,
+    thousandSeparator: separators.group,
+    // Unused by `keepDigits`, but the library refuses a decimal separator equal to the group one.
+    decimalSeparator: separators.decimal,
+    decimalScale: 0,
+    allowNegative: false,
+    isAllowed: hasAllowedLength,
+    required,
+    'aria-describedby': annotation ? annotationId : undefined,
+  });
+
   return (
     <div className={styles.field}>
       <div className={styles.header}>
@@ -59,21 +86,7 @@ export function NumberField({
         </label>
         {annotation && <span id={annotationId}>{annotation}</span>}
       </div>
-      <NumericFormat
-        id={id}
-        className={styles.input}
-        inputMode="numeric"
-        autoComplete="off"
-        value={value ?? ''}
-        onValueChange={setValueFromInput}
-        thousandSeparator={getGroupSeparator(locale)}
-        decimalSeparator={UNTYPEABLE_DECIMAL_SEPARATOR}
-        decimalScale={0}
-        allowNegative={false}
-        isAllowed={hasAllowedLength}
-        required={required}
-        aria-describedby={annotation ? annotationId : undefined}
-      />
+      <NumberFormatBase {...inputProps} removeFormatting={keepDigits} />
     </div>
   );
 }
