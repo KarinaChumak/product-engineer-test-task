@@ -143,7 +143,7 @@ describe('GET /api/jobs/:id/questionnaire', () => {
   });
 });
 
-describe('POST /api/jobs/:id/applications', () => {
+describe('POST /api/jobs/:id/prequalification', () => {
   /** An app whose stored submissions land in the returned array. */
   const appStoringIn = (overrides: Partial<AppDeps> = {}) => {
     const saved: Submission[] = [];
@@ -155,8 +155,8 @@ describe('POST /api/jobs/:id/applications', () => {
     return { app, saved };
   };
 
-  const apply = (app: ReturnType<typeof createApp>, jobId: string, body: unknown) =>
-    app.request(`/api/jobs/${jobId}/applications`, {
+  const submitAnswers = (app: ReturnType<typeof createApp>, jobId: string, body: unknown) =>
+    app.request(`/api/jobs/${jobId}/prequalification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -175,7 +175,7 @@ describe('POST /api/jobs/:id/applications', () => {
   it('stores the contract payload for job-short under the candidate, leaving out an empty optional answer', async () => {
     const { app, saved } = appStoringIn();
 
-    const response = await apply(app, 'job-short', {
+    const response = await submitAnswers(app, 'job-short', {
       answers: { notice_period: '3_months', salary_expectation: 95000 },
     });
 
@@ -202,7 +202,7 @@ describe('POST /api/jobs/:id/applications', () => {
   ])('stores a screening in which a salary below the rule %s', async (_, salary, screening) => {
     const { app, saved } = appStoringIn({ jobs: salaryJob });
 
-    await apply(app, 'job-salary', { answers: { salary } });
+    await submitAnswers(app, 'job-salary', { answers: { salary } });
 
     expect(saved[0]?.payload.screening).toEqual(screening);
   });
@@ -210,7 +210,7 @@ describe('POST /api/jobs/:id/applications', () => {
   it('fails the rule of a question left without an answer', async () => {
     const { app, saved } = appStoringIn({ jobs: salaryJob });
 
-    await apply(app, 'job-salary', { answers: { note: 'Hi' } });
+    await submitAnswers(app, 'job-salary', { answers: { note: 'Hi' } });
 
     expect(saved[0]?.payload).toMatchObject({
       answers: [{ id: 'note', value: 'Hi' }],
@@ -221,8 +221,8 @@ describe('POST /api/jobs/:id/applications', () => {
   it('answers the same, without the screening or a threshold, whether the candidate passed or failed', async () => {
     const { app } = appStoringIn({ jobs: salaryJob });
 
-    const passed = await apply(app, 'job-salary', { answers: { salary: 85000 } });
-    const failed = await apply(app, 'job-salary', { answers: { salary: 95000 } });
+    const passed = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
+    const failed = await submitAnswers(app, 'job-salary', { answers: { salary: 95000 } });
 
     expect([passed.status, await passed.text()]).toEqual([201, '']);
     expect([failed.status, await failed.text()]).toEqual([201, '']);
@@ -234,7 +234,7 @@ describe('POST /api/jobs/:id/applications', () => {
   ])('leaves out an optional text answer that is %s', async (_, note) => {
     const { app, saved } = appStoringIn({ jobs: salaryJob });
 
-    await apply(app, 'job-salary', { answers: { salary: 85000, note } });
+    await submitAnswers(app, 'job-salary', { answers: { salary: 85000, note } });
 
     expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
   });
@@ -242,7 +242,7 @@ describe('POST /api/jobs/:id/applications', () => {
   it('leaves out answers to questions the job does not ask', async () => {
     const { app, saved } = appStoringIn({ jobs: salaryJob });
 
-    await apply(app, 'job-salary', { answers: { salary: 85000, made_up: 'x' } });
+    await submitAnswers(app, 'job-salary', { answers: { salary: 85000, made_up: 'x' } });
 
     expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
   });
@@ -254,7 +254,7 @@ describe('POST /api/jobs/:id/applications', () => {
     });
     const { app, saved } = appStoringIn({ jobs });
 
-    await apply(app, 'job-multi', { answers: { stack: ['react', 'vue'] } });
+    await submitAnswers(app, 'job-multi', { answers: { stack: ['react', 'vue'] } });
 
     expect(saved[0]?.payload.answers).toEqual([{ id: 'stack', values: ['react', 'vue'] }]);
   });
@@ -266,7 +266,7 @@ describe('POST /api/jobs/:id/applications', () => {
     const errors: unknown[] = [];
     const { app, saved } = appStoringIn({ loadProfile, logError: (error) => errors.push(error) });
 
-    const response = await apply(app, 'job-short', { answers: { notice_period: '3_months' } });
+    const response = await submitAnswers(app, 'job-short', { answers: { notice_period: '3_months' } });
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: 'internal' });
@@ -277,7 +277,7 @@ describe('POST /api/jobs/:id/applications', () => {
   it('returns 404 for an unknown job and stores nothing', async () => {
     const { app, saved } = appStoringIn();
 
-    const response = await apply(app, 'job-missing', { answers: {} });
+    const response = await submitAnswers(app, 'job-missing', { answers: {} });
 
     expect(response.status).toBe(404);
     expect(saved).toEqual([]);
@@ -289,7 +289,7 @@ describe('POST /api/jobs/:id/applications', () => {
   ])('returns 400 for %s and stores nothing', async (_, body) => {
     const { app, saved } = appStoringIn();
 
-    const response = await apply(app, 'job-short', body);
+    const response = await submitAnswers(app, 'job-short', body);
 
     expect(response.status).toBe(400);
     expect(saved).toEqual([]);
@@ -298,7 +298,7 @@ describe('POST /api/jobs/:id/applications', () => {
   it('returns 400 for a body that is not JSON and stores nothing', async () => {
     const { app, saved } = appStoringIn();
 
-    const response = await app.request('/api/jobs/job-short/applications', {
+    const response = await app.request('/api/jobs/job-short/prequalification', {
       method: 'POST',
       body: 'not json',
     });

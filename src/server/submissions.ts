@@ -1,18 +1,18 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { ApplicationPayload } from '@/server/application';
+import type { PrequalificationPayload } from '@/server/prequalification';
 
-// Stores submitted applications in one JSON file, keyed by candidate and job. Writes run one at a time,
-// each to a temp file that then replaces the real one, so a crash never leaves a half-written file and two
-// writes can't interleave.
+// Stores submitted prequalification answers in one JSON file, keyed by candidate and job. Writes run one at
+// a time, each to a temp file that then replaces the real one, so a crash never leaves a half-written file
+// and two writes can't interleave.
 
 export interface Submission {
   candidate_id: string;
-  payload: ApplicationPayload;
+  payload: PrequalificationPayload;
 }
 
 export interface SubmissionStore {
-  /** Stores the candidate's application for the payload's job. */
+  /** Stores the candidate's prequalification answers for the payload's job. */
   save: (submission: Submission) => Promise<void>;
 }
 

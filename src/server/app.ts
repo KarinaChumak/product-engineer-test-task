@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { buildApplicationPayload, isApplicationRequest } from '@/server/application';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
 import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
+import { buildPrequalificationPayload, isPrequalificationRequest } from '@/server/prequalification';
 import { submissionsFromFile, type SubmissionStore } from '@/server/submissions';
 import type { JobSummary } from '@/shared/questionnaire';
 
@@ -55,18 +55,19 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     return c.json(toJobQuestionnaire(job, profile));
   });
 
-  app.post('/api/jobs/:id/applications', async (c) => {
+  // Prequalification, not an application: the answers reach the employer only if they pass screening.
+  app.post('/api/jobs/:id/prequalification', async (c) => {
     const id = c.req.param('id');
     const config = await jobs.find(id);
     if (config === undefined) return c.json({ error: 'not_found' }, 404);
     const body: unknown = await c.req.json().catch(() => undefined);
-    if (!isApplicationRequest(body)) return c.json({ error: 'invalid_body' }, 400);
+    if (!isPrequalificationRequest(body)) return c.json({ error: 'invalid_body' }, 400);
 
     // Unlike prefill, storing needs the candidate, so a profile that can't be read is a server error.
     const { id: candidateId } = await loadProfile();
-    if (!candidateId) throw new Error('The profile has no id to store the application under');
+    if (!candidateId) throw new Error('The profile has no id to store the answers under');
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
-    await submissions.save({ candidate_id: candidateId, payload: buildApplicationPayload(job, body) });
+    await submissions.save({ candidate_id: candidateId, payload: buildPrequalificationPayload(job, body) });
     // The same empty answer whatever the screening result, so the candidate can't tell.
     return c.body(null, 201);
   });

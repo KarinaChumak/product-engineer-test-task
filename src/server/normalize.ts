@@ -9,7 +9,7 @@ import type {
 
 // Parses a recruiter's config once, into a `Job` that keeps what the server needs beside each repaired
 // question: its profile field and screening rules. The candidate's questionnaire and the screening of an
-// application are both read from that `Job`, so they agree on every repair. Server-only data lives beside each
+// candidate's prequalification answers are both read from that `Job`, so they agree on every repair. Server-only data lives beside each
 // client question, never inside it, so it can't leave the server.
 // A skeleton: Phase 2 adds the remaining types and the full set of repairs.
 
