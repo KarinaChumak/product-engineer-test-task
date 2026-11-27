@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { findAnswerError, isEmptyAnswer } from '@/server/validation';
+import { findAnswerError, isEmptyAnswer } from '@/shared/answerValidation';
 import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 
 // Takes a question's answer from the candidate's profile, through its `profile_field`.

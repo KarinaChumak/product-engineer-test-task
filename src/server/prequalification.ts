@@ -1,6 +1,6 @@
 import { isRecord, type Job } from '@/server/normalize';
 import type { Screening } from '@/server/screening';
-import { getSentAnswer } from '@/server/validation';
+import { getSentAnswer } from '@/shared/answerValidation';
 import type { PrequalificationRequest } from '@/shared/prequalification';
 import type { AnswerValue } from '@/shared/questionnaire';
 

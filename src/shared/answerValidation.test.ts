@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Job } from '@/server/normalize';
-import { findAnswerError, findInvalidAnswers } from '@/server/validation';
+import { findAnswerError, findInvalidAnswers } from '@/shared/answerValidation';
 import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 
 const base = { question: 'Question?', required: false };
@@ -14,12 +13,7 @@ const multi: ClientQuestion = { ...base, id: 'stack', type: 'select', options, m
 const numeric: ClientQuestion = { ...base, id: 'salary', type: 'numeric', min: 20000, max: 300000 };
 const text: ClientQuestion = { ...base, id: 'note', type: 'text', multiline: true };
 
-const jobOf = (...questions: ClientQuestion[]): Job => ({
-  id: 'job',
-  title: 'Job',
-  company: 'Acme',
-  questions: questions.map((client) => ({ client, rules: {} })),
-});
+const jobOf = (...questions: ClientQuestion[]) => questions;
 
 describe('findAnswerError', () => {
   it('accepts a single-choice answer that is one of the options', () => {
@@ -158,11 +152,5 @@ describe('findInvalidAnswers', () => {
     const job = jobOf({ ...text, id: 'toString', required: true });
 
     expect(findInvalidAnswers(job, { answers: {} })).toEqual({ toString: 'required' });
-  });
-
-  it('never refuses an answer for failing a screening rule', () => {
-    const job: Job = { ...jobOf(numeric), questions: [{ client: numeric, rules: { mustBeBelow: 90000 } }] };
-
-    expect(findInvalidAnswers(job, { answers: { salary: 95000 } })).toEqual({});
   });
 });

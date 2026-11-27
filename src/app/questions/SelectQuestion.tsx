@@ -1,4 +1,5 @@
 import { useIntl } from 'react-intl';
+import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
 import { FromProfileTag } from '@/app/questions/FromProfileTag';
 import type { QuestionProps } from '@/app/questions/types';
 import { Select } from '@/components/Select';
@@ -9,6 +10,7 @@ export function SelectQuestion({
   value,
   onChange,
   fromProfile,
+  error,
 }: QuestionProps<SelectQuestionData>) {
   const intl = useIntl();
   // A multi-choice answer is a list, even while this offers one pick until a multi-select exists.
@@ -23,6 +25,7 @@ export function SelectQuestion({
       placeholder={intl.formatMessage({ id: 'question.placeholder' })}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
+      error={error && <AnswerErrorMessage question={question} error={error} />}
     />
   );
 }

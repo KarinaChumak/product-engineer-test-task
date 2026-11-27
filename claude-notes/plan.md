@@ -103,7 +103,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 
 ### T-06 See input errors before submitting
 
-- Status: todo
+- Status: in progress
 - Done when:
   - An empty required field shows an error with colour, an icon and text when the candidate tries to submit, and focus moves to the first error (test)
   - A number outside the field's `min`/`max` shows a format message that doesn't reveal any screening threshold (test)
@@ -114,4 +114,4 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~280 lines
 - PRs: one
 - After: T-02, T-03, T-04
-- Branch: none yet
+- Branch: claude/t-06-field-errors-d34c23

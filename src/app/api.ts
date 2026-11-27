@@ -1,12 +1,25 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import type { PrequalificationRequest, PrequalificationResult } from '@/shared/prequalification';
+import type {
+  AnswerError,
+  InvalidAnswersResponse,
+  PrequalificationRequest,
+  PrequalificationResult,
+} from '@/shared/prequalification';
 import type { JobQuestionnaire, JobSummary } from '@/shared/questionnaire';
 
 /** The server answered 404: there's nothing to retry. */
 export class NotFoundError extends Error {}
 
 /** The server answered 422: some answers aren't valid, so sending them again won't help. */
-export class InvalidAnswersError extends Error {}
+export class InvalidAnswersError extends Error {
+  constructor(
+    message: string,
+    /** Why each refused answer was refused, by question id. */
+    readonly fields: Record<string, AnswerError>,
+  ) {
+    super(message);
+  }
+}
 
 export async function fetchJobQuestionnaire(jobId: string, signal: AbortSignal): Promise<JobQuestionnaire> {
   const url = `/api/jobs/${encodeURIComponent(jobId)}/questionnaire`;
@@ -33,8 +46,10 @@ export async function submitPrequalification(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
-  // T-06 reads the field errors from the body to show them on their fields.
-  if (response.status === 422) throw new InvalidAnswersError(`POST ${url} returned 422`);
+  if (response.status === 422) {
+    const { fields } = (await response.json()) as InvalidAnswersResponse;
+    throw new InvalidAnswersError(`POST ${url} returned 422`, fields);
+  }
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;
 }

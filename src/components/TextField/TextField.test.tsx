@@ -80,4 +80,11 @@ describe('TextField', () => {
     expect(field()).toBeRequired();
     expect(field()).toHaveAccessibleDescription('From your profile');
   });
+
+  it('marks the field invalid and reads its error after the annotation', () => {
+    render(<TextField label={label} value="x" onValueChange={() => {}} annotation="Tag" error="Too long." />);
+
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('textbox')).toHaveAccessibleDescription('Tag Too long.');
+  });
 });

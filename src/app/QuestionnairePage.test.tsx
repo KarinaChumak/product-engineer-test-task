@@ -345,11 +345,14 @@ describe('QuestionnairePage submit', () => {
   const answersSent = { name: 'Your answers have been sent to Kranich Health GmbH' };
   const passed = () => HttpResponse.json({ passed: true }, { status: 201 });
 
-  /** Opens the prefilled job-short and answers the prequalification POST with `respond`, collecting the requests. */
-  const openWithPrequalificationResponse = (respond: () => Response | Promise<Response>) => {
+  /** Opens job-short, prefilled by default, and answers the prequalification POST with `respond`, collecting the requests. */
+  const openWithPrequalificationResponse = (
+    respond: () => Response | Promise<Response>,
+    opened: JobQuestionnaire = prefilledQuestionnaire,
+  ) => {
     const sent: unknown[] = [];
     server.use(
-      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)),
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(opened)),
       http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
         sent.push(await request.json());
         return respond();
@@ -483,4 +486,85 @@ describe('QuestionnairePage submit', () => {
       expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('95,000');
     },
   );
+
+  it('marks every empty required field with its error and moves focus to the first, without sending', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(passed, questionnaire);
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+
+    const select = screen.getByRole('combobox', noticePeriod);
+    const salary = screen.getByRole('textbox', salaryQuestion);
+    for (const field of [select, salary]) {
+      expect(field).toHaveAttribute('aria-invalid', 'true');
+      expect(field).toHaveAccessibleDescription('Answer this question to continue.');
+    }
+    expect(select).toHaveFocus();
+    expect(screen.getByRole('textbox', { name: /proud of/ })).not.toHaveAttribute('aria-invalid');
+    expect(sent).toEqual([]);
+  });
+
+  it('says which range a number must be in, without sending, when it is outside the field’s limits', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(passed);
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.clear(salary);
+    await user.type(salary, '500000');
+    await user.click(screen.getByRole('button', submitAnswers));
+
+    expect(salary).toHaveAttribute('aria-invalid', 'true');
+    // The field's own limits, which the candidate sees anyway; nothing about what the employer wants.
+    expect(salary).toHaveAccessibleDescription('Enter a number from 20,000 to 300,000.');
+    expect(salary).toHaveFocus();
+    expect(sent).toEqual([]);
+  });
+
+  it('shows the server’s field errors on their fields and moves focus to the first', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(() =>
+      HttpResponse.json(
+        {
+          error: 'invalid_answers',
+          message: 'Invalid',
+          fields: { salary: 'out_of_range', proud_project: 'too_long' },
+        },
+        { status: 422 },
+      ),
+    );
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+
+    const salary = screen.getByRole('textbox', salaryQuestion);
+    await waitFor(() => expect(salary).toHaveAttribute('aria-invalid', 'true'));
+    expect(salary).toHaveAccessibleDescription(/^From your profile Enter a number from 20,000 to 300,000\.$/);
+    expect(screen.getByRole('textbox', { name: /proud of/ })).toHaveAccessibleDescription(
+      'Shorten your answer to 5,000 characters or fewer.',
+    );
+    expect(salary).toHaveFocus();
+  });
+
+  it('drops a field’s error once the candidate changes its answer', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(passed, questionnaire);
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+    await user.type(screen.getByRole('textbox', salaryQuestion), '95000');
+
+    const salary = screen.getByRole('textbox', salaryQuestion);
+    expect(salary).not.toHaveAttribute('aria-invalid');
+    expect(salary).not.toHaveAccessibleDescription();
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('shows the field errors in German for a German job', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(passed, { ...questionnaire, language: 'de' });
+
+    await user.click(await screen.findByRole('button', { name: 'Antworten absenden' }));
+
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
+      'Beantworte diese Frage, um fortzufahren.',
+    );
+  });
 });

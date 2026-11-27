@@ -21,6 +21,8 @@ import { Page } from '@/components/Page';
 import { PageHeader } from '@/components/PageHeader';
 import { Skeleton } from '@/components/Skeleton';
 import { Stack } from '@/components/Stack';
+import { findInvalidAnswers } from '@/shared/answerValidation';
+import type { AnswerError } from '@/shared/prequalification';
 import type { AnswerValue, JobQuestionnaire } from '@/shared/questionnaire';
 
 /** The page at `/jobs/:jobId`: the questionnaire of that job. */
@@ -62,6 +64,9 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
   // answer stays in here as undefined, so it doesn't fall back.
   const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
+  // The refused answers, from the last submit's check or the server; changing an answer drops its error.
+  const [answerErrors, setAnswerErrors] = useState<Partial<Record<string, AnswerError>>>({});
+  const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const submission = useSubmitPrequalification(questionnaire.id);
   const shown = questionnaire.questions.flatMap((question) => {
     const Component = getQuestionComponent(question);
@@ -98,13 +103,34 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     const answers = Object.fromEntries(
       shown.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
     );
-    submission.mutate({ answers });
+    const showAnswerErrors = (errors: Record<string, AnswerError>) => {
+      setAnswerErrors(errors);
+      setInvalidFocusRequest((request) => request + 1);
+    };
+    // The same check the server runs, so most refusals show without a round trip.
+    const errors = findInvalidAnswers(
+      shown.map(({ question }) => question),
+      { answers },
+    );
+    if (Object.keys(errors).length > 0) {
+      showAnswerErrors(errors);
+      return;
+    }
+    setAnswerErrors({});
+    submission.mutate(
+      { answers },
+      {
+        onError: (error) => {
+          if (error instanceof InvalidAnswersError) showAnswerErrors(error.fields);
+        },
+      },
+    );
   };
 
   return (
     <>
       <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
-      <Form label={questionnaire.title} onSubmit={submitAnswers}>
+      <Form label={questionnaire.title} onSubmit={submitAnswers} invalidFocusRequest={invalidFocusRequest}>
         {shown.length === 0 ? (
           <EmptyState icon={<ClipboardList aria-hidden="true" />}>
             <FormattedMessage id="job.noQuestions" />
@@ -116,8 +142,12 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
                 key={question.id}
                 question={question}
                 value={value}
-                onChange={(next) => setChanged((answers) => ({ ...answers, [question.id]: next }))}
+                onChange={(next) => {
+                  setChanged((answers) => ({ ...answers, [question.id]: next }));
+                  setAnswerErrors((errors) => ({ ...errors, [question.id]: undefined }));
+                }}
                 fromProfile={question.prefill !== undefined && value === question.prefill}
+                error={answerErrors[question.id]}
               />
             ))}
           </Stack>
