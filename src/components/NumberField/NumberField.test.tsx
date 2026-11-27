@@ -70,6 +70,16 @@ describe('NumberField', () => {
     render(<ControlledNumberField />);
 
     await user.click(field());
+    await user.paste('€95,000');
+
+    expect(kept()).toHaveTextContent('95000');
+  });
+
+  it('reads a pasted number with German grouping', async () => {
+    const user = userEvent.setup();
+    render(<ControlledNumberField locale="de" />);
+
+    await user.click(field());
     await user.paste('95.000 €');
 
     expect(kept()).toHaveTextContent('95000');
