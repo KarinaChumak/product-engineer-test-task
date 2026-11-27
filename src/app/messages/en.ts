@@ -10,6 +10,14 @@ export const en = {
   'job.error.network': 'We couldn’t reach the server. Check your internet connection.',
   'job.error.retry': 'Try again',
   'job.error.retrying': 'Trying again…',
+  'application.submit': 'Send application',
+  'application.submitting': 'Sending…',
+  'application.error.server':
+    'We couldn’t send your application because our server ran into a problem. Your answers are still here, so please try again.',
+  'application.error.network':
+    'We couldn’t reach the server. Check your internet connection and try again. Your answers are still here.',
+  'application.sent.title': 'Application sent',
+  'application.sent.body': 'Thanks for applying to {title} at {company}. The company will get back to you.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Switch job',
   'jobSwitcher.placeholder': 'Choose a job',

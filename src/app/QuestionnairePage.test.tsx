@@ -339,3 +339,78 @@ describe('QuestionnairePage', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
   });
 });
+
+describe('QuestionnairePage submit', () => {
+  const sendApplication = { name: 'Send application' };
+
+  /** Opens the prefilled job-short and answers the application POST with `respond`, counting the requests. */
+  const openWithApplicationAnswer = (respond: () => Response | Promise<Response>) => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)),
+      http.post('/api/jobs/job-short/applications', async ({ request }) => {
+        sent.push(await request.json());
+        return respond();
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+
+  it('sends the prefilled and changed answers, leaving out an empty optional one, then says it was sent', async () => {
+    const user = userEvent.setup();
+    const sent = openWithApplicationAnswer(() => new HttpResponse(null, { status: 201 }));
+
+    await user.click(await screen.findByRole('combobox', noticePeriod));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    await user.click(screen.getByRole('button', sendApplication));
+
+    expect(await screen.findByRole('heading', { name: 'Application sent' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Thanks for applying to Frontend Developer (React) at Kranich Health GmbH.',
+    );
+    expect(sent).toEqual([{ answers: { notice_period: '1_month', salary: 95000 } }]);
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  it('shows the button as sending while the request is in flight, and sends one request on a double click', async () => {
+    const user = userEvent.setup();
+    const sent = openWithApplicationAnswer(() => delay('infinite').then(() => new HttpResponse(null)));
+
+    await user.dblClick(await screen.findByRole('button', sendApplication));
+
+    const button = await screen.findByRole('button', { name: 'Sending…' });
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await user.click(button);
+    expect(sent).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'Application sent' })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['a 500', () => HttpResponse.json({ error: 'internal' }, { status: 500 }), /server ran into a problem/],
+    [
+      'a 422',
+      () => HttpResponse.json({ error: 'invalid_answers' }, { status: 422 }),
+      /server ran into a problem/,
+    ],
+    ['a network error', () => HttpResponse.error(), /couldn’t reach the server/],
+  ])(
+    'keeps the form and its answers and shows an error above the button on %s',
+    async (_, respond, message) => {
+      const user = userEvent.setup();
+      openWithApplicationAnswer(respond);
+
+      await user.click(await screen.findByRole('combobox', noticePeriod));
+      await user.click(screen.getByRole('option', { name: '1 month' }));
+      await user.click(screen.getByRole('button', sendApplication));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(message);
+      expect(alert.compareDocumentPosition(screen.getByRole('button', sendApplication))).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
+      expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('95,000');
+    },
+  );
+});
