@@ -10,7 +10,11 @@ import {
 import { screenAnswers } from '@/server/screening';
 import { submissionsFromFile, type Submission, type SubmissionStore } from '@/server/submissions';
 import { findInvalidAnswers } from '@/shared/answerValidation';
-import type { InvalidAnswersResponse, PrequalificationResult } from '@/shared/prequalification';
+import type {
+  AlreadyCompletedResponse,
+  InvalidAnswersResponse,
+  PrequalificationResult,
+} from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
 
 export interface AppDeps {
@@ -59,14 +63,18 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     if (config === undefined) return c.json({ error: 'not_found' }, 404);
 
     // Prefill is a convenience: without a readable profile the candidate still gets the questions.
-    const profile = await loadProfile().catch((error: unknown) => {
+    const profile = await loadProfile().catch((error: unknown): Profile => {
       warn(
         `Prefilled nothing, the profile could not be read: ${error instanceof Error ? error.message : String(error)}`,
       );
       return {};
     });
     const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
-    return c.json(toJobQuestionnaire(job, profile));
+    // Without a candidate id nothing can have been stored under it, and the POST would refuse to store it.
+    // Unlike the profile, a submissions file that can't be read is a 500: the answers couldn't be stored
+    // either, so the page shows its retry error instead of a form that can't be sent.
+    const isCompleted = profile.id ? await submissions.has(profile.id, job.id) : false;
+    return c.json(toJobQuestionnaire(job, profile, isCompleted));
   });
 
   // Prequalification, not an application: the answers reach the employer only if they pass screening.
@@ -97,15 +105,20 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     const answers = collectJobAnswers(job, body);
     const screening = screenAnswers(job, answers);
 
-    // 3. Store them under the candidate. Unlike prefill, this needs the candidate, so a profile that can't be
-    // read is a server error.
+    // 3. Store them under the candidate, once per job: a second submission could probe a screening threshold,
+    // so it gets a 409 and the stored one stays. Unlike prefill, this needs the candidate, so a profile that
+    // can't be read is a server error.
     const { id: candidateId } = await loadProfile();
     if (!candidateId) throw new Error('The profile has no id to store the answers under');
     const submission = {
       candidate_id: candidateId,
       payload: buildPrequalificationPayload(job.id, answers, screening),
     };
-    await submissions.save(submission);
+    if (!(await submissions.saveIfNew(submission))) {
+      const message =
+        'The candidate has already submitted answers for this job. The new answers were not screened or stored.';
+      return c.json({ error: 'already_completed', message } satisfies AlreadyCompletedResponse, 409);
+    }
     // Integration point: this is where the payload would go to the employer's system, when screening passed.
     // Until there is one, it's stored and logged.
     logSubmission(submission);

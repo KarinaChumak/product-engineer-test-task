@@ -3,7 +3,7 @@ import { ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
 import { useParams } from 'react-router';
-import { InvalidAnswersError, NotFoundError } from '@/app/api';
+import { AlreadyCompletedError, InvalidAnswersError, NotFoundError } from '@/app/api';
 import { JobSwitcher } from '@/app/JobSwitcher';
 import { getBrowserLanguage, messages } from '@/app/messages';
 import type { MessageKey } from '@/app/messages/en';
@@ -95,6 +95,19 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
             values={job}
           />
         }
+      />
+    );
+  }
+
+  // After the result above, so the background reload that follows a submit doesn't replace it. The screen
+  // never says whether the candidate passed.
+  if (questionnaire.isCompleted || submission.error instanceof AlreadyCompletedError) {
+    const job = { title: questionnaire.title, company: questionnaire.company };
+    return (
+      <Notice
+        role="status"
+        title={<FormattedMessage id="prequalification.completed.title" />}
+        description={<FormattedMessage id="prequalification.completed.body" values={job} />}
       />
     );
   }

@@ -11,6 +11,7 @@ const noQuestions: JobQuestionnaire = {
   title: 'Frontend Developer (React)',
   company: 'Kranich Health GmbH',
   language: 'en',
+  isCompleted: false,
   questions: [],
 };
 
@@ -582,5 +583,82 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
       'Beantworte diese Frage, um fortzufahren.',
     );
+  });
+});
+
+describe('QuestionnairePage already completed', () => {
+  const completedHeading = { name: 'You’ve already answered the questions for this job' };
+  const completed = { ...prefilledQuestionnaire, isCompleted: true };
+
+  it('shows that the job is already completed instead of the form, without saying whether the candidate passed', async () => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(completed)));
+    renderAt('/jobs/job-short');
+
+    expect(await screen.findByRole('heading', completedHeading)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'You answered the questions for Frontend Developer (React) at Kranich Health GmbH.',
+    );
+    expect(screen.getByRole('status')).not.toHaveTextContent(/sent|fit|requirements|meet/i);
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit answers' })).not.toBeInTheDocument();
+  });
+
+  it('says the job is already completed in German for a German job', async () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json({ ...completed, language: 'de' })),
+    );
+    renderAt('/jobs/job-short');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Du hast die Fragen zu diesem Job schon beantwortet' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows that the job is already completed when the server refuses a second submission, and reloads the job', async () => {
+    const user = userEvent.setup();
+    let loads = 0;
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => {
+        loads += 1;
+        return HttpResponse.json(prefilledQuestionnaire);
+      }),
+      http.post('/api/jobs/job-short/prequalification', () =>
+        HttpResponse.json({ error: 'already_completed' }, { status: 409 }),
+      ),
+    );
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+
+    expect(await screen.findByRole('heading', completedHeading)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // So reopening the job later shows it as completed from the cache, too.
+    await waitFor(() => expect(loads).toBe(2));
+  });
+
+  it('keeps the result on screen when the reload after submitting says the job is completed', async () => {
+    const user = userEvent.setup();
+    let isCompleted = false;
+    let loads = 0;
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => {
+        loads += 1;
+        return HttpResponse.json({ ...prefilledQuestionnaire, isCompleted });
+      }),
+      http.post('/api/jobs/job-short/prequalification', () => {
+        isCompleted = true;
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+
+    const sent = { name: 'Your answers have been sent to Kranich Health GmbH' };
+    expect(await screen.findByRole('heading', sent)).toBeInTheDocument();
+    // The reload that marks the job completed has arrived, and the result is still there.
+    await waitFor(() => expect(loads).toBe(2));
+    await act(() => delay(50));
+    expect(screen.getByRole('heading', sent)).toBeInTheDocument();
   });
 });

@@ -31,6 +31,9 @@ export const en = {
   'answerError.not_an_integer': 'Enter a whole number, without decimals.',
   'answerError.out_of_range': 'Enter a number from {min} to {max}.',
   'answerError.too_long': 'Shorten your answer to {maxLength} characters or fewer.',
+  'prequalification.completed.title': 'You’ve already answered the questions for this job',
+  'prequalification.completed.body':
+    'You answered the questions for {title} at {company}. Each job’s questions can be answered only once, so there’s nothing more to do here.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Switch job',
   'jobSwitcher.placeholder': 'Choose a job',

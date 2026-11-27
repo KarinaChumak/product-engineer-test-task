@@ -22,6 +22,9 @@ export class InvalidAnswersError extends Error {
   }
 }
 
+/** The server answered 409: the candidate has already submitted answers for this job. */
+export class AlreadyCompletedError extends Error {}
+
 export async function fetchJobQuestionnaire(jobId: string, signal: AbortSignal): Promise<JobQuestionnaire> {
   const url = `/api/jobs/${encodeURIComponent(jobId)}/questionnaire`;
   const response = await fetch(url, { signal });
@@ -54,6 +57,7 @@ export async function submitPrequalification(
     const known = Object.entries(body.fields ?? {}).filter(([, code]) => isAnswerError(code));
     throw new InvalidAnswersError(`POST ${url} returned 422`, Object.fromEntries(known));
   }
+  if (response.status === 409) throw new AlreadyCompletedError(`POST ${url} returned 409`);
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
   return (await response.json()) as PrequalificationResult;
 }
