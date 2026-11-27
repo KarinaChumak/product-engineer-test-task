@@ -88,11 +88,11 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     renderedQuestions.map(({ question }) => question),
     { answers },
   );
-  const shown = renderedQuestions.map((item) => {
-    const isErrorShown = hasSubmitted || touchedIds.has(item.question.id);
-    const error =
-      (isErrorShown ? invalidAnswers[item.question.id] : undefined) ?? serverErrors[item.question.id];
-    return { ...item, error };
+  const questionsWithErrors = renderedQuestions.map((renderedQuestion) => {
+    const { id } = renderedQuestion.question;
+    const isErrorShown = hasSubmitted || touchedIds.has(id);
+    const error = (isErrorShown ? invalidAnswers[id] : undefined) ?? serverErrors[id];
+    return { ...renderedQuestion, error };
   });
 
   // The candidate learns whether their answers go on to the employer, never which one decided it.
@@ -158,13 +158,13 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     <>
       <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
       <Form label={questionnaire.title} onSubmit={submitAnswers} invalidFocusRequest={invalidFocusRequest}>
-        {shown.length === 0 ? (
+        {questionsWithErrors.length === 0 ? (
           <EmptyState icon={<ClipboardList aria-hidden="true" />}>
             <FormattedMessage id="job.noQuestions" />
           </EmptyState>
         ) : (
           <Stack gap={6}>
-            {shown.map(({ question, Component, value, error }) => (
+            {questionsWithErrors.map(({ question, Component, value, error }) => (
               <Component
                 key={question.id}
                 question={question}
