@@ -82,7 +82,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
 - Size: ~1,000 lines with tests (the ~400 estimate was low), so split into three PRs, each started once the one before is on `main`
 - PRs: three
   - (1) Screen and store the prequalification answers: the POST route computes `screening` and stores the contract payload in `data/submissions.json`, omitting empty optional answers, and answers the same empty 201 whether the candidate passed or failed
-  - (2) Submit and end screen: the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; the client bundle contains no `screening` or rule
+  - (2) Submit and end screen: the form's submit button has a pending state and sends one request; a 500 or network error keeps the answers and shows an error above the button; a 2xx shows the neutral end screen; the client bundle contains no `screening` or rule. Built before the prequalification rename: on rebase, post to `/prequalification`, rename `submitApplication`/`useSubmitApplication` and the `application.*` message keys, and replace "Send application"/"Application sent" with copy that says the answers were recorded and go to the employer if the candidate fits
   - (3) Answer validation on the server: the POST route checks each answer against the normalized job and returns 422 with field errors, which the form shows as the same error above the button
 - After: T-01
 - Branch: claude/t-04-implementation-8525f6 (PR 1), T-04b-submit-end-screen (PR 2, local until PR 1 merges)
