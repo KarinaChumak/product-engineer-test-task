@@ -157,9 +157,7 @@ export function parseJob(raw: unknown, warn: Warn): Job {
 
 /** The question's `profile_field`, when it's one the README lists. Any other is dropped with a warning. */
 function parseProfileField(raw: Raw, client: ClientQuestion, warn: Warn): ProfileField | undefined {
-  if (raw.profile_field === undefined) return undefined;
-  const field = asString(raw.profile_field);
-  if (field !== undefined && isProfileField(field)) return field;
+  if (raw.profile_field === undefined || isProfileField(raw.profile_field)) return raw.profile_field;
   warn(
     `Ignored profile_field ${JSON.stringify(raw.profile_field)} on "${client.id}": it's not a known profile field`,
   );

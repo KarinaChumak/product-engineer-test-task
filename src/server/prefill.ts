@@ -16,21 +16,6 @@ export interface Profile {
   years_of_experience?: number;
 }
 
-/** The `profile_field` values the README lists. */
-const profileFields = [
-  'notice_period',
-  'salary_expectation',
-  'city',
-  'german_level',
-  'english_level',
-  'years_of_experience',
-] as const;
-
-export type ProfileField = (typeof profileFields)[number];
-
-export const isProfileField = (field: string): field is ProfileField =>
-  (profileFields as readonly string[]).includes(field);
-
 export async function profileFromFile(path: string): Promise<Profile> {
   return JSON.parse(await readFile(path, 'utf8')) as Profile;
 }
@@ -41,23 +26,20 @@ function languageLevel(profile: Profile, language: string): string | undefined {
   return profile.languages.find((entry) => entry?.language === language)?.level;
 }
 
-/** Where the README says each profile field lives in `profile.json`. */
-function profileValue(field: ProfileField, profile: Profile): AnswerValue | undefined {
-  switch (field) {
-    case 'notice_period':
-      return profile.notice_period;
-    case 'salary_expectation':
-      return profile.salary_expectation?.amount;
-    case 'city':
-      return profile.location?.city;
-    case 'german_level':
-      return languageLevel(profile, 'de');
-    case 'english_level':
-      return languageLevel(profile, 'en');
-    case 'years_of_experience':
-      return profile.years_of_experience;
-  }
-}
+/** Each `profile_field` the README lists, and where it lives in `profile.json`. */
+const profileValueByField = {
+  notice_period: (profile) => profile.notice_period,
+  salary_expectation: (profile) => profile.salary_expectation?.amount,
+  city: (profile) => profile.location?.city,
+  german_level: (profile) => languageLevel(profile, 'de'),
+  english_level: (profile) => languageLevel(profile, 'en'),
+  years_of_experience: (profile) => profile.years_of_experience,
+} satisfies Record<string, (profile: Profile) => AnswerValue | undefined>;
+
+export type ProfileField = keyof typeof profileValueByField;
+
+export const isProfileField = (field: unknown): field is ProfileField =>
+  typeof field === 'string' && Object.hasOwn(profileValueByField, field);
 
 /** The profile's answer, when the question would accept it if the candidate sent it themselves. */
 export function prefillFor(
@@ -65,7 +47,7 @@ export function prefillFor(
   field: ProfileField,
   profile: Profile,
 ): AnswerValue | undefined {
-  const value = profileValue(field, profile);
+  const value = profileValueByField[field](profile);
   if (value === undefined || isEmptyAnswer(value)) return undefined;
   return findAnswerError(question, value) === undefined ? value : undefined;
 }
