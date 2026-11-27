@@ -14,6 +14,15 @@ import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 export const isEmptyAnswer = (value: AnswerValue): boolean =>
   (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
 
+/**
+ * The answer sent for a question, or undefined when there's none or it's empty. Only the request's own keys
+ * count, so a question id such as `toString` isn't answered by the prototype.
+ */
+export function getSentAnswer(request: PrequalificationRequest, questionId: string): AnswerValue | undefined {
+  const value = Object.hasOwn(request.answers, questionId) ? request.answers[questionId] : undefined;
+  return value === undefined || isEmptyAnswer(value) ? undefined : value;
+}
+
 /** What's wrong with a non-empty answer to the question, or undefined when the question accepts it. */
 export function findAnswerError(question: ClientQuestion, value: AnswerValue): AnswerError | undefined {
   switch (question.type) {
@@ -47,9 +56,9 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
 export function findAnswerErrors(job: Job, request: PrequalificationRequest): Record<string, AnswerError> {
   const errors: Record<string, AnswerError> = {};
   for (const { client } of job.questions) {
-    const value = Object.hasOwn(request.answers, client.id) ? request.answers[client.id] : undefined;
-    const isUnanswered = value === undefined || isEmptyAnswer(value);
-    const error = isUnanswered ? (client.required ? 'required' : undefined) : findAnswerError(client, value);
+    const value = getSentAnswer(request, client.id);
+    const error =
+      value === undefined ? (client.required ? 'required' : undefined) : findAnswerError(client, value);
     if (error) errors[client.id] = error;
   }
   return errors;

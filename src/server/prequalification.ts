@@ -1,6 +1,6 @@
 import { isRecord, type Job } from '@/server/normalize';
 import { screenAnswers, type Screening } from '@/server/screening';
-import { isEmptyAnswer } from '@/server/validation';
+import { getSentAnswer } from '@/server/validation';
 import type { PrequalificationRequest } from '@/shared/prequalification';
 import type { AnswerValue } from '@/shared/questionnaire';
 
@@ -40,8 +40,8 @@ export function buildPrequalificationPayload(
 ): PrequalificationPayload {
   const answers = new Map<string, AnswerValue>();
   for (const { client } of job.questions) {
-    const value = Object.hasOwn(request.answers, client.id) ? request.answers[client.id] : undefined;
-    if (value !== undefined && !isEmptyAnswer(value)) answers.set(client.id, value);
+    const value = getSentAnswer(request, client.id);
+    if (value !== undefined) answers.set(client.id, value);
   }
   return {
     job_id: job.id,
