@@ -15,7 +15,7 @@ One ticket, one session, one worktree. The main checkout stays on `main`, so oth
 
 ## 2. Move into its worktree
 
-1. Run `.claude/scripts/ticket start <ID> <short-slug>`, with a slug of 2–4 words from the title. It prints `path`, `branch`, `port` and `new`.
+1. Run `.claude/scripts/ticket start <ID> <short-slug>`, with a slug of 2–4 words from the title. It pulls the latest `main` first, so the branch starts from it. It prints `path`, `branch`, `port` and `new`. Run it even when the session already started in a worktree of its own.
 2. Call the EnterWorktree tool with that `path`, so the rest of the session works there.
 3. If `new=yes`, run `.claude/scripts/setup` there: a new worktree has no installed dependencies.
 4. If `new=no`, this is a resumed ticket: read `git log --oneline main..HEAD` and `git status` to see where it stands, and carry on from there.
@@ -35,8 +35,11 @@ In the ticket's section, set `Status: in progress` and `Branch: <branch>`. If th
 
 - Propose the approach in a few lines: what changes in which files, with an estimate of changed lines per file, how each "done when" will be proved, the names of new modules, components, hooks and functions (each saying exactly what it is or does), and any dependency you'll add. Wait for the user's approval.
 - If the estimate is over the ticket's `Size`, or over 300 lines, don't build it as one PR. Propose splitting it into smaller tickets in `plan.md`, each a complete behavior, and build only the first.
-- Questions that only affect this ticket: decide, and mention the choice in the proposal. Questions that affect other tickets: ask, since they become entries in `claude-notes/decisions.md`.
+- When the user says how to split, use their split. Don't offer a different one as a choice or a suggested reply; if theirs still comes out too big, say so and propose splitting their first part further.
+- When a word in the ticket or the user's message could mean two parts of the system ("validation" could mean checking the input or applying a business rule), ask which one before building.
+- Questions that only affect this ticket: decide, and mention the choice in the proposal. Questions that affect other tickets, or change what the user sees in another ticket's "done when": ask, since they become entries in `claude-notes/decisions.md`.
 - Build in small commits, with the types, copy, keys and tests of each behavior. Run `.claude/scripts/pr-size` after each commit. Past 400 lines, stop and tell the user before going on.
+- Never drop, merge or thin out tests to stay under the size limit. A behavior with every case tested that doesn't fit is a ticket to split.
 
 ## 6. Finish
 

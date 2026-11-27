@@ -5,7 +5,8 @@
 #   .claude/scripts/ticket remove <ID>         remove the worktree after its PR is merged
 #
 # start prints key=value lines: path, branch, port, new (yes|no).
-# Base branch: $TICKET_BASE, default main; origin/main instead when it is ahead of the local main.
+# Base branch: $TICKET_BASE, default main. Before making a worktree, start pulls origin/main into
+# the local main when it's ahead.
 set -euo pipefail
 
 die() {
@@ -48,17 +49,32 @@ pin_gh_origin() {
   git -C "$root" config remote.origin.gh-resolved base
 }
 
+# Pulls origin's $base into the local one before a worktree is made, so the new branch starts from
+# the latest merged work and the main checkout runs the latest .claude/ setup. Skipped when the local
+# $base has commits that aren't pushed yet, or when the main checkout is on $base with changes.
+update_base() {
+  git -C "$root" fetch -q origin "$base" 2>/dev/null || return 0
+  git -C "$root" rev-parse -q --verify "origin/$base" >/dev/null || return 0
+  git -C "$root" merge-base --is-ancestor "$base" "origin/$base" 2>/dev/null || return 0
+  if [ "$(git -C "$root" branch --show-current)" = "$base" ]; then
+    [ -z "$(git -C "$root" status --porcelain --untracked-files=no)" ] || return 0
+    git -C "$root" merge -q --ff-only "origin/$base" >/dev/null 2>&1 || true
+  else
+    git -C "$root" update-ref "refs/heads/$base" "origin/$base"
+  fi
+}
+
 start() {
   local new=no branch
   pin_gh_origin
   if [ ! -d "$dir" ]; then
     new=yes
+    update_base
     branch=$(existing_branch)
     if [ -n "$branch" ]; then
       git -C "$root" worktree add -q "$dir" "$branch"
     else
       branch=$id${slug:+-$slug}
-      git -C "$root" fetch -q origin "$base" 2>/dev/null || true
       local from=$base
       # origin's copy when it's newer; the local one when it has commits that aren't pushed yet.
       if git -C "$root" rev-parse -q --verify "origin/$base" >/dev/null &&
