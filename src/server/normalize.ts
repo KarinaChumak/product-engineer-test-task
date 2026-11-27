@@ -1,4 +1,4 @@
-import { prefillFor, type Profile } from '@/server/prefill';
+import { isProfileField, prefillFor, type Profile, type ProfileField } from '@/server/prefill';
 import type {
   ClientQuestion,
   JobQuestionnaire,
@@ -27,7 +27,7 @@ export interface ScreeningRules {
 export interface JobQuestion {
   client: ClientQuestion;
   /** The profile field to prefill the answer from. */
-  profileField?: string;
+  profileField?: ProfileField;
   rules: ScreeningRules;
 }
 
@@ -149,10 +149,19 @@ export function parseJob(raw: unknown, warn: Warn): Job {
         return [];
       }
       seenIds.add(client.id);
-      const profileField = asString(question.profile_field);
+      const profileField = parseProfileField(question, client, warn);
       return [{ client, ...(profileField && { profileField }), rules: parseRules(question, client, warn) }];
     }),
   };
+}
+
+/** The question's `profile_field`, when it's one the README lists. Any other is dropped with a warning. */
+function parseProfileField(raw: Raw, client: ClientQuestion, warn: Warn): ProfileField | undefined {
+  if (raw.profile_field === undefined || isProfileField(raw.profile_field)) return raw.profile_field;
+  warn(
+    `Ignored profile_field ${JSON.stringify(raw.profile_field)} on "${client.id}": it's not a known profile field`,
+  );
+  return undefined;
 }
 
 /**
