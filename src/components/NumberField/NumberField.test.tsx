@@ -65,12 +65,22 @@ describe('NumberField', () => {
     expect(field()).toHaveValue('95,000');
   });
 
-  it('keeps the digits of a pasted number', async () => {
+  it('keeps every digit of a pasted number grouped with dots', async () => {
     const user = userEvent.setup();
     render(<ControlledNumberField />);
 
     await user.click(field());
     await user.paste('95.000 €');
+
+    expect(kept()).toHaveTextContent('95000');
+  });
+
+  it('keeps every digit of a pasted number grouped with commas in German', async () => {
+    const user = userEvent.setup();
+    render(<ControlledNumberField locale="de" />);
+
+    await user.click(field());
+    await user.paste('€95,000');
 
     expect(kept()).toHaveTextContent('95000');
   });
