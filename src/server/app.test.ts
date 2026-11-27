@@ -106,6 +106,76 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     expect(job.questions.find((q) => q.id === 'salary_expectation')).not.toHaveProperty('prefill');
   });
 
+  it('returns job-long with german_level prefilled from the profile languages and years_of_experience from the profile', async () => {
+    const response = await createApp(silent).request('/api/jobs/job-long/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'german_level')).toMatchObject({
+      type: 'select',
+      prefill: 'B1',
+    });
+    expect(job.questions.find((q) => q.id === 'years_of_experience')).toMatchObject({
+      type: 'numeric',
+      prefill: 6,
+    });
+  });
+
+  const levels = [
+    { label: 'B1', value: 'B1' },
+    { label: 'C1', value: 'C1' },
+  ];
+  const jobWithEveryProfileField = storeOf({
+    id: 'job-profile',
+    questions: [
+      { type: 'select', id: 'german', question: 'German?', profile_field: 'german_level', options: levels },
+      {
+        type: 'select',
+        id: 'english',
+        question: 'English?',
+        profile_field: 'english_level',
+        options: levels,
+      },
+      { type: 'text', id: 'city', question: 'City?', profile_field: 'city' },
+      {
+        type: 'numeric',
+        id: 'years',
+        question: 'Years?',
+        min: 0,
+        max: 50,
+        profile_field: 'years_of_experience',
+      },
+    ],
+  });
+  const prefillsOf = async (loadProfile: AppDeps['loadProfile']) => {
+    const app = createApp({ ...silent, jobs: jobWithEveryProfileField, loadProfile });
+    const response = await app.request('/api/jobs/job-profile/questionnaire');
+    const job = (await response.json()) as JobQuestionnaire;
+    return Object.fromEntries(job.questions.map((q) => [q.id, q.prefill]));
+  };
+
+  it('prefills english_level and city from the profile, as the README maps them', async () => {
+    expect(
+      await prefillsOf(async () => ({
+        languages: [{ language: 'en', level: 'C1' }],
+        location: { city: 'Berlin' },
+      })),
+    ).toMatchObject({ english: 'C1', city: 'Berlin' });
+  });
+
+  it.each([
+    ['a language level that is not an option', { languages: [{ language: 'de', level: 'native' }] }],
+    ['years of experience out of range', { years_of_experience: 60 }],
+    ['languages that are not a list', { languages: 'de' as never }],
+    ['a profile without those fields', {}],
+  ])('does not prefill %s', async (_, profile) => {
+    expect(await prefillsOf(async () => profile)).toEqual({
+      german: undefined,
+      english: undefined,
+      city: undefined,
+      years: undefined,
+    });
+  });
+
   it('removes every screening rule from the job', async () => {
     const jobs = storeOf({
       id: 'job-rules',

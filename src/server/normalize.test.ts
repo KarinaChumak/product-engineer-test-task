@@ -124,6 +124,29 @@ describe('parseJob screening rules', () => {
   });
 });
 
+describe('parseJob profile fields', () => {
+  it('keeps a profile field the README lists, without a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ ...salary, profile_field: 'years_of_experience' }],
+    });
+
+    expect(parsed.questions[0]).toMatchObject({ profileField: 'years_of_experience' });
+    expect(warnings).toEqual([]);
+  });
+
+  it('drops an unknown profile field with one warning, so the question is never prefilled', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ ...salary, profile_field: 'shoe_size' }],
+    });
+
+    expect(parsed.questions[0]).not.toHaveProperty('profileField');
+    expect(warnings).toEqual([expect.stringContaining('"shoe_size"')]);
+    expect(toJobQuestionnaire(parsed, { years_of_experience: 6 }).questions[0]).not.toHaveProperty('prefill');
+  });
+});
+
 describe('toJobQuestionnaire', () => {
   it('sends only the client question, without its profile field or screening rules', () => {
     const { job: parsed } = parse({
