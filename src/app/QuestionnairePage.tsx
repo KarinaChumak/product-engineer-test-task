@@ -128,11 +128,8 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
               />
             </Alert>
           )}
-          {/* aria-disabled, not disabled, so the button keeps focus while the answers are submitted. */}
-          <Button type="submit" aria-disabled={submission.isPending}>
-            <FormattedMessage
-              id={submission.isPending ? 'prequalification.submitting' : 'prequalification.submit'}
-            />
+          <Button type="submit" isLoading={submission.isPending}>
+            <FormattedMessage id="prequalification.submit" />
           </Button>
         </Stack>
       </Form>

@@ -400,13 +400,14 @@ describe('QuestionnairePage submit', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the button as submitting while the request is in flight, and sends one request on a double click', async () => {
+  it('keeps the button label and shows it loading while the request is in flight, sending one request on a double click', async () => {
     const user = userEvent.setup();
     const sent = openWithPrequalificationResponse(() => delay('infinite').then(() => new HttpResponse(null)));
 
     await user.dblClick(await screen.findByRole('button', submitAnswers));
 
-    const button = await screen.findByRole('button', { name: 'Submitting…' });
+    const button = screen.getByRole('button', submitAnswers);
+    await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'true'));
     expect(button).toHaveAttribute('aria-disabled', 'true');
     await user.click(button);
     expect(sent).toHaveLength(1);

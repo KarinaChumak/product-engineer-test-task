@@ -14,7 +14,6 @@ export const de: Record<MessageKey, string> = {
   'job.error.retry': 'Erneut versuchen',
   'job.error.retrying': 'Wird erneut versucht…',
   'prequalification.submit': 'Antworten absenden',
-  'prequalification.submitting': 'Wird übermittelt…',
   'prequalification.error.server':
     'Wir konnten deine Antworten nicht speichern, weil auf unserem Server ein Fehler aufgetreten ist. Deine Antworten sind noch da, versuche es also noch einmal.',
   'prequalification.error.network':

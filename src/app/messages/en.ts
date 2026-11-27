@@ -11,7 +11,6 @@ export const en = {
   'job.error.retry': 'Try again',
   'job.error.retrying': 'Trying again…',
   'prequalification.submit': 'Submit answers',
-  'prequalification.submitting': 'Submitting…',
   'prequalification.error.server':
     'We couldn’t save your answers because our server ran into a problem. Your answers are still here, so please try again.',
   'prequalification.error.network':
