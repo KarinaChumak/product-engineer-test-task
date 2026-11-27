@@ -2,7 +2,7 @@ import type { Job, ScreeningRules } from '@/server/normalize';
 import type { AnswerValue } from '@/shared/questionnaire';
 
 // Screens prequalification answers against the job's rules, which decides whether they go to the employer.
-// Server-only: the candidate never learns the result.
+// Server-only: the candidate learns only whether they passed, never which rule decided it.
 
 /** The README contract's `screening`: `passed` is true when no rule failed. */
 export interface Screening {
