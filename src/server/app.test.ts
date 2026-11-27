@@ -167,17 +167,18 @@ describe('POST /api/jobs/:id/prequalification', () => {
     title: 'Salary',
     company: 'Acme',
     questions: [
-      { type: 'numeric', id: 'salary', question: 'Salary?', required: true },
+      // Optional, so it can be left unanswered and fail its rule without failing validation.
+      { type: 'numeric', id: 'salary', question: 'Salary?', max: 200000, must_be_below: 90000 },
       { type: 'text', id: 'note', question: 'Anything else?' },
     ],
   });
 
+  const validShortAnswers = { answers: { notice_period: '3_months', salary_expectation: 95000 } };
+
   it('stores the contract payload for job-short under the candidate, leaving out an empty optional answer', async () => {
     const { app, saved } = appStoringIn();
 
-    const response = await submitAnswers(app, 'job-short', {
-      answers: { notice_period: '3_months', salary_expectation: 95000 },
-    });
+    const response = await submitAnswers(app, 'job-short', validShortAnswers);
 
     expect(response.status).toBe(201);
     expect(saved).toEqual([
@@ -189,17 +190,43 @@ describe('POST /api/jobs/:id/prequalification', () => {
             { id: 'notice_period', value: '3_months' },
             { id: 'salary_expectation', value: 95000 },
           ],
+          screening: { passed: true, failed: [] },
         },
       },
     ]);
   });
 
-  it('answers with an empty 201, so the reply says nothing about what was stored', async () => {
+  it.each([
+    ['passes', 85000, { passed: true, failed: [] }],
+    ['fails at the threshold', 90000, { passed: false, failed: ['salary'] }],
+    ['fails above the threshold', 95000, { passed: false, failed: ['salary'] }],
+  ])('stores a screening in which a salary below the rule %s', async (_, salary, screening) => {
+    const { app, saved } = appStoringIn({ jobs: salaryJob });
+
+    await submitAnswers(app, 'job-salary', { answers: { salary } });
+
+    expect(saved[0]?.payload.screening).toEqual(screening);
+  });
+
+  it('fails the rule of a question left without an answer', async () => {
+    const { app, saved } = appStoringIn({ jobs: salaryJob });
+
+    await submitAnswers(app, 'job-salary', { answers: { note: 'Hi' } });
+
+    expect(saved[0]?.payload).toMatchObject({
+      answers: [{ id: 'note', value: 'Hi' }],
+      screening: { passed: false, failed: ['salary'] },
+    });
+  });
+
+  it('answers the same, without the screening or a threshold, whether the candidate passed or failed', async () => {
     const { app } = appStoringIn({ jobs: salaryJob });
 
-    const response = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
+    const passed = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
+    const failed = await submitAnswers(app, 'job-salary', { answers: { salary: 95000 } });
 
-    expect([response.status, await response.text()]).toEqual([201, '']);
+    expect([passed.status, await passed.text()]).toEqual([201, '']);
+    expect([failed.status, await failed.text()]).toEqual([201, '']);
   });
 
   it.each([
@@ -224,7 +251,18 @@ describe('POST /api/jobs/:id/prequalification', () => {
   it('stores a multi-choice answer as values', async () => {
     const jobs = storeOf({
       id: 'job-multi',
-      questions: [{ type: 'select', id: 'stack', question: 'Stack?', max_choices: 2, options: [] }],
+      questions: [
+        {
+          type: 'select',
+          id: 'stack',
+          question: 'Stack?',
+          max_choices: 2,
+          options: [
+            { label: 'React', value: 'react' },
+            { label: 'Vue', value: 'vue' },
+          ],
+        },
+      ],
     });
     const { app, saved } = appStoringIn({ jobs });
 
@@ -240,12 +278,54 @@ describe('POST /api/jobs/:id/prequalification', () => {
     const errors: unknown[] = [];
     const { app, saved } = appStoringIn({ loadProfile, logError: (error) => errors.push(error) });
 
-    const response = await submitAnswers(app, 'job-short', { answers: { notice_period: '3_months' } });
+    const response = await submitAnswers(app, 'job-short', validShortAnswers);
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: 'internal' });
     expect(saved).toEqual([]);
     expect(errors).toHaveLength(1);
+  });
+
+  it('returns 422 with every refused answer by question id and stores nothing', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await submitAnswers(app, 'job-short', {
+      answers: { notice_period: 'never', salary_expectation: 10000, proud_project: 'x'.repeat(5001) },
+    });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({
+      error: 'invalid_answers',
+      fields: {
+        notice_period: 'not_an_option',
+        salary_expectation: 'out_of_range',
+        proud_project: 'too_long',
+      },
+    });
+    expect(saved).toEqual([]);
+  });
+
+  it('returns 422 for a required question left blank', async () => {
+    const { app, saved } = appStoringIn();
+
+    const response = await submitAnswers(app, 'job-short', { answers: { notice_period: '  ' } });
+
+    expect(await response.json()).toEqual({
+      error: 'invalid_answers',
+      fields: { notice_period: 'required', salary_expectation: 'required' },
+    });
+    expect(saved).toEqual([]);
+  });
+
+  it('refuses an invalid answer before reading the profile', async () => {
+    const errors: unknown[] = [];
+    const loadProfile = () => Promise.reject(new Error('ENOENT: profile.json'));
+    const { app } = appStoringIn({ loadProfile, logError: (error) => errors.push(error) });
+
+    const response = await submitAnswers(app, 'job-short', { answers: {} });
+
+    expect(response.status).toBe(422);
+    expect(errors).toEqual([]);
   });
 
   it('returns 404 for an unknown job and stores nothing', async () => {

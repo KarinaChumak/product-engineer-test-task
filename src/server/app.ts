@@ -4,6 +4,8 @@ import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/
 import { profileFromFile, type Profile } from '@/server/prefill';
 import { buildPrequalificationPayload, isPrequalificationRequest } from '@/server/prequalification';
 import { submissionsFromFile, type SubmissionStore } from '@/server/submissions';
+import { findAnswerErrors } from '@/server/validation';
+import type { InvalidAnswersResponse } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
 
 export interface AppDeps {
@@ -62,13 +64,16 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     if (config === undefined) return c.json({ error: 'not_found' }, 404);
     const body: unknown = await c.req.json().catch(() => undefined);
     if (!isPrequalificationRequest(body)) return c.json({ error: 'invalid_body' }, 400);
+    const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
+    const fields = findAnswerErrors(job, body);
+    if (Object.keys(fields).length > 0)
+      return c.json({ error: 'invalid_answers', fields } satisfies InvalidAnswersResponse, 422);
 
     // Unlike prefill, storing needs the candidate, so a profile that can't be read is a server error.
     const { id: candidateId } = await loadProfile();
     if (!candidateId) throw new Error('The profile has no id to store the answers under');
-    const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
     await submissions.save({ candidate_id: candidateId, payload: buildPrequalificationPayload(job, body) });
-    // Always an empty reply, so it can't tell the candidate the screening result PR 2 adds to the payload.
+    // The same empty answer whatever the screening result, so the candidate can't tell.
     return c.body(null, 201);
   });
 

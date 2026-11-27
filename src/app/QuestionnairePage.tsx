@@ -3,9 +3,10 @@ import { ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
 import { useParams } from 'react-router';
-import { NotFoundError } from '@/app/api';
+import { InvalidAnswersError, NotFoundError } from '@/app/api';
 import { JobSwitcher } from '@/app/JobSwitcher';
 import { getBrowserLanguage, messages } from '@/app/messages';
+import type { MessageKey } from '@/app/messages/en';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
@@ -118,14 +119,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
         <Stack gap={4}>
           {submission.isError && (
             <Alert>
-              <FormattedMessage
-                // fetch rejects with a TypeError when the server can't be reached at all.
-                id={
-                  submission.error instanceof TypeError
-                    ? 'prequalification.error.network'
-                    : 'prequalification.error.server'
-                }
-              />
+              <FormattedMessage id={getSubmissionErrorMessage(submission.error)} />
             </Alert>
           )}
           <Button type="submit" isLoading={submission.isPending}>
@@ -135,6 +129,13 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
       </Form>
     </>
   );
+}
+
+function getSubmissionErrorMessage(error: Error): MessageKey {
+  if (error instanceof InvalidAnswersError) return 'prequalification.error.invalid';
+  // fetch rejects with a TypeError when the server can't be reached at all.
+  if (error instanceof TypeError) return 'prequalification.error.network';
+  return 'prequalification.error.server';
 }
 
 interface LoadErrorProps {

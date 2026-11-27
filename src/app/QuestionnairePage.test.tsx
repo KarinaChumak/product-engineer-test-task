@@ -418,8 +418,9 @@ describe('QuestionnairePage submit', () => {
     ['a 500', () => HttpResponse.json({ error: 'internal' }, { status: 500 }), /server ran into a problem/],
     [
       'a 422',
-      () => HttpResponse.json({ error: 'invalid_answers' }, { status: 422 }),
-      /server ran into a problem/,
+      () =>
+        HttpResponse.json({ error: 'invalid_answers', fields: { salary: 'out_of_range' } }, { status: 422 }),
+      /Some of your answers can’t be accepted/,
     ],
     ['a network error', () => HttpResponse.error(), /couldn’t reach the server/],
   ])(

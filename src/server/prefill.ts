@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { findAnswerError, isEmptyAnswer } from '@/server/validation';
 import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
 
 // Takes a question's answer from the candidate's profile, through its `profile_field`.
@@ -26,24 +27,13 @@ function profileValue(field: string, profile: Profile): AnswerValue | undefined 
   }
 }
 
-function accepts(question: ClientQuestion, value: AnswerValue): boolean {
-  switch (question.type) {
-    case 'select':
-      return typeof value === 'string' && question.options.some((option) => option.value === value);
-    case 'numeric':
-      return (
-        typeof value === 'number' && Number.isInteger(value) && value >= question.min && value <= question.max
-      );
-    default:
-      return false;
-  }
-}
-
+/** The profile's answer, when the question would accept it if the candidate sent it themselves. */
 export function prefillFor(
   question: ClientQuestion,
   field: string,
   profile: Profile,
 ): AnswerValue | undefined {
   const value = profileValue(field, profile);
-  return value !== undefined && accepts(question, value) ? value : undefined;
+  if (value === undefined || isEmptyAnswer(value)) return undefined;
+  return findAnswerError(question, value) === undefined ? value : undefined;
 }

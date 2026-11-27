@@ -5,6 +5,9 @@ import type { JobQuestionnaire, JobSummary } from '@/shared/questionnaire';
 /** The server answered 404: there's nothing to retry. */
 export class NotFoundError extends Error {}
 
+/** The server answered 422: some answers aren't valid, so sending them again won't help. */
+export class InvalidAnswersError extends Error {}
+
 export async function fetchJobQuestionnaire(jobId: string, signal: AbortSignal): Promise<JobQuestionnaire> {
   const url = `/api/jobs/${encodeURIComponent(jobId)}/questionnaire`;
   const response = await fetch(url, { signal });
@@ -30,6 +33,8 @@ export async function submitPrequalification(jobId: string, request: Prequalific
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
+  // T-06 reads the field errors from the body to show them on their fields.
+  if (response.status === 422) throw new InvalidAnswersError(`POST ${url} returned 422`);
   if (!response.ok) throw new Error(`POST ${url} returned ${response.status}`);
 }
 

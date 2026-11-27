@@ -18,6 +18,8 @@ export const de: Record<MessageKey, string> = {
     'Wir konnten deine Antworten nicht speichern, weil auf unserem Server ein Fehler aufgetreten ist. Deine Antworten sind noch da, versuche es also noch einmal.',
   'prequalification.error.network':
     'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung und versuche es noch einmal. Deine Antworten sind noch da.',
+  'prequalification.error.invalid':
+    'Einige deiner Antworten können wir nicht annehmen. Prüfe sie und versuche es noch einmal. Deine Antworten sind noch da.',
   'prequalification.recorded.title': 'Deine Antworten wurden gespeichert',
   'prequalification.recorded.body':
     'Danke, dass du die Fragen zu {title} bei {company} beantwortet hast. Wenn du zu den Anforderungen des Unternehmens passt, leiten wir deine Antworten weiter.',
