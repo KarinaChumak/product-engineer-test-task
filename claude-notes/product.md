@@ -6,7 +6,7 @@ When candidates apply on Instaffo, companies add their own screening questions. 
 
 ## Users
 
-- **Candidate** (`talent-4711` in `profile.json`): wants to answer quickly, see what the profile already filled in, fix answers before sending, and not lose work on reload. Never sees thresholds or whether they passed.
+- **Candidate** (`talent-4711` in `profile.json`): wants to answer quickly, see what the profile already filled in, fix answers before sending, and not lose work on reload. Learns whether they passed, so they aren't left wondering if the employer has their answers, but never sees a threshold or which question decided it.
 - **Recruiter / company** (indirect): gets a payload that matches the contract, with a screening result they can trust, from a config that was repaired rather than rejected.
 
 ## Principles
@@ -15,8 +15,8 @@ When candidates apply on Instaffo, companies add their own screening questions. 
 - Ask only what we don't know: profile answers are prefilled and only confirmed.
 - Repair, don't drop: a bad config is normalized deterministically and every fix is logged, so the payload still matches the contract.
 - Nothing leaves the browser until an explicit submit. Drafts stay local and are cleared after submit.
-- Everyone sees the same end screen, whether they passed or not.
-- The answers are a prequalification, not an application: they reach the employer only if the candidate passes screening. The UI never says an application was sent; it says the answers were recorded and go to the employer if the candidate fits.
+- The end screen says whether the candidate passed: if so, their answers were sent to the employer; if not, they won't be. It never names the question that decided it.
+- The answers are a prequalification, not an application: they reach the employer only if the candidate passes screening. The UI never calls them an application.
 
 ## Scope
 

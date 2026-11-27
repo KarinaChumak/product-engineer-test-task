@@ -2,10 +2,18 @@ import type { AnswerValue } from '@/shared/questionnaire';
 
 /**
  * What the client sends to prequalify for a job: the candidate's answers by question id. Empty answers are
- * left out. It isn't an application: the answers reach the employer only if they pass the job's screening.
+ * left out. It isn't an application: the answers reach the employer only if the candidate passes.
  */
 export interface PrequalificationRequest {
   answers: Record<string, AnswerValue>;
+}
+
+/**
+ * The body of the 201: whether the candidate fits the job, so the answers go on to the employer. Only that:
+ * which question decided it would reveal where a threshold is.
+ */
+export interface PrequalificationResult {
+  passed: boolean;
 }
 
 /** The longest text answer the server stores, in characters. */

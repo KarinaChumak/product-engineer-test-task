@@ -259,14 +259,14 @@ describe('POST /api/jobs/:id/prequalification', () => {
     });
   });
 
-  it('answers the same, without the screening or a threshold, whether the candidate passed or failed', async () => {
+  it('tells the candidate whether they passed, and nothing about which rule or threshold', async () => {
     const { app } = appStoringIn({ jobs: salaryJob });
 
     const passed = await submitAnswers(app, 'job-salary', { answers: { salary: 85000 } });
     const failed = await submitAnswers(app, 'job-salary', { answers: { salary: 95000 } });
 
-    expect([passed.status, await passed.text()]).toEqual([201, '']);
-    expect([failed.status, await failed.text()]).toEqual([201, '']);
+    expect([passed.status, await passed.json()]).toEqual([201, { passed: true }]);
+    expect([failed.status, await failed.json()]).toEqual([201, { passed: false }]);
   });
 
   it.each([

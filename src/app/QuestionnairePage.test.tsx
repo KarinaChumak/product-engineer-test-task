@@ -342,7 +342,8 @@ describe('QuestionnairePage', () => {
 
 describe('QuestionnairePage submit', () => {
   const submitAnswers = { name: 'Submit answers' };
-  const answersRecorded = { name: 'Your answers have been recorded' };
+  const answersSent = { name: 'Your answers have been sent to Kranich Health GmbH' };
+  const passed = () => HttpResponse.json({ passed: true }, { status: 201 });
 
   /** Opens the prefilled job-short and answers the prequalification POST with `respond`, collecting the requests. */
   const openWithPrequalificationResponse = (respond: () => Response | Promise<Response>) => {
@@ -358,20 +359,34 @@ describe('QuestionnairePage submit', () => {
     return sent;
   };
 
-  it('submits the prefilled and changed answers, leaving out an empty optional one, then says they were recorded', async () => {
+  it('submits the prefilled and changed answers, leaving out an empty optional one, then says they were sent when the candidate passed', async () => {
     const user = userEvent.setup();
-    const sent = openWithPrequalificationResponse(() => new HttpResponse(null, { status: 201 }));
+    const sent = openWithPrequalificationResponse(passed);
 
     await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
     await user.click(screen.getByRole('button', submitAnswers));
 
-    expect(await screen.findByRole('heading', answersRecorded)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', answersSent)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
-      'If you fit what the company is looking for, we’ll pass your answers on to them.',
+      'You fit what Kranich Health GmbH is looking for, so they now have your answers',
     );
     expect(sent).toEqual([{ answers: { notice_period: '1_month', salary: 95000 } }]);
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  it('says the answers won’t be sent on, without naming a question, when the candidate did not pass', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(() => HttpResponse.json({ passed: false }, { status: 201 }));
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+
+    expect(
+      await screen.findByRole('heading', { name: 'You don’t fit this job’s requirements' }),
+    ).toBeInTheDocument();
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('so we won’t send them on');
+    expect(status).not.toHaveTextContent(/salary|notice|sent to/i);
   });
 
   it('sends the pick on a multi-choice question as a list of choices', async () => {
@@ -386,7 +401,7 @@ describe('QuestionnairePage submit', () => {
       ),
       http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
         sent.push(await request.json());
-        return new HttpResponse(null, { status: 201 });
+        return passed();
       }),
     );
     renderAt('/jobs/job-short');
@@ -396,33 +411,33 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
     await user.click(screen.getByRole('button', submitAnswers));
 
-    await screen.findByRole('heading', answersRecorded);
+    await screen.findByRole('heading', answersSent);
     expect(sent).toEqual([{ answers: { focus: ['1_month'] } }]);
   });
 
-  it('never tells the candidate an application was sent, since only answers that pass reach the employer', async () => {
+  it('never calls the answers an application, whether the candidate passed or not', async () => {
     const user = userEvent.setup();
-    openWithPrequalificationResponse(() => new HttpResponse(null, { status: 201 }));
+    openWithPrequalificationResponse(passed);
 
     await user.click(await screen.findByRole('button', submitAnswers));
 
-    expect(await screen.findByRole('status')).not.toHaveTextContent(/application|applied|sent/i);
+    expect(await screen.findByRole('status')).not.toHaveTextContent(/application|applied/i);
   });
 
-  it('says the answers were recorded in German for a German job', async () => {
+  it('says the answers were sent in German for a German job', async () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/jobs/:id/questionnaire', () =>
         HttpResponse.json({ ...prefilledQuestionnaire, language: 'de' }),
       ),
-      http.post('/api/jobs/job-short/prequalification', () => new HttpResponse(null, { status: 201 })),
+      http.post('/api/jobs/job-short/prequalification', passed),
     );
     renderAt('/jobs/job-short');
 
     await user.click(await screen.findByRole('button', { name: 'Antworten absenden' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Deine Antworten wurden gespeichert' }),
+      await screen.findByRole('heading', { name: 'Deine Antworten wurden an Kranich Health GmbH gesendet' }),
     ).toBeInTheDocument();
   });
 
@@ -437,7 +452,7 @@ describe('QuestionnairePage submit', () => {
     expect(button).toHaveAttribute('aria-disabled', 'true');
     await user.click(button);
     expect(sent).toHaveLength(1);
-    expect(screen.queryByRole('heading', answersRecorded)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', answersSent)).not.toBeInTheDocument();
   });
 
   it.each([

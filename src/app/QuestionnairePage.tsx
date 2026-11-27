@@ -70,17 +70,23 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     return [{ question, Component, value }];
   });
 
-  // The same screen whatever the screening found: the response doesn't say, and nor does this. It never
-  // says the answers were sent to the employer: they go on only if the candidate passes.
+  // The candidate learns whether their answers go on to the employer, never which one decided it.
   if (submission.isSuccess) {
+    const { passed } = submission.data;
+    const job = { title: questionnaire.title, company: questionnaire.company };
     return (
       <Notice
         role="status"
-        title={<FormattedMessage id="prequalification.recorded.title" />}
+        title={
+          <FormattedMessage
+            id={passed ? 'prequalification.passed.title' : 'prequalification.notPassed.title'}
+            values={job}
+          />
+        }
         description={
           <FormattedMessage
-            id="prequalification.recorded.body"
-            values={{ title: questionnaire.title, company: questionnaire.company }}
+            id={passed ? 'prequalification.passed.body' : 'prequalification.notPassed.body'}
+            values={job}
           />
         }
       />

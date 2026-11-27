@@ -10,7 +10,7 @@ import {
 import { screenAnswers } from '@/server/screening';
 import { submissionsFromFile, type Submission, type SubmissionStore } from '@/server/submissions';
 import { findInvalidAnswers } from '@/server/validation';
-import type { InvalidAnswersResponse } from '@/shared/prequalification';
+import type { InvalidAnswersResponse, PrequalificationResult } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
 
 export interface AppDeps {
@@ -107,8 +107,8 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     // Until there is one, it's stored and logged.
     logSubmission(submission);
 
-    // The same empty answer whatever the screening result, so the candidate can't tell.
-    return c.body(null, 201);
+    // The candidate learns whether they passed, never which question failed: that would point at a threshold.
+    return c.json({ passed: screening.passed } satisfies PrequalificationResult, 201);
   });
 
   app.onError((error, c) => {
