@@ -4,8 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { build } from 'vite';
 
-// The client never sees how it's screened: no screening result and no rule or its threshold may end up in
-// the code shipped to the browser. Builds the app as for production and searches what it ships.
+// The client learns only whether the candidate passed, never how they were screened: no screening result,
+// rule or threshold may end up in the code shipped to the browser. Builds the app as for production and
+// searches what it ships.
 
 let outDir: string;
 beforeAll(async () => {

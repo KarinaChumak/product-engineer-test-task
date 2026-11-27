@@ -15,9 +15,14 @@ export const en = {
     'We couldn’t save your answers because our server ran into a problem. Your answers are still here, so please try again.',
   'prequalification.error.network':
     'We couldn’t reach the server. Check your internet connection and try again. Your answers are still here.',
-  'prequalification.recorded.title': 'Your answers have been recorded',
-  'prequalification.recorded.body':
-    'Thanks for answering the questions for {title} at {company}. If you fit what the company is looking for, we’ll pass your answers on to them.',
+  'prequalification.error.invalid':
+    'Some of your answers can’t be accepted. Check them and try again. Your answers are still here.',
+  'prequalification.passed.title': 'Your answers have been sent to {company}',
+  'prequalification.passed.body':
+    'Thanks for answering the questions for {title}. You fit what {company} is looking for, so they now have your answers and will get in touch.',
+  'prequalification.notPassed.title': 'You don’t fit this job’s requirements',
+  'prequalification.notPassed.body':
+    'Thanks for answering the questions for {title} at {company}. Your answers don’t meet what the company asks for this job, so we won’t send them on.',
   'jobSwitcher.nav': 'Jobs',
   'jobSwitcher.label': 'Switch job',
   'jobSwitcher.placeholder': 'Choose a job',

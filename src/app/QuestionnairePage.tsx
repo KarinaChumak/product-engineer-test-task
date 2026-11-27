@@ -3,9 +3,10 @@ import { ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { FormattedMessage, IntlProvider } from 'react-intl';
 import { useParams } from 'react-router';
-import { NotFoundError } from '@/app/api';
+import { InvalidAnswersError, NotFoundError } from '@/app/api';
 import { JobSwitcher } from '@/app/JobSwitcher';
 import { getBrowserLanguage, messages } from '@/app/messages';
+import type { MessageKey } from '@/app/messages/en';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
@@ -69,17 +70,23 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     return [{ question, Component, value }];
   });
 
-  // The same screen whatever the screening found: the response doesn't say, and nor does this. It never
-  // says the answers were sent to the employer: they go on only if the candidate passes.
+  // The candidate learns whether their answers go on to the employer, never which one decided it.
   if (submission.isSuccess) {
+    const { passed } = submission.data;
+    const job = { title: questionnaire.title, company: questionnaire.company };
     return (
       <Notice
         role="status"
-        title={<FormattedMessage id="prequalification.recorded.title" />}
+        title={
+          <FormattedMessage
+            id={passed ? 'prequalification.passed.title' : 'prequalification.notPassed.title'}
+            values={job}
+          />
+        }
         description={
           <FormattedMessage
-            id="prequalification.recorded.body"
-            values={{ title: questionnaire.title, company: questionnaire.company }}
+            id={passed ? 'prequalification.passed.body' : 'prequalification.notPassed.body'}
+            values={job}
           />
         }
       />
@@ -118,14 +125,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
         <Stack gap={4}>
           {submission.isError && (
             <Alert>
-              <FormattedMessage
-                // fetch rejects with a TypeError when the server can't be reached at all.
-                id={
-                  submission.error instanceof TypeError
-                    ? 'prequalification.error.network'
-                    : 'prequalification.error.server'
-                }
-              />
+              <FormattedMessage id={getSubmissionErrorMessage(submission.error)} />
             </Alert>
           )}
           <Button type="submit" isLoading={submission.isPending}>
@@ -135,6 +135,13 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
       </Form>
     </>
   );
+}
+
+function getSubmissionErrorMessage(error: Error): MessageKey {
+  if (error instanceof InvalidAnswersError) return 'prequalification.error.invalid';
+  // fetch rejects with a TypeError when the server can't be reached at all.
+  if (error instanceof TypeError) return 'prequalification.error.network';
+  return 'prequalification.error.server';
 }
 
 interface LoadErrorProps {
