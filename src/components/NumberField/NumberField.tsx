@@ -17,14 +17,15 @@ export interface NumberFieldProps {
 // Beyond this many digits a number loses precision in JavaScript.
 const MAX_DIGITS = 15;
 
-/** The locale's group and decimal separators, such as `,` and `.` for `en`. */
-function getSeparators(locale: string) {
-  const parts = new Intl.NumberFormat(locale).formatToParts(1000000.5);
-  return {
-    group: parts.find((part) => part.type === 'group')?.value ?? ',',
-    decimal: parts.find((part) => part.type === 'decimal')?.value ?? '.',
-  };
+/** The locale's digit group separator, such as `,` for `en` and `.` for `de`. */
+function getGroupSeparator(locale: string) {
+  const parts = new Intl.NumberFormat(locale).formatToParts(1000000);
+  return parts.find((part) => part.type === 'group')?.value ?? ',';
 }
+
+// The field holds whole numbers, so it has no decimal separator. The library needs one, and cuts
+// a pasted number at it, so it gets a character nobody types: `95.000` and `95,000` both keep 95000.
+const UNTYPEABLE_DECIMAL_SEPARATOR = '￿';
 
 const hasAllowedLength = ({ value }: NumberFormatValues) => value.length <= MAX_DIGITS;
 
@@ -39,7 +40,6 @@ export function NumberField({
 }: NumberFieldProps) {
   const id = useId();
   const annotationId = `${id}-annotation`;
-  const separators = getSeparators(locale);
 
   function setValueFromInput({ floatValue }: NumberFormatValues, { source }: SourceInfo) {
     // The library also reports changes that came from the `value` prop; only the user's count.
@@ -66,8 +66,8 @@ export function NumberField({
         autoComplete="off"
         value={value ?? ''}
         onValueChange={setValueFromInput}
-        thousandSeparator={separators.group}
-        decimalSeparator={separators.decimal}
+        thousandSeparator={getGroupSeparator(locale)}
+        decimalSeparator={UNTYPEABLE_DECIMAL_SEPARATOR}
         decimalScale={0}
         allowNegative={false}
         isAllowed={hasAllowedLength}
