@@ -97,3 +97,13 @@ The page background is `--color-surface`, the top bar is lilac (`--color-accent-
 ## T-02: A cleared answer is undefined, and it doesn't fall back to the prefill
 
 A question adapter calls `onChange(undefined)` when the candidate empties a field. The page stores that as a changed answer, so a cleared prefilled question stays empty instead of showing the profile value again. Only questions the candidate never touched fall back to `prefill`. Why: otherwise deleting a prefilled salary snaps back to 95,000, and the candidate can't leave an optional answer empty. Rejected: an empty string or `0` as "cleared" (both are real answers for some types).
+
+## Phase 3: Questions are split into three steps
+
+The step flow (Phase 3) splits a job's questions into three steps, in this order:
+
+1. **From your profile:** every question with a `prefill`, whatever its type, for the candidate to confirm.
+2. **Quick answers:** the remaining select, boolean, numeric and date questions.
+3. **In your own words:** the remaining text questions (single-line and multiline) and file uploads.
+
+A question appears in only one step, and within each step questions keep their order from the config. A step with no questions is skipped, and progress counts only the steps that are shown. The review screen comes after step 3. Why: confirming what the profile already knows is the fastest start, and the questions that take the most effort come last, once the candidate has made progress. Rejected: one step per question (too many screens for job-short); grouping by the config's order (it mixes easy and hard questions).
