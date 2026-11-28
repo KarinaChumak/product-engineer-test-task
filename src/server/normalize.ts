@@ -53,6 +53,16 @@ const asString = (value: unknown): string | undefined => (typeof value === 'stri
 const asInteger = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isInteger(value) ? value : undefined;
 
+/** The whole number at `raw[key]`, or undefined when it's absent, with a warning when it's something else. */
+function parseIntegerSetting(raw: Raw, key: string, id: string, warn: Warn): number | undefined {
+  const value = raw[key];
+  if (value === undefined) return undefined;
+  const integer = asInteger(value);
+  if (integer === undefined)
+    warn(`Ignored ${key} on "${id}": ${JSON.stringify(value)} is not a whole number`);
+  return integer;
+}
+
 function normalizeOptions(raw: unknown): SelectOption[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((option) => {
@@ -100,7 +110,7 @@ function cutQuestionText(question: string, id: string, warn: Warn): string {
  * most the option count, with a warning for each repair.
  */
 function parseMaxChoices(raw: Raw, id: string, optionCount: number, warn: Warn): number {
-  const maxChoices = asInteger(raw.max_choices) ?? 1;
+  const maxChoices = parseIntegerSetting(raw, 'max_choices', id, warn) ?? 1;
   if (maxChoices < 1) {
     warn(`Set max_choices on "${id}" to 1: ${maxChoices} allows no choice`);
     return 1;
@@ -119,8 +129,8 @@ const defaultNumericRange = { min: 0, max: 100_000_000 };
  * `max` both fall back to the default, with one warning, since which one is wrong can't be told.
  */
 function parseNumericRange(raw: Raw, id: string, warn: Warn): { min: number; max: number } {
-  const min = asInteger(raw.min) ?? defaultNumericRange.min;
-  const max = asInteger(raw.max) ?? defaultNumericRange.max;
+  const min = parseIntegerSetting(raw, 'min', id, warn) ?? defaultNumericRange.min;
+  const max = parseIntegerSetting(raw, 'max', id, warn) ?? defaultNumericRange.max;
   if (min <= max) return { min, max };
   warn(`Ignored min and max on "${id}": min ${min} is above max ${max}`);
   return defaultNumericRange;
@@ -133,7 +143,8 @@ function normalizeQuestion(raw: Raw, today: string, warn: Warn): ClientQuestion 
     warn(`Dropped a question without an id or question text`);
     return undefined;
   }
-  const base = { id, question: cutQuestionText(question, id, warn), required: raw.required === true };
+  // The text is cut in `parseJob`, once the question is kept, so a dropped one logs no cut.
+  const base = { id, question, required: raw.required === true };
 
   switch (raw.type) {
     case 'select': {
@@ -215,14 +226,15 @@ export function parseJob(raw: unknown, today: string, warn: Warn): Job {
     ...(language && { language }),
     questions: questions.flatMap((question) => {
       if (!isRecord(question)) return [];
-      const client = normalizeQuestion(question, today, warn);
-      if (!client) return [];
+      const normalized = normalizeQuestion(question, today, warn);
+      if (!normalized) return [];
       // The README: on duplicate ids only the first question counts. A dropped question doesn't claim its id.
-      if (seenIds.has(client.id)) {
-        warn(`Dropped a second question "${client.id}": only the first question with an id counts`);
+      if (seenIds.has(normalized.id)) {
+        warn(`Dropped a second question "${normalized.id}": only the first question with an id counts`);
         return [];
       }
-      seenIds.add(client.id);
+      seenIds.add(normalized.id);
+      const client = { ...normalized, question: cutQuestionText(normalized.question, normalized.id, warn) };
       const profileField = parseProfileField(question, client, warn);
       return [{ client, ...(profileField && { profileField }), rules: parseRules(question, client, warn) }];
     }),

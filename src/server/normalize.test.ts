@@ -314,6 +314,18 @@ describe('parseJob select questions', () => {
     expect(warnings).toEqual([expect.stringContaining('max_choices on "stack" to 1')]);
   });
 
+  it.each(['3', 2.5])(
+    'makes a max_choices of %j, not a whole number, a single choice, with a warning',
+    (maxChoices) => {
+      const { job: parsed, warnings } = parseSelect({ max_choices: maxChoices });
+
+      expect(parsed.questions[0]?.client).toMatchObject({ maxChoices: 1 });
+      expect(warnings).toEqual([
+        `Ignored max_choices on "stack": ${JSON.stringify(maxChoices)} is not a whole number`,
+      ]);
+    },
+  );
+
   it.each([
     ['no options', undefined],
     ['an empty option list', []],
@@ -349,6 +361,16 @@ describe('parseJob numeric ranges', () => {
     expect(parsed.questions[0]?.client).toMatchObject({ min: 0, max: 100_000_000 });
     expect(warnings).toHaveLength(1);
   });
+
+  it('drops a min or max that is not a whole number, with a warning each', () => {
+    const { job: parsed, warnings } = parseNumeric({ min: '5', max: 49.5 });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: 0, max: 100_000_000 });
+    expect(warnings).toEqual([
+      'Ignored min on "salary": "5" is not a whole number',
+      'Ignored max on "salary": 49.5 is not a whole number',
+    ]);
+  });
 });
 
 describe('parseJob question text', () => {
@@ -377,6 +399,24 @@ describe('parseJob question text', () => {
     const question = parsed.questions[0]?.client.question ?? '';
     expect([...question]).toHaveLength(255);
     expect(question).toBe(`${'🚀'.repeat(254)}…`);
+  });
+
+  it('does not warn about cutting the text of a question that is dropped', () => {
+    const long = 'a'.repeat(300);
+
+    const { warnings } = parse({
+      ...job,
+      questions: [
+        { type: 'text', id: 'about', question: 'About you?' },
+        { type: 'text', id: 'about', question: long },
+        { type: 'rating', id: 'level', question: long },
+      ],
+    });
+
+    expect(warnings).toEqual([
+      'Dropped a second question "about": only the first question with an id counts',
+      'Dropped question "level": type "rating" is not supported',
+    ]);
   });
 });
 
