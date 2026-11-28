@@ -159,6 +159,49 @@ describe('findAnswerError', () => {
   ])('refuses a file answer that is %s', (_, value) => {
     expect(findAnswerError(file, value)).toBe('wrong_type');
   });
+
+  const pdf = { content_type: 'application/pdf', data: 'JVBERi0xLjcK', file_name: 'cover_letter.pdf' };
+
+  it.each([
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/png',
+    'image/jpeg',
+  ])('accepts a file of type %s', (contentType) => {
+    expect(findAnswerError(file, { ...pdf, content_type: contentType })).toBeUndefined();
+  });
+
+  it.each(['application/msword', 'image/gif', 'text/plain', ''])(
+    'refuses a file of type "%s" with file_type_not_allowed',
+    (contentType) => {
+      expect(findAnswerError(file, { ...pdf, content_type: contentType })).toBe('file_type_not_allowed');
+    },
+  );
+
+  it.each(['', '  '])('refuses a file named "%s" with missing_file_name', (fileName) => {
+    expect(findAnswerError(file, { ...pdf, file_name: fileName })).toBe('missing_file_name');
+  });
+
+  it.each([
+    ['has characters outside base64', 'JVBERi0x!jcK'],
+    ['is not padded to whole groups of four', 'JVBERi0xLjc'],
+    ['has padding in the middle', 'JV==Ri0xLjcK'],
+  ])('refuses data that %s with not_base64', (_, data) => {
+    expect(findAnswerError(file, { ...pdf, data })).toBe('not_base64');
+  });
+
+  it('accepts a file of exactly 5,000,000 bytes, counted after decoding', () => {
+    // 1,666,666 groups of three bytes, then a group carrying the last two.
+    const data = `${'A'.repeat(1_666_666 * 4)}AAA=`;
+
+    expect(findAnswerError(file, { ...pdf, data })).toBeUndefined();
+  });
+
+  it('refuses a file of 5,000,001 bytes with file_too_large', () => {
+    const data = 'A'.repeat(1_666_667 * 4);
+
+    expect(findAnswerError(file, { ...pdf, data })).toBe('file_too_large');
+  });
 });
 
 describe('findInvalidAnswers', () => {

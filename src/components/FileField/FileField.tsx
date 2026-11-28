@@ -16,6 +16,8 @@ export interface FileFieldProps {
   fileSizeLabel?: string;
   /** Called with the file the user picks. */
   onFilePick: (file: File) => void;
+  /** The file types the picker offers, as the input's `accept`: extensions and content types, comma-separated. */
+  accept?: string;
   /** The remove button's accessible name, such as "Remove file". */
   removeLabel: string;
   /** Called when the user removes the picked file. Focus then moves to the choose button. */
@@ -40,6 +42,7 @@ export function FileField({
   fileName,
   fileSizeLabel,
   onFilePick,
+  accept,
   removeLabel,
   onFileRemove,
   required,
@@ -73,6 +76,7 @@ export function FileField({
             data-file-picker=""
             className={styles.picker}
             type="file"
+            accept={accept}
             tabIndex={-1}
             aria-hidden="true"
             onChange={pickFileFromInput}
