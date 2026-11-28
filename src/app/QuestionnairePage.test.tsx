@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { jobListHandler } from '@/test/jobs';
@@ -56,6 +56,26 @@ const prefilledQuestionnaire: JobQuestionnaire = {
     return question;
   }),
 };
+
+/** A job with only job-long's `focus_areas`, which may pick `maxChoices` of its three options. */
+const multiChoiceQuestionnaire = ({ maxChoices = 2, required = false } = {}): JobQuestionnaire => ({
+  ...noQuestions,
+  questions: [
+    {
+      type: 'select',
+      id: 'focus_areas',
+      question: 'Which areas would you like to focus on?',
+      required,
+      maxChoices,
+      options: [
+        { label: 'Frontend architecture', value: 'frontend' },
+        { label: 'Design systems', value: 'design_systems' },
+        { label: 'Performance', value: 'performance' },
+      ],
+    },
+  ],
+});
+const focusAreas = { name: 'Which areas would you like to focus on?' };
 
 // The page also has the job switcher's combobox, so the question's is found by its name.
 const noticePeriod = { name: 'What is your notice period?' };
@@ -393,30 +413,28 @@ describe('QuestionnairePage submit', () => {
     expect(status).not.toHaveTextContent(/salary|notice|sent to/i);
   });
 
-  it('sends the pick on a multi-choice question as a list of choices', async () => {
+  it('sends the picks on a multi-choice question as a list, in the order of the options', async () => {
     const user = userEvent.setup();
-    const sent: unknown[] = [];
-    server.use(
-      http.get('/api/jobs/:id/questionnaire', () =>
-        HttpResponse.json({
-          ...noQuestions,
-          questions: [{ ...questionnaire.questions[0], id: 'focus', maxChoices: 2 }],
-        }),
-      ),
-      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
-        sent.push(await request.json());
-        return passed();
-      }),
-    );
-    renderAt('/jobs/job-short');
+    const sent = openWithPrequalificationResponse(passed, multiChoiceQuestionnaire());
 
-    await user.click(await screen.findByRole('combobox', noticePeriod));
-    await user.click(screen.getByRole('option', { name: '1 month' }));
-    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
+    await user.click(await screen.findByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Frontend architecture' }));
     await user.click(screen.getByRole('button', submitAnswers));
-
     await screen.findByRole('heading', answersSent);
-    expect(sent).toEqual([{ answers: { focus: ['1_month'] } }]);
+
+    expect(sent).toEqual([{ answers: { focus_areas: ['frontend', 'performance'] } }]);
+  });
+
+  it('leaves an optional multi-choice question out of the answers once everything is unpicked', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(passed, multiChoiceQuestionnaire());
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([{ answers: {} }]);
   });
 
   it('never calls the answers an application, whether the candidate passed or not', async () => {
@@ -574,6 +592,27 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('keeps the server’s error on a field the candidate leaves, until they change that answer', async () => {
+    const user = userEvent.setup();
+    openWithPrequalificationResponse(() =>
+      HttpResponse.json(
+        { error: 'invalid_answers', message: 'Invalid', fields: { salary: 'out_of_range' } },
+        { status: 422 },
+      ),
+    );
+
+    await user.click(await screen.findByRole('button', submitAnswers));
+    const salary = screen.getByRole('textbox', salaryQuestion);
+    await waitFor(() => expect(salary).toHaveFocus());
+    // The client's check accepts 95,000, so only the server's error is on the field.
+    await user.tab();
+    expect(salary).toHaveAccessibleDescription('From your profile Enter a number from 20,000 to 300,000.');
+
+    await user.clear(salary);
+    await user.type(salary, '96000');
+    expect(salary).not.toHaveAttribute('aria-invalid');
+  });
+
   it('shows the field errors in German for a German job', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(passed, { ...questionnaire, language: 'de' });
@@ -583,6 +622,257 @@ describe('QuestionnairePage submit', () => {
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
       'Beantworte diese Frage, um fortzufahren.',
     );
+  });
+});
+
+describe('QuestionnairePage errors on leaving a field', () => {
+  const proudProject = { name: /proud of/ };
+  const required = 'Answer this question to continue.';
+  const outOfRange = 'Enter a number from 20,000 to 300,000.';
+
+  /** Opens job-short with no prefills, collecting any prequalification POST, which none of these should send. */
+  const openUnanswered = () => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+
+  it('shows a field’s error when the candidate moves to another question, without submitting', async () => {
+    const user = userEvent.setup();
+    const sent = openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.type(salary, '5');
+    await user.click(screen.getByRole('textbox', proudProject));
+
+    expect(salary).toHaveAttribute('aria-invalid', 'true');
+    expect(salary).toHaveAccessibleDescription(outOfRange);
+    expect(sent).toEqual([]);
+  });
+
+  it('shows a field’s error when focus leaves the form', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.click(salary);
+    await user.click(document.body);
+
+    expect(salary).toHaveAccessibleDescription(required);
+  });
+
+  it('updates a shown error as the candidate types, and drops it once the answer is valid', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    await user.type(salary, '5');
+    await user.tab();
+    expect(salary).toHaveAccessibleDescription(outOfRange);
+
+    await user.clear(salary);
+    expect(salary).toHaveAccessibleDescription(required);
+
+    await user.type(salary, '95000');
+    expect(salary).not.toHaveAttribute('aria-invalid');
+    expect(salary).not.toHaveAccessibleDescription();
+  });
+
+  it('shows no error on questions the candidate hasn’t left until they submit, then shows every one and focuses the first', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    await user.click(await screen.findByRole('textbox', salaryQuestion));
+    await user.tab();
+    const select = screen.getByRole('combobox', noticePeriod);
+    expect(select).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByRole('textbox', salaryQuestion)).toHaveAttribute('aria-invalid', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    expect(select).toHaveAccessibleDescription(required);
+    expect(select).toHaveFocus();
+  });
+
+  it('shows no error under a select while its list is open or after picking, only once the candidate leaves it', async () => {
+    const user = userEvent.setup();
+    openUnanswered();
+
+    const select = await screen.findByRole('combobox', noticePeriod);
+    await user.click(select);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(select).not.toHaveAttribute('aria-invalid');
+    await user.keyboard('{Escape}');
+    expect(select).toHaveFocus();
+    expect(select).not.toHaveAttribute('aria-invalid');
+
+    await user.tab();
+    expect(select).toHaveAccessibleDescription(required);
+
+    await user.click(select);
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    expect(select).not.toHaveAttribute('aria-invalid');
+  });
+});
+
+describe('QuestionnairePage yes/no questions', () => {
+  const yesNoQuestionnaire: JobQuestionnaire = {
+    ...noQuestions,
+    questions: [
+      {
+        type: 'boolean',
+        id: 'eu_work_permit',
+        question: 'Are you allowed to work in the EU?',
+        required: true,
+      },
+      { type: 'boolean', id: 'relocate', question: 'Are you willing to relocate?', required: false },
+    ],
+  };
+  const permit = { name: 'Are you allowed to work in the EU?' };
+  const relocate = { name: 'Are you willing to relocate?' };
+
+  const openYesNo = (opened: JobQuestionnaire = yesNoQuestionnaire) => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(opened)),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+
+  // Picking by keyboard is RadioGroup's own test.
+  it('shows Yes and No with neither picked', async () => {
+    openYesNo();
+
+    const group = await screen.findByRole('radiogroup', permit);
+    for (const name of ['Yes', 'No']) expect(within(group).getByRole('radio', { name })).not.toBeChecked();
+  });
+
+  it('says Ja and Nein for a German job', async () => {
+    openYesNo({ ...yesNoQuestionnaire, language: 'de' });
+
+    const group = await screen.findByRole('radiogroup', permit);
+    expect(within(group).getByRole('radio', { name: 'Ja' })).toBeInTheDocument();
+    expect(within(group).getByRole('radio', { name: 'Nein' })).toBeInTheDocument();
+  });
+
+  it('sends the answers as JSON true and false', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(
+      within(await screen.findByRole('radiogroup', permit)).getByRole('radio', { name: 'No' }),
+    );
+    await user.click(within(screen.getByRole('radiogroup', relocate)).getByRole('radio', { name: 'Yes' }));
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { eu_work_permit: false, relocate: true } }]);
+  });
+
+  it('leaves an optional yes/no question out of the answers once its pick is clicked again', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(
+      within(await screen.findByRole('radiogroup', permit)).getByRole('radio', { name: 'Yes' }),
+    );
+    const relocateNo = within(screen.getByRole('radiogroup', relocate)).getByRole('radio', { name: 'No' });
+    await user.click(relocateNo);
+    await user.click(relocateNo);
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { eu_work_permit: true } }]);
+  });
+
+  it('marks a required yes/no question left unanswered and moves focus to it, without sending', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+
+    const group = screen.getByRole('radiogroup', permit);
+    expect(group).toHaveAttribute('aria-invalid', 'true');
+    expect(group).toHaveAccessibleDescription('Answer this question to continue.');
+    expect(within(group).getByRole('radio', { name: 'Yes' })).toHaveFocus();
+    expect(screen.getByRole('radiogroup', relocate)).not.toHaveAttribute('aria-invalid');
+    expect(sent).toEqual([]);
+  });
+});
+
+describe('QuestionnairePage multi-choice question', () => {
+  const openMultiChoice = (opened: JobQuestionnaire) => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(opened)));
+    renderAt('/jobs/job-short');
+  };
+
+  it('shows the options as checkboxes grouped under the question, saying how many can be picked', async () => {
+    openMultiChoice(multiChoiceQuestionnaire());
+
+    const group = await screen.findByRole('group', focusAreas);
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
+    expect(screen.getAllByRole('checkbox')).toEqual([
+      screen.getByRole('checkbox', { name: 'Frontend architecture' }),
+      screen.getByRole('checkbox', { name: 'Design systems' }),
+      screen.getByRole('checkbox', { name: 'Performance' }),
+    ]);
+  });
+
+  it('disables the other options once the most allowed are picked, until one is unpicked', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire());
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Frontend architecture' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeDisabled();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeEnabled();
+  });
+
+  it('lets every option be picked and shows no limit when the limit is at least the number of options', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire({ maxChoices: 5 }));
+
+    for (const checkbox of await screen.findAllByRole('checkbox')) await user.click(checkbox);
+
+    for (const checkbox of screen.getAllByRole('checkbox')) expect(checkbox).toBeChecked();
+    expect(screen.getByRole('group', focusAreas)).not.toHaveAccessibleDescription();
+  });
+
+  it('shows the required error once the candidate leaves the group without a pick, and drops it on a pick', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire({ required: true }));
+
+    const group = await screen.findByRole('group', { name: `${focusAreas.name} required` });
+    await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
+    await user.tab();
+    await user.tab();
+    expect(group).toHaveAccessibleDescription('Pick up to 2 Answer this question to continue.');
+
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
+  });
+
+  it('says how many can be picked, and that a group is required, in German for a German job', async () => {
+    openMultiChoice({ ...multiChoiceQuestionnaire({ required: true }), language: 'de' });
+
+    const group = await screen.findByRole('group', { name: `${focusAreas.name} Pflichtfeld` });
+    expect(group).toHaveAccessibleDescription('Wähle bis zu 2 aus');
   });
 });
 

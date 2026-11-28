@@ -1,6 +1,6 @@
 import * as RadixSelect from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { FieldError, joinDescriptionIds } from '@/components/FieldError';
 import styles from './Select.module.css';
 
@@ -22,6 +22,8 @@ export interface SelectProps {
   error?: ReactNode;
   /** Keep the label for screen readers only, for a compact select whose options say what it's for. */
   labelHidden?: boolean;
+  /** Called when focus leaves the select. Opening its list and picking an option doesn't count. */
+  onBlur?: () => void;
 }
 
 export function Select({
@@ -34,8 +36,12 @@ export function Select({
   annotation,
   error,
   labelHidden = false,
+  onBlur,
 }: SelectProps) {
   const id = useId();
+  // Opening the list moves focus from the trigger into it, which isn't leaving the select. A ref, not
+  // state, because the trigger blurs before React renders the open list.
+  const isListOpenRef = useRef(false);
   const labelId = `${id}-label`;
   const annotationId = `${id}-annotation`;
   const errorId = `${id}-error`;
@@ -53,9 +59,19 @@ export function Select({
         </span>
         {annotation && <span id={annotationId}>{annotation}</span>}
       </div>
-      <RadixSelect.Root value={value ?? ''} onValueChange={onValueChange} required={required}>
+      <RadixSelect.Root
+        value={value ?? ''}
+        onValueChange={onValueChange}
+        onOpenChange={(isOpen) => {
+          isListOpenRef.current = isOpen;
+        }}
+        required={required}
+      >
         <RadixSelect.Trigger
           className={styles.trigger}
+          onBlur={() => {
+            if (!isListOpenRef.current) onBlur?.();
+          }}
           aria-labelledby={labelId}
           aria-describedby={joinDescriptionIds(!!annotation && annotationId, !!error && errorId)}
           aria-invalid={error ? true : undefined}

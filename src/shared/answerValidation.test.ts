@@ -12,6 +12,7 @@ const single: ClientQuestion = { ...base, id: 'notice', type: 'select', options,
 const multi: ClientQuestion = { ...base, id: 'stack', type: 'select', options, maxChoices: 2 };
 const numeric: ClientQuestion = { ...base, id: 'salary', type: 'numeric', min: 20000, max: 300000 };
 const text: ClientQuestion = { ...base, id: 'note', type: 'text', multiline: true };
+const yesNo: ClientQuestion = { ...base, id: 'permit', type: 'boolean' };
 
 const questionsOf = (...questions: ClientQuestion[]) => questions;
 
@@ -89,6 +90,18 @@ describe('findAnswerError', () => {
   ])('refuses a text answer that is %s', (_, value, error) => {
     expect(findAnswerError(text, value)).toBe(error);
   });
+
+  it.each([true, false])('accepts the yes/no answer %s', (value) => {
+    expect(findAnswerError(yesNo, value)).toBeUndefined();
+  });
+
+  it.each<[string, AnswerValue]>([
+    ['the string "true"', 'true'],
+    ['the number 1', 1],
+    ['a list', ['true']],
+  ])('refuses a yes/no answer that is %s', (_, value) => {
+    expect(findAnswerError(yesNo, value)).toBe('wrong_type');
+  });
 });
 
 describe('findInvalidAnswers', () => {
@@ -130,6 +143,13 @@ describe('findInvalidAnswers', () => {
     expect(findInvalidAnswers(questionsOf(numeric), { answers: { salary: 1 } })).toEqual({
       salary: 'out_of_range',
     });
+  });
+
+  it('takes false for an answer to a required yes/no question, and refuses no answer', () => {
+    const questions = questionsOf({ ...yesNo, required: true });
+
+    expect(findInvalidAnswers(questions, { answers: { permit: false } })).toEqual({});
+    expect(findInvalidAnswers(questions, { answers: {} })).toEqual({ permit: 'required' });
   });
 
   it('takes 0 for an answer to a required question, not for an empty one', () => {

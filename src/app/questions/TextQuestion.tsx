@@ -7,6 +7,7 @@ export function TextQuestion({
   question,
   value,
   onChange,
+  onBlur,
   fromProfile,
   error,
 }: QuestionProps<TextQuestionData>) {
@@ -19,6 +20,7 @@ export function TextQuestion({
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}
+      onBlur={onBlur}
     />
   );
 }

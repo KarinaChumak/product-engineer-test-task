@@ -106,6 +106,76 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     expect(job.questions.find((q) => q.id === 'salary_expectation')).not.toHaveProperty('prefill');
   });
 
+  it('returns job-long with german_level prefilled from the profile languages and years_of_experience from the profile', async () => {
+    const response = await createApp(silent).request('/api/jobs/job-long/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'german_level')).toMatchObject({
+      type: 'select',
+      prefill: 'B1',
+    });
+    expect(job.questions.find((q) => q.id === 'years_of_experience')).toMatchObject({
+      type: 'numeric',
+      prefill: 6,
+    });
+  });
+
+  const levels = [
+    { label: 'B1', value: 'B1' },
+    { label: 'C1', value: 'C1' },
+  ];
+  const jobWithEveryProfileField = storeOf({
+    id: 'job-profile',
+    questions: [
+      { type: 'select', id: 'german', question: 'German?', profile_field: 'german_level', options: levels },
+      {
+        type: 'select',
+        id: 'english',
+        question: 'English?',
+        profile_field: 'english_level',
+        options: levels,
+      },
+      { type: 'text', id: 'city', question: 'City?', profile_field: 'city' },
+      {
+        type: 'numeric',
+        id: 'years',
+        question: 'Years?',
+        min: 0,
+        max: 50,
+        profile_field: 'years_of_experience',
+      },
+    ],
+  });
+  const prefillsOf = async (loadProfile: AppDeps['loadProfile']) => {
+    const app = createApp({ ...silent, jobs: jobWithEveryProfileField, loadProfile });
+    const response = await app.request('/api/jobs/job-profile/questionnaire');
+    const job = (await response.json()) as JobQuestionnaire;
+    return Object.fromEntries(job.questions.map((q) => [q.id, q.prefill]));
+  };
+
+  it('prefills english_level and city from the profile, as the README maps them', async () => {
+    expect(
+      await prefillsOf(async () => ({
+        languages: [{ language: 'en', level: 'C1' }],
+        location: { city: 'Berlin' },
+      })),
+    ).toMatchObject({ english: 'C1', city: 'Berlin' });
+  });
+
+  it.each([
+    ['a language level that is not an option', { languages: [{ language: 'de', level: 'native' }] }],
+    ['years of experience out of range', { years_of_experience: 60 }],
+    ['languages that are not a list', { languages: 'de' as never }],
+    ['a profile without those fields', {}],
+  ])('does not prefill %s', async (_, profile) => {
+    expect(await prefillsOf(async () => profile)).toEqual({
+      german: undefined,
+      english: undefined,
+      city: undefined,
+      years: undefined,
+    });
+  });
+
   it('removes every screening rule from the job', async () => {
     const jobs = storeOf({
       id: 'job-rules',
@@ -300,19 +370,23 @@ describe('POST /api/jobs/:id/prequalification', () => {
       const path = join(directory, 'submissions.json');
       const app = createApp({ ...silent, submissions: submissionsFromFile(path) });
 
-      const responses = await Promise.all([
-        submitAnswers(app, 'job-short', validShortAnswers),
-        submitAnswers(app, 'job-short', {
-          answers: { notice_period: 'immediately', salary_expectation: 60000 },
-        }),
-      ]);
+      const salaries = [validShortAnswers.answers.salary_expectation, 60000];
+      const statuses = (
+        await Promise.all([
+          submitAnswers(app, 'job-short', validShortAnswers),
+          submitAnswers(app, 'job-short', {
+            answers: { notice_period: 'immediately', salary_expectation: salaries[1] },
+          }),
+        ])
+      ).map((response) => response.status);
 
-      expect(responses.map((response) => response.status)).toEqual([201, 409]);
+      // Either request can reach the store first; exactly one wins, and its answers are the ones kept.
+      expect([...statuses].sort()).toEqual([201, 409]);
       const stored = JSON.parse(await readFile(path, 'utf8')) as Record<string, Submission>;
       expect(Object.keys(stored)).toEqual(['talent-4711:job-short']);
       expect(stored['talent-4711:job-short']?.payload.answers).toContainEqual({
         id: 'salary_expectation',
-        value: 95000,
+        value: salaries[statuses.indexOf(201)],
       });
     } finally {
       await rm(directory, { recursive: true, force: true });
@@ -380,6 +454,29 @@ describe('POST /api/jobs/:id/prequalification', () => {
     await submitAnswers(app, 'job-salary', { answers: { salary: 85000, made_up: 'x' } });
 
     expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
+  });
+
+  it('stores a yes/no answer as a JSON boolean, and screens false against must_be_true', async () => {
+    const jobs = storeOf({
+      id: 'job-permit',
+      questions: [
+        { type: 'boolean', id: 'permit', question: 'EU permit?', required: true, must_be_true: true },
+        { type: 'boolean', id: 'relocate', question: 'Relocate?' },
+      ],
+    });
+    const { app, saved } = appStoringIn({ jobs });
+
+    const response = await submitAnswers(app, 'job-permit', { answers: { permit: false, relocate: true } });
+
+    expect([response.status, await response.json()]).toEqual([201, { passed: false }]);
+    expect(saved[0]?.payload).toEqual({
+      job_id: 'job-permit',
+      answers: [
+        { id: 'permit', value: false },
+        { id: 'relocate', value: true },
+      ],
+      screening: { passed: false, failed: ['permit'] },
+    });
   });
 
   it('stores a multi-choice answer as values', async () => {

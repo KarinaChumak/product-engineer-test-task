@@ -106,6 +106,21 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_at_least on "city"')]);
   });
 
+  it('keeps a yes/no question', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'EU permit?', required: true }],
+    });
+
+    expect(parsed.questions[0]?.client).toEqual({
+      type: 'boolean',
+      id: 'permit',
+      question: 'EU permit?',
+      required: true,
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('ignores must_be_true on a question that is not boolean, with a warning', () => {
     const { job: parsed, warnings } = parse({
       ...job,
@@ -116,11 +131,54 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_true on "country"')]);
   });
 
+  it('keeps must_be_true on a yes/no question as a rule', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'Permit?', must_be_true: true }],
+    });
+
+    expect(parsed.questions[0]?.rules).toEqual({ mustBeTrue: true });
+    expect(warnings).toEqual([]);
+  });
+
+  it('ignores a must_be_true that is not true, with a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'Permit?', must_be_true: 'yes' }],
+    });
+
+    expect(parsed.questions[0]?.rules).toEqual({});
+    expect(warnings).toEqual(['Ignored must_be_true on "permit": it isn\'t true']);
+  });
+
   it('ignores a rule whose threshold is not a number, with a warning', () => {
     const { job: parsed, warnings } = parse({ ...job, questions: [{ ...salary, must_be_below: '90000' }] });
 
     expect(parsed.questions[0]?.rules).toEqual({});
     expect(warnings).toEqual([expect.stringContaining('must_be_below on "salary"')]);
+  });
+});
+
+describe('parseJob profile fields', () => {
+  it('keeps a profile field the README lists, without a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ ...salary, profile_field: 'years_of_experience' }],
+    });
+
+    expect(parsed.questions[0]).toMatchObject({ profileField: 'years_of_experience' });
+    expect(warnings).toEqual([]);
+  });
+
+  it('drops an unknown profile field with one warning, so the question is never prefilled', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ ...salary, profile_field: 'shoe_size' }],
+    });
+
+    expect(parsed.questions[0]).not.toHaveProperty('profileField');
+    expect(warnings).toEqual([expect.stringContaining('"shoe_size"')]);
+    expect(toJobQuestionnaire(parsed, { years_of_experience: 6 }).questions[0]).not.toHaveProperty('prefill');
   });
 });
 

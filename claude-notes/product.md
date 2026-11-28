@@ -38,6 +38,6 @@ When candidates apply on Instaffo, companies add their own screening questions. 
 ## Open questions
 
 - `react_years` has `min: 5`. Is an input below `min` a screen-out (a documented deviation) or rejected as invalid input? Sending `min` to the client also reveals the floor. Settle before the numeric-rules ticket in Phase 2.
-- A missing answer on a question with a rule fails the rule (README). Follow that and show such questions as required, or deviate? Settle before Phase 2 screening.
+- Settled in T-08b (see decisions): a missing answer on a question with a rule fails the rule, as the README says.
 - Which salary "Aus deinem Profil" pill variant (A, B or E) to use: a design-canvas review in Phase 4.
 - A required salutation (`bad.json`) is a GDPR question. Raise it in the presentation; keep it as configured for now.
