@@ -8,6 +8,7 @@ export function SelectQuestion({
   question,
   value,
   onChange,
+  onBlur,
   fromProfile,
   error,
 }: QuestionProps<SelectQuestionData>) {
@@ -25,6 +26,7 @@ export function SelectQuestion({
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}
+      onBlur={onBlur}
     />
   );
 }

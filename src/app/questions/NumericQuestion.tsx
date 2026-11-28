@@ -8,6 +8,7 @@ export function NumericQuestion({
   question,
   value,
   onChange,
+  onBlur,
   fromProfile,
   error,
 }: QuestionProps<NumericQuestionData>) {
@@ -21,6 +22,7 @@ export function NumericQuestion({
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}
+      onBlur={onBlur}
     />
   );
 }
