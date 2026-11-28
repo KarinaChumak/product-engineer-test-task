@@ -1,28 +1,13 @@
 import { useRef, useState } from 'react';
-import { useIntl, type IntlShape } from 'react-intl';
+import { useIntl } from 'react-intl';
 import { FromProfileTag } from '@/app/questions/FromProfileTag';
 import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
+import { formatFileSize } from '@/app/questions/formatFileSize';
 import { acceptedFileTypes, findPickedFileError, readFileAnswer } from '@/app/questions/readFileAnswer';
 import type { QuestionProps } from '@/app/questions/types';
 import { FileField } from '@/components/FileField';
 import type { AnswerError } from '@/shared/prequalification';
 import type { FileQuestion as FileQuestionData } from '@/shared/questionnaire';
-
-const kilobytesPerMegabyte = 1000;
-const bytesPerKilobyte = 1000;
-const bytesPerMegabyte = bytesPerKilobyte * kilobytesPerMegabyte;
-
-function formatFileSize(intl: IntlShape, bytes: number) {
-  // Compared after rounding to one decimal, so 999,999 bytes is "1 MB", not "1,000 kB".
-  const roundedKilobytes = Math.round((bytes / bytesPerKilobyte) * 10) / 10;
-  const [value, unit] =
-    bytes >= bytesPerMegabyte || roundedKilobytes >= kilobytesPerMegabyte
-      ? [bytes / bytesPerMegabyte, 'megabyte']
-      : bytes >= bytesPerKilobyte
-        ? [bytes / bytesPerKilobyte, 'kilobyte']
-        : [bytes, 'byte'];
-  return intl.formatNumber(value, { style: 'unit', unit, maximumFractionDigits: 1 });
-}
 
 /** Shows the file the candidate picks, and answers with it once it is read. */
 export function FileQuestion({

@@ -1,10 +1,8 @@
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { MessageKey } from '@/app/messages/en';
+import { formatFileSize } from '@/app/questions/formatFileSize';
 import { maxFileBytes, maxTextAnswerLength, type AnswerError } from '@/shared/prequalification';
 import type { ClientQuestion } from '@/shared/questionnaire';
-
-// Decimal, as the file field shows sizes, so the limit reads "5 MB".
-const bytesPerMegabyte = 1_000_000;
 
 interface AnswerErrorMessageProps {
   question: ClientQuestion;
@@ -38,7 +36,8 @@ export function AnswerErrorMessage({ question, error }: AnswerErrorMessageProps)
         max: question.type === 'numeric' ? intl.formatNumber(question.max) : undefined,
         maxChoices: question.type === 'select' ? question.maxChoices : undefined,
         maxLength: intl.formatNumber(maxTextAnswerLength),
-        maxFileSize: intl.formatNumber(maxFileBytes / bytesPerMegabyte, { style: 'unit', unit: 'megabyte' }),
+        // In the units the field shows the picked file's size in, so the limit reads "5 MB".
+        maxFileSize: formatFileSize(intl, maxFileBytes),
       }}
     />
   );
