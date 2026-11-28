@@ -84,6 +84,7 @@ export function FileField({
           <Button
             {...controlProps}
             ref={chooseButtonRef}
+            className={styles.choose}
             variant="secondary"
             aria-required={isRequired || undefined}
             onClick={() => pickerRef.current?.click()}
