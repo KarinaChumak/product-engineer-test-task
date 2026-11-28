@@ -16,6 +16,11 @@ const text = (id: string): JobQuestion => ({
   rules: {},
 });
 
+const yesNo = (id: string, rules: ScreeningRules = {}, required = true): JobQuestion => ({
+  client: { type: 'boolean', id, question: `${id}?`, required },
+  rules,
+});
+
 const jobOf = (...questions: JobQuestion[]): Job => ({ id: 'job-x', title: 'X', company: 'Acme', questions });
 
 const screen = (job: Job, answers: Record<string, AnswerValue>) =>
@@ -115,6 +120,36 @@ describe('screenAnswers', () => {
     });
   });
 
+  describe('must_be_true', () => {
+    const permit = jobOf(yesNo('permit', { mustBeTrue: true }));
+
+    it('passes true', () => {
+      expect(screen(permit, { permit: true })).toEqual({ passed: true, failed: [] });
+    });
+
+    it('fails false', () => {
+      expect(screen(permit, { permit: false })).toEqual({ passed: false, failed: ['permit'] });
+    });
+
+    it('fails no answer to an optional question with the rule', () => {
+      const optional = jobOf(yesNo('permit', { mustBeTrue: true }, false));
+
+      expect(screen(optional, {})).toEqual({ passed: false, failed: ['permit'] });
+    });
+
+    it.each<[string, AnswerValue]>([
+      ['the string "true"', 'true'],
+      ['the number 1', 1],
+    ])('fails %s instead of reading it as true', (_, answer) => {
+      expect(screen(permit, { permit: answer }).passed).toBe(false);
+    });
+
+    it('passes a yes/no question without the rule, whatever the answer', () => {
+      expect(screen(jobOf(yesNo('relocate', {}, false)), { relocate: false }).passed).toBe(true);
+      expect(screen(jobOf(yesNo('relocate', {}, false)), {}).passed).toBe(true);
+    });
+  });
+
   describe('answers a rule cannot read', () => {
     const salary = jobOf(numeric('salary', { mustBeBelow: 90000 }));
 
@@ -165,40 +200,42 @@ describe('screenAnswers', () => {
   });
 
   describe('the real job configs', () => {
-    it('screens job-long on salary and years of experience', () => {
+    it('screens job-long on salary, the EU work permit and years of experience', () => {
       const job = parseJobFile('long.json');
 
-      expect(screen(job, { salary_expectation: 85000, years_of_experience: 5 })).toEqual({
-        passed: true,
-        failed: [],
-      });
-      expect(screen(job, { salary_expectation: 90000, years_of_experience: 4 })).toEqual({
+      expect(
+        screen(job, { salary_expectation: 85000, eu_work_permit: true, years_of_experience: 5 }),
+      ).toEqual({ passed: true, failed: [] });
+      expect(
+        screen(job, { salary_expectation: 90000, eu_work_permit: false, years_of_experience: 4 }),
+      ).toEqual({
         passed: false,
-        failed: ['salary_expectation', 'years_of_experience'],
+        failed: ['salary_expectation', 'eu_work_permit', 'years_of_experience'],
       });
     });
 
-    it('fails job-long on missing ruled answers but not on missing unruled ones', () => {
+    it('fails job-long on missing ruled answers but not on missing unruled ones, such as willing_to_relocate', () => {
       expect(screen(parseJobFile('long.json'), {})).toEqual({
         passed: false,
-        failed: ['salary_expectation', 'years_of_experience'],
+        failed: ['salary_expectation', 'eu_work_permit', 'years_of_experience'],
       });
     });
 
     it('screens job-bad only by its rules that apply: must_be_true on a text question is ignored', () => {
       const job = parseJobFile('bad.json');
 
-      expect(screen(job, { salary_expectation: 64999 })).toEqual({ passed: true, failed: [] });
-      expect(screen(job, { salary_expectation: 65000 })).toEqual({
+      expect(screen(job, { onsite: true, driving_license: true, salary_expectation: 64999 })).toEqual({
+        passed: true,
+        failed: [],
+      });
+      expect(screen(job, { onsite: true, driving_license: false, salary_expectation: 65000 })).toEqual({
         passed: false,
-        failed: ['salary_expectation'],
+        failed: ['salary_expectation', 'driving_license'],
       });
     });
 
     it('has no rule on job-short, so any answers pass', () => {
       expect(screen(parseJobFile('short.json'), {})).toEqual({ passed: true, failed: [] });
     });
-
-    it.todo('fails job-long when eu_work_permit is false or missing (boolean questions come in Phase 2)');
   });
 });

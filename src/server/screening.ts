@@ -12,7 +12,8 @@ export interface Screening {
 
 /** Whether `answer` passes every rule on its question. A missing answer fails any rule. */
 function passesRules(rules: ScreeningRules, answer: AnswerValue | undefined): boolean {
-  const { mustBeAtLeast, mustBeBelow } = rules;
+  const { mustBeAtLeast, mustBeBelow, mustBeTrue } = rules;
+  if (mustBeTrue && answer !== true) return false;
   if (mustBeAtLeast === undefined && mustBeBelow === undefined) return true;
   if (typeof answer !== 'number') return false;
   return (
