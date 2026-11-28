@@ -46,6 +46,30 @@ describe('RadioGroup', () => {
     await user.keyboard('{/ArrowDown}');
   });
 
+  it('unpicks the picked option when it is clicked again, or Space is pressed on it, in an optional group', async () => {
+    const user = userEvent.setup();
+    render(<ControlledRadioGroup />);
+    const yes = screen.getByRole('radio', { name: 'Yes' });
+
+    await user.click(yes);
+    await user.click(yes);
+    expect(yes).not.toBeChecked();
+
+    await user.click(yes);
+    await user.keyboard(' ');
+    expect(yes).not.toBeChecked();
+  });
+
+  it('keeps the pick when the picked option is clicked again in a required group', async () => {
+    const user = userEvent.setup();
+    render(<ControlledRadioGroup required />);
+    const yes = screen.getByRole('radio', { name: 'Yes' });
+
+    await user.click(yes);
+    await user.click(yes);
+    expect(yes).toBeChecked();
+  });
+
   it('marks the group required and invalid, described by its annotation and error', () => {
     render(<ControlledRadioGroup required annotation="From your profile" error="Answer this question." />);
 

@@ -781,6 +781,22 @@ describe('QuestionnairePage yes/no questions', () => {
     expect(sent).toEqual([{ answers: { eu_work_permit: false, relocate: true } }]);
   });
 
+  it('leaves an optional yes/no question out of the answers once its pick is clicked again', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(
+      within(await screen.findByRole('radiogroup', permit)).getByRole('radio', { name: 'Yes' }),
+    );
+    const relocateNo = within(screen.getByRole('radiogroup', relocate)).getByRole('radio', { name: 'No' });
+    await user.click(relocateNo);
+    await user.click(relocateNo);
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { eu_work_permit: true } }]);
+  });
+
   it('marks a required yes/no question left unanswered and moves focus to it, without sending', async () => {
     const user = userEvent.setup();
     const sent = openYesNo();

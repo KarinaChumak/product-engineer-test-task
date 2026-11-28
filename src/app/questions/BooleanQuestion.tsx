@@ -22,7 +22,7 @@ export function BooleanQuestion({
         { label: intl.formatMessage({ id: 'question.no' }), value: 'false' },
       ]}
       value={typeof value === 'boolean' ? String(value) : undefined}
-      onValueChange={(next) => onChange(next === 'true')}
+      onValueChange={(next) => onChange(next === undefined ? undefined : next === 'true')}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}

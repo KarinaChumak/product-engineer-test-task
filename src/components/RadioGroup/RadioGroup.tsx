@@ -13,7 +13,8 @@ export interface RadioGroupProps {
   options: RadioOption[];
   /** The picked option's value, or undefined while none is picked. */
   value: string | undefined;
-  onValueChange: (value: string) => void;
+  /** Called with the picked value, or undefined when an optional group's pick is clicked again to clear it. */
+  onValueChange: (value: string | undefined) => void;
   required?: boolean;
   /** Shown next to the label and read as the group's description, such as a tag. */
   annotation?: ReactNode;
@@ -68,7 +69,14 @@ export function RadioGroup({
           const itemId = `${id}-${option.value}`;
           return (
             <label key={option.value} htmlFor={itemId} className={styles.option}>
-              <RadixRadioGroup.Item id={itemId} value={option.value} className={styles.radio}>
+              <RadixRadioGroup.Item
+                id={itemId}
+                value={option.value}
+                className={styles.radio}
+                onClick={() => {
+                  if (!required && option.value === value) onValueChange(undefined);
+                }}
+              >
                 <RadixRadioGroup.Indicator className={styles.dot} />
               </RadixRadioGroup.Item>
               {option.label}
