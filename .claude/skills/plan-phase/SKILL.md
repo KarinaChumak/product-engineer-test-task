@@ -10,8 +10,9 @@ Break down one phase only: the current one if it has no tickets yet, otherwise t
 ## 1. Read
 
 - `claude-notes/plan.md` (start from [plan-template.md](plan-template.md) if it doesn't exist), `claude-notes/product.md` and `claude-notes/decisions.md`.
-- What the finished tickets of the previous phase changed: their outcomes in `plan.md` and the merged code.
+- What the finished tickets of the previous phase changed: their outcomes in `plan.md` (or `plan-archive.md`, if that phase was already moved there) and the merged code.
 - If what you learned changes a later phase's goal, propose the new goal to the user before planning.
+- Then move each phase whose tickets are all merged, apart from the current one, from `plan.md` to the end of `claude-notes/plan-archive.md`, with every status set to `done (merged)`. Keep the `## Phases` list in `plan.md` whole. `plan.md` holds only open work, so the sessions that read it stay small.
 
 ## 2. Slice by behavior
 

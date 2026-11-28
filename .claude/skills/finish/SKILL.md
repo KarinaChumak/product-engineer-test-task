@@ -1,11 +1,19 @@
 ---
 name: finish
-description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, opens the PR, then fixes what CI and the CI review find. Run it automatically when a ticket's work is done, or when the user runs /finish.
+description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, opens the PR, then fixes what CI and the CI review find. Run it when the user runs /finish, in a fresh context after /clear; when a ticket's work is done, ask the user to type /clear and then /finish instead of running it in the build conversation.
 ---
 
 # Finish a ticket
 
 Run every step without stopping to ask, unless a step says to stop. The user sees the result at the end, with the PR already open.
+
+## 0. Start from a fresh context
+
+Every step below works from the branch and the notes, not from the conversation that built the ticket. Every model call re-sends the whole conversation, so running these steps at the end of a long build costs several times as much as running them fresh.
+
+If you wrote this ticket's code earlier in this conversation, commit everything and stop. Tell the user: "Type `/clear`, then `/finish`." After `/clear`, the SessionStart hook puts the ticket's section back in context.
+
+Skip this step when the conversation is already fresh: it began with `/finish`, or just after `/clear` or a compaction.
 
 ## 1. Prove it's done
 
@@ -32,13 +40,18 @@ Commit the fixes with messages that say what changed.
 
 ## 4. Polish
 
-1. Run the `/simplify` skill, and commit what it changes.
-2. If the branch changes UI and the repo has the `design-check` or `verify-ui` skills, run them. Keep the screenshot paths for the PR description.
-3. Run `.claude/scripts/check` again.
+The reviewer and the CI review both read every branch. Run the extra passes only where they find things those reviews don't, using the line count `pr-size` printed in step 2:
+
+1. `/simplify`: only when the branch changes more than 150 lines. Commit what it changes.
+2. `design-check`: when the branch changes a `.tsx` or `.css` file under `src/` (CLAUDE.md requires it for UI changes).
+3. `verify-ui`: when the branch changes what renders. Keep the screenshot paths for the PR description.
+4. If any of these changed code, run `.claude/scripts/check` again.
+
+Say in the PR description which passes you skipped and why.
 
 ## 5. Update the plan
 
-In the ticket's section in `claude-notes/plan.md`:
+In the ticket's section in `claude-notes/plan.md`. Find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section (Read with `offset` and `limit`), not the whole file:
 
 - `Status: in review`, or `in progress (PR 1 of 2 in review)` when more PRs follow.
 - Add an `Outcome:` line: what was built, in one or two sentences, and anything that changes later tickets. `/plan-phase` reads it.
@@ -48,7 +61,7 @@ In the ticket's section in `claude-notes/plan.md`:
 
 A decision is global if another ticket has to follow it: a shared contract, a data shape, a library, a pattern for a kind of code. Choices that only affect this ticket are not recorded.
 
-Add each one at the end of `claude-notes/decisions.md`, keyed by the ticket ID:
+Add each one at the end of `claude-notes/decisions.md`, keyed by the ticket ID. Read only the last 20 lines to place it (Read with `offset`):
 
 ```markdown
 ## T-04: Date ranges in the URL
