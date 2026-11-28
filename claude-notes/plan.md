@@ -128,7 +128,8 @@ Split from T-12 ("Attach a file, and it's sent in the payload") when the whole c
 
 Split from T-12b ("Pick a file and see it, or remove it") when its estimate came to ~330 lines; removing the file is T-12d.
 
-- Status: in progress
+- Status: in review
+- Outcome: `FileField` (on `Field`) is a button that opens a hidden `<input type="file">` and shows the picked file's name and size in a success-coloured block. `FileQuestion` keeps the picked `File` in state for display only and formats its size (decimal kB/MB). T-12d and T-12c build on both; tests pick a file through the input marked `data-file-picker`.
 - Done when:
   - A file question shows a button that opens the file picker; the chosen file's name and size are shown, and choosing another replaces it (test)
   - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
