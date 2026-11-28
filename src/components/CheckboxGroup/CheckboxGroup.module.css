@@ -8,13 +8,14 @@
   border: 0;
 }
 
-/* A legend can't be a flex container in every browser, so it holds one. */
+/* The legend sits above the fieldset's flex column, not in it, so it keeps its own spacing. */
 .legend {
-  display: contents;
-}
-
-.legend > * {
-  margin-right: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: 0;
 }
 
 .label {
@@ -31,16 +32,13 @@
   font-size: var(--font-size-s);
 }
 
-.options {
-  display: flex;
-  flex-direction: column;
-}
-
+/* The whole row is the label, so it's a full touch target. */
 .option {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-height: var(--touch-target);
+  cursor: pointer;
 }
 
 .checkbox {
@@ -55,19 +53,19 @@
   border-radius: var(--radius-2);
   background: var(--color-bg);
   color: var(--color-on-accent);
-  cursor: pointer;
+  cursor: inherit;
 }
 
-.checkbox:hover:not(:disabled) {
+.option:hover .checkbox:not(:disabled),
+.checkbox[data-state='checked'] {
   border-color: var(--color-accent);
 }
 
 .checkbox[data-state='checked'] {
-  border-color: var(--color-accent);
   background: var(--color-accent);
 }
 
-.checkbox[aria-invalid='true']:not([data-state='checked']) {
+.checkbox[aria-invalid='true'][data-state='unchecked'] {
   border-color: var(--color-danger);
 }
 
@@ -79,27 +77,14 @@
 .checkbox:disabled {
   border-color: var(--color-line);
   background: var(--color-surface);
-  cursor: not-allowed;
 }
 
-.checkbox:disabled + .optionLabel {
+.option:has(:disabled) {
   color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
-.indicator {
-  display: inline-flex;
-}
-
-.indicator svg {
+.checkbox svg {
   width: 1em;
   height: 1em;
-}
-
-.optionLabel {
-  flex: 1;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
 }

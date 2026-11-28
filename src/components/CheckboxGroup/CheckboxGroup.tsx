@@ -83,12 +83,12 @@ export function CheckboxGroup({
           {hint}
         </p>
       )}
-      <div className={styles.options}>
+      <div>
         {options.map((option) => {
           const checkboxId = `${id}-${option.value}`;
           const isChecked = value.includes(option.value);
           return (
-            <div key={option.value} className={styles.option}>
+            <label key={option.value} htmlFor={checkboxId} className={styles.option}>
               <Checkbox.Root
                 id={checkboxId}
                 className={styles.checkbox}
@@ -97,14 +97,12 @@ export function CheckboxGroup({
                 disabled={isFull && !isChecked}
                 aria-invalid={error ? true : undefined}
               >
-                <Checkbox.Indicator className={styles.indicator}>
+                <Checkbox.Indicator>
                   <Check aria-hidden="true" />
                 </Checkbox.Indicator>
               </Checkbox.Root>
-              <label htmlFor={checkboxId} className={styles.optionLabel}>
-                {option.label}
-              </label>
-            </div>
+              {option.label}
+            </label>
           );
         })}
       </div>

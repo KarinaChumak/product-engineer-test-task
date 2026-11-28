@@ -57,6 +57,26 @@ const prefilledQuestionnaire: JobQuestionnaire = {
   }),
 };
 
+/** A job with only job-long's `focus_areas`, which may pick `maxChoices` of its three options. */
+const multiChoiceQuestionnaire = ({ maxChoices = 2, required = false } = {}): JobQuestionnaire => ({
+  ...noQuestions,
+  questions: [
+    {
+      type: 'select',
+      id: 'focus_areas',
+      question: 'Which areas would you like to focus on?',
+      required,
+      maxChoices,
+      options: [
+        { label: 'Frontend architecture', value: 'frontend' },
+        { label: 'Design systems', value: 'design_systems' },
+        { label: 'Performance', value: 'performance' },
+      ],
+    },
+  ],
+});
+const focusAreas = { name: 'Which areas would you like to focus on?' };
+
 // The page also has the job switcher's combobox, so the question's is found by its name.
 const noticePeriod = { name: 'What is your notice period?' };
 const salaryQuestion = { name: 'What is your salary expectation?' };
@@ -393,30 +413,28 @@ describe('QuestionnairePage submit', () => {
     expect(status).not.toHaveTextContent(/salary|notice|sent to/i);
   });
 
-  it('sends the pick on a multi-choice question as a list of choices', async () => {
+  it('sends the picks on a multi-choice question as a list, in the order of the options', async () => {
     const user = userEvent.setup();
-    const sent: unknown[] = [];
-    server.use(
-      http.get('/api/jobs/:id/questionnaire', () =>
-        HttpResponse.json({
-          ...noQuestions,
-          questions: [{ ...questionnaire.questions[0], id: 'focus', maxChoices: 2 }],
-        }),
-      ),
-      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
-        sent.push(await request.json());
-        return passed();
-      }),
-    );
-    renderAt('/jobs/job-short');
+    const sent = openWithPrequalificationResponse(passed, multiChoiceQuestionnaire());
 
-    await user.click(await screen.findByRole('combobox', noticePeriod));
-    await user.click(screen.getByRole('option', { name: '1 month' }));
-    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
+    await user.click(await screen.findByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Frontend architecture' }));
     await user.click(screen.getByRole('button', submitAnswers));
-
     await screen.findByRole('heading', answersSent);
-    expect(sent).toEqual([{ answers: { focus: ['1_month'] } }]);
+
+    expect(sent).toEqual([{ answers: { focus_areas: ['frontend', 'performance'] } }]);
+  });
+
+  it('leaves an optional multi-choice question out of the answers once everything is unpicked', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(passed, multiChoiceQuestionnaire());
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([{ answers: {} }]);
   });
 
   it('never calls the answers an application, whether the candidate passed or not', async () => {
@@ -701,6 +719,85 @@ describe('QuestionnairePage errors on leaving a field', () => {
     await user.click(select);
     await user.click(screen.getByRole('option', { name: '1 month' }));
     expect(select).not.toHaveAttribute('aria-invalid');
+  });
+});
+
+describe('QuestionnairePage multi-choice question', () => {
+  const openMultiChoice = (opened: JobQuestionnaire) => {
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(opened)));
+    renderAt('/jobs/job-short');
+  };
+
+  it('shows the options as checkboxes grouped under the question, saying how many can be picked', async () => {
+    openMultiChoice(multiChoiceQuestionnaire());
+
+    const group = await screen.findByRole('group', focusAreas);
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
+    expect(screen.getAllByRole('checkbox')).toEqual([
+      screen.getByRole('checkbox', { name: 'Frontend architecture' }),
+      screen.getByRole('checkbox', { name: 'Design systems' }),
+      screen.getByRole('checkbox', { name: 'Performance' }),
+    ]);
+  });
+
+  it('disables the other options once the most allowed are picked, until one is unpicked', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire());
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Frontend architecture' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeDisabled();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeEnabled();
+  });
+
+  it('lets every option be picked and shows no limit when the limit is at least the number of options', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire({ maxChoices: 5 }));
+
+    for (const checkbox of await screen.findAllByRole('checkbox')) await user.click(checkbox);
+
+    for (const checkbox of screen.getAllByRole('checkbox')) expect(checkbox).toBeChecked();
+    expect(screen.getByRole('group', focusAreas)).not.toHaveAccessibleDescription();
+  });
+
+  it('picks options by keyboard', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire());
+
+    await screen.findByRole('group', focusAreas);
+    // From the job switcher, the last stop before the questions.
+    act(() => screen.getByRole('combobox', { name: 'Switch job' }).focus());
+    await user.tab();
+    expect(screen.getByRole('checkbox', { name: 'Frontend architecture' })).toHaveFocus();
+    await user.tab();
+    await user.keyboard(' ');
+
+    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeChecked();
+  });
+
+  it('shows the required error once the candidate leaves the group without a pick, and drops it on a pick', async () => {
+    const user = userEvent.setup();
+    openMultiChoice(multiChoiceQuestionnaire({ required: true }));
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Design systems' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
+    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription('Pick up to 2');
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription(
+      'Pick up to 2 Answer this question to continue.',
+    );
+
+    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
+    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription('Pick up to 2');
+  });
+
+  it('says how many can be picked in German for a German job', async () => {
+    openMultiChoice({ ...multiChoiceQuestionnaire(), language: 'de' });
+
+    expect(await screen.findByRole('group', focusAreas)).toHaveAccessibleDescription('Wähle bis zu 2 aus');
   });
 });
 
