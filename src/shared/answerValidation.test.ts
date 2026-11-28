@@ -180,6 +180,15 @@ describe('findInvalidAnswers', () => {
     expect(findInvalidAnswers(questions, { answers })).toEqual({ note: 'required' });
   });
 
+  it('takes a file without content for no answer, so a required file question is refused as required', () => {
+    const requiredFile: ClientQuestion = { ...base, id: 'cover_letter', type: 'file', required: true };
+    const emptyFile = { content_type: 'application/pdf', data: '', file_name: 'a.pdf' };
+
+    expect(findInvalidAnswers(questionsOf(requiredFile), { answers: { cover_letter: emptyFile } })).toEqual({
+      cover_letter: 'required',
+    });
+  });
+
   it('refuses a required multi-choice answer with no choices', () => {
     expect(findInvalidAnswers(questionsOf({ ...multi, required: true }), { answers: { stack: [] } })).toEqual(
       {

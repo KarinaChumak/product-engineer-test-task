@@ -122,7 +122,7 @@ Split from T-12 ("Attach a file, and it's sent in the payload") when the whole c
 - Size: ~130 lines
 - After: T-11a
 - Branch: T-12-file-field
-- Outcome: Came to ~175 lines. `FileAnswer` (`{ content_type, data, file_name }`) is in `AnswerValue`, `isFileAnswer` in `src/shared/answerValidation.ts` checks its shape, and `findAnswerError` answers `wrong_type` for anything else. The server keeps `file` questions and the POST is limited to 7 MiB (`payload_too_large`, 413). The stored-submission log writes a file's `data` as its length. The client still has no component for `file`, so it skips the question until T-12b. The unsplit work (607 lines) is on the local branch `T-12-full-wip`, to cut T-12b and T-12c from. T-13 must also refuse an empty `data` or `file_name`.
+- Outcome: Came to ~175 lines. `FileAnswer` (`{ content_type, data, file_name }`) is in `AnswerValue`, `isFileAnswer` in `src/shared/answerValidation.ts` checks its shape, and `findAnswerError` answers `wrong_type` for anything else. The server keeps `file` questions and the POST is limited to 7 MiB (`payload_too_large`, 413). The stored-submission log writes a file's `data` as its length. The client still has no component for `file`, so it skips the question until T-12b. The unsplit work (607 lines) is on the local branch `T-12-full-wip`, to cut T-12b and T-12c from. A file with an empty `data` counts as no answer (`required` on a required question); T-13 must also refuse an empty `file_name`.
 
 ### T-12b Pick a file and see it, or remove it
 
@@ -153,7 +153,7 @@ The full, unsplit work is on the local branch `T-12-full-wip` (607 lines, `check
 - Status: todo
 - Done when:
   - Picking a file that isn't PDF, DOCX, PNG or JPG, or is over 5 MB, shows an error on the field right away, before it is read or sent, saying which types and size are allowed (test)
-  - The server refuses the same files by their content type and decoded size, and a `data` that isn't base64 or is empty, and an empty `file_name`, with the `AnswerError` codes the client shows (test)
+  - The server refuses the same files by their content type and decoded size, and a `data` that isn't base64, and an empty `file_name`, with the `AnswerError` codes the client shows (test)
   - The file picker offers only the allowed types (test)
 - Touches: src/shared (the file case in `findAnswerError`, new `AnswerError` codes, the allowed types and size), src/components/FileField (an `accept`), src/app (the adapter's check on pick, messages)
 - Size: ~170 lines

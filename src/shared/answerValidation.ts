@@ -21,9 +21,11 @@ export const isFileAnswer = (value: unknown): value is FileAnswer =>
   'file_name' in value &&
   typeof value.file_name === 'string';
 
-/** Whether a sent value says nothing: blank text or no choices. It counts as no answer. */
+/** Whether a sent value says nothing: blank text, no choices or a file without content. It counts as no answer. */
 export const isEmptyAnswer = (value: AnswerValue): boolean =>
-  (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
+  (typeof value === 'string' && value.trim() === '') ||
+  (Array.isArray(value) && value.length === 0) ||
+  (isFileAnswer(value) && value.data === '');
 
 /**
  * The answer sent for a question, or undefined when there's none or it's empty. Only the request's own keys
