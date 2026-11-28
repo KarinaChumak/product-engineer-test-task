@@ -6,15 +6,27 @@ import { readFile, writeFile } from 'node:fs/promises';
 const submissionsPath = 'data/submissions.json';
 const candidateId = 'talent-4711';
 
-/** Removes the candidate's stored submission for the job, so the job shows its questions again. */
-export async function clearSubmission(jobId: string) {
-  let submissions: Record<string, unknown>;
+/** Every stored submission by candidate and job, or none when nothing was submitted yet. */
+async function readSubmissions(): Promise<Record<string, unknown> | undefined> {
   try {
-    submissions = JSON.parse(await readFile(submissionsPath, 'utf8')) as Record<string, unknown>;
+    return JSON.parse(await readFile(submissionsPath, 'utf8')) as Record<string, unknown>;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
     throw error;
   }
+}
+
+/** The payload stored for the candidate's answers to the job, as an employer integration would get it. */
+export async function readStoredPayload(jobId: string): Promise<unknown> {
+  const submission = (await readSubmissions())?.[`${candidateId}:${jobId}`] as
+    { payload: unknown } | undefined;
+  return submission?.payload;
+}
+
+/** Removes the candidate's stored submission for the job, so the job shows its questions again. */
+export async function clearSubmission(jobId: string) {
+  const submissions = await readSubmissions();
+  if (!submissions) return;
   const key = `${candidateId}:${jobId}`;
   if (!Object.hasOwn(submissions, key)) return;
   delete submissions[key];
