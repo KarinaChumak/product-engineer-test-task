@@ -43,6 +43,6 @@ In the ticket's section, set `Status: in progress` and `Branch: <branch>`. If th
 
 ## 6. Finish
 
-When every "done when" holds, commit everything and tell the user: "Type `/clear`, then `/finish`." `finish` works from the branch and the notes, so it runs in a fresh context instead of re-sending this whole build conversation on every step. It has a separate agent review the branch, fixes what it finds, and opens the PR.
+When every "done when" holds, run the `finish` skill right away, without waiting to be asked. It has a separate agent review the branch, then hands the fixes, the PR and CI to a finisher agent with a fresh context, so they don't re-send this whole build conversation on every step.
 
 When the user says the PR has comments, run the `address-review` skill. Don't merge; a human does.
