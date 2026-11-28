@@ -138,7 +138,9 @@ Asked for by the user after T-06's PR was opened. It didn't fit in that PR's siz
 
 ## Phase 2: Every question type and messy configs
 
-Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11, then T-12, then T-13, then T-14.
+Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11a, then T-11b ‖ T-12, then T-13, then T-14.
+
+T-11 was split into T-11a (the date field) and T-11b (its range). T-12 needs only T-11a, since both add a question type; T-11b touches the date question alone, so it runs beside T-12, and whichever merges second rebases over the message files.
 
 Planned with T-07 counted as done. Every ticket that adds or changes a question adapter waits for T-07 to merge, because T-07 gives each adapter an `onBlur`. T-10 touches only the server's prefill, so it can start now.
 
@@ -152,7 +154,7 @@ Settled while planning, to record in `decisions.md` by the ticket that needs it 
 
 Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") when it came to ~550 lines; the screening half is T-08b.
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - A boolean question shows two choices, "Yes" and "No" in the UI language ("Ja", "Nein" in `de`), with neither picked at first, and they work by keyboard (arrow keys move, as in a radio group) (test)
   - The answer is sent and stored as a JSON `true` or `false`, and a required boolean left unanswered shows the `required` error (test)
@@ -166,7 +168,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 ### T-08b `must_be_true` screens yes/no answers
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - `must_be_true` on a boolean question is kept as a rule: `false` fails it, and so does no answer to an optional question with the rule. `must_be_true` on any other type is still ignored with a warning (test)
 - Settled while planning, recorded in `decisions.md`: a missing answer fails a question's rule, as the README says (the open question in `product.md`, now marked settled).
@@ -178,7 +180,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 ### T-09 Pick several options in a multi-choice question
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - A select question with `max_choices` above 1 shows its options as checkboxes and says how many can be picked ("Pick up to 2") (test)
   - Once `max_choices` options are picked, the others are disabled until one is unpicked. When `max_choices` is at least the number of options, every option can be picked and no limit is shown (test)
@@ -193,7 +195,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 ### T-10 job-long's German level and years of experience come prefilled from the profile
 
-- Status: todo
+- Status: done (merged)
 - Done when:
   - `GET /api/jobs/job-long/questionnaire` prefills `german_level` (`B1`) from the `languages` entry for `de`, and `years_of_experience` (6) from the profile. `english_level` and `city` are mapped the same way, as the README's profile-field table lists them (test)
   - A profile value the question can't take (a level that isn't an option, a number out of range) isn't prefilled, as before. An unknown `profile_field` is logged as a warning once, when the job is parsed (test)
@@ -201,20 +203,33 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 - Touches: src/server (prefill.ts, `Profile`, the profile-field warning in normalize.ts)
 - Size: ~130 lines
 - After: none
-- Branch: none yet
+- Branch: T-10-prefill-job-long-profile
 
-### T-11 Pick a start date within the job's range
+### T-11a Pick a start date
+
+Split from T-11 ("Pick a start date within the job's range") when it came to ~450 lines; the range half is T-11b.
+
+- Status: in progress
+- Done when:
+  - A date question shows a date field, and its answer is sent and stored as `YYYY-MM-DD`. A value that isn't a real calendar date (`2026-02-30`, `1 May`) is refused as `not_a_date` (test)
+  - The field marks a required question, shows its error, and moves focus on submit like the other fields, through a shared `Field` component that holds the label, annotation and error wiring (test)
+  - A date question's `min` and `max` are ignored with a warning until T-11b (test)
+  - job-long's `starting_date` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `Field`, a new `DateField` on the native date input inside it), src/app (a `DateQuestion` adapter, its map entry, the `not_a_date` message), src/shared (`DateQuestion`, `not_a_date`, a `date` case in `findAnswerError`), src/server (`normalizeQuestion` for `date`)
+- Size: ~290 lines (Field with CSS and tests ~100, DateField with CSS and tests ~80, shared type and check with tests ~45, normalize and API tests ~45, adapter, copy and page tests ~65). Moving `TextField`, `NumberField` and `Select` onto `Field` is left to Phase 4's a11y pass
+- After: T-08a
+- Branch: T-11-start-date-field
+
+### T-11b The start date must be within the job's range
 
 - Status: todo
 - Done when:
-  - A date question shows a date field, and its answer is sent and stored as `YYYY-MM-DD` (test)
-  - `min` and `max` are inclusive, and `"today"` is resolved on the server to the server's current date when the questionnaire is built, so the client gets plain dates. A date outside the range, or not a real date, is refused with a message naming the allowed range in the UI locale's date format (test)
-  - A `min` after `max`, or a value that isn't a date or `"today"`, is dropped with a warning (test)
-  - The field marks a required question, shows its error, and moves focus on submit like the other fields, through a shared `Field` component that holds the label, annotation and error wiring (test)
-  - job-long's `starting_date` renders at mobile and desktop widths (screenshot)
-- Touches: src/components (a new `DateField` on the native date input, a new `Field` used by `DateField`), src/app (a `DateQuestion` adapter, its map entry, date error messages), src/shared (`DateQuestion`, a `date` case in `findAnswerError`), src/server (`normalizeQuestion` for `date`, resolving `"today"`)
-- Size: ~300 lines (Field ~70, DateField with CSS and tests ~110, adapter and copy ~35, shared type and check with tests ~40, normalize with tests ~50). Moving `TextField`, `NumberField` and `Select` onto `Field` is left to Phase 4's a11y pass, to keep this under the limit
-- After: T-08a
+  - `min` and `max` are inclusive, and `"today"` is resolved on the server to the server's current date on each request, so the client gets plain dates. The picker greys out dates outside the range, and a date outside it is refused with a message naming the range in the UI locale's date format (test)
+  - A `min` or `max` that isn't a `YYYY-MM-DD` date or `"today"` is dropped with a warning; a `min` after `max` drops both, with one warning, since which one is wrong can't be told (test)
+  - job-long's `starting_date` can't be set before today (screenshot)
+- Touches: src/server (`normalizeQuestion` for date bounds, the server's date in `AppDeps`), src/shared (`min`/`max` on `DateQuestion`, the range in the `date` case), src/components (`min`/`max` on `DateField`), src/app (the range message), claude-notes/decisions.md
+- Size: ~170 lines
+- After: T-11a
 - Branch: none yet
 
 ### T-12 Attach a file, and it's sent in the payload
@@ -228,7 +243,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
   - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
 - Touches: src/components (a new `FileField`), src/app (a `FileQuestion` adapter that reads the file, its map entry, messages), src/shared (`FileAnswer` in `AnswerValue`, `FileQuestion`, a `file` case in `findAnswerError` for the shape only), src/server (`normalizeQuestion` for `file`, the request shape check, the body limit)
 - Size: ~300 lines
-- After: T-11
+- After: T-11a
 - Branch: none yet
 
 ### T-13 A file of the wrong type or over 5 MB is refused
@@ -253,5 +268,5 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
   - An e2e run answers and submits job-long and job-bad, and each stored payload matches the README contract: every answer shape, `values` for multi-choice, optional empty answers left out, and `screening` (e2e)
 - Touches: src/server (normalize.ts repairs), e2e (job-long and job-bad specs, clearing their submissions first like job-short's)
 - Size: ~250 lines
-- After: T-08a, T-08b, T-09, T-10, T-11, T-12, T-13
+- After: T-08a, T-08b, T-09, T-10, T-11a, T-11b, T-12, T-13
 - Branch: none yet

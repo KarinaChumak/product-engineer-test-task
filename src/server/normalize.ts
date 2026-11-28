@@ -90,6 +90,12 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
       return { ...base, type: 'text', multiline: raw.multiline === true };
     case 'boolean':
       return { ...base, type: 'boolean' };
+    case 'date':
+      // Any date is taken until T-11b applies the range, so the candidate isn't refused a date the
+      // recruiter would accept.
+      if ('min' in raw || 'max' in raw)
+        warn(`Ignored min and max on "${id}": a date question's range isn't applied yet`);
+      return { ...base, type: 'date' };
     default:
       warn(`Dropped question "${id}": type ${JSON.stringify(raw.type)} is not supported`);
       return undefined;

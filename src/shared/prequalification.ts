@@ -28,6 +28,7 @@ const answerErrors = [
   'not_an_integer',
   'out_of_range',
   'too_long',
+  'not_a_date',
 ] as const;
 
 /**
