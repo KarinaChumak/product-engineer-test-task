@@ -1193,6 +1193,162 @@ describe('QuestionnairePage file question', () => {
     await waitFor(() => expect(button).not.toHaveAttribute('aria-invalid'));
   });
 
+  const docxType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const typeRefused =
+    'This type of file can’t be attached. Choose a PDF, DOCX, PNG or JPG file of up to 5 MB.';
+  const sizeRefused = 'This file is too big. Choose a PDF, DOCX, PNG or JPG file of up to 5 MB.';
+  // As if the candidate switched the picker to show every file, so it no longer filters by `accept`.
+  const setUpPickingAnyFile = () => userEvent.setup({ applyAccept: false });
+
+  it('offers only PDF, DOCX, PNG and JPG files in the picker', async () => {
+    openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    const accept = document.querySelector('[data-file-picker]')!.getAttribute('accept')!.split(',');
+
+    expect(accept).toEqual(
+      expect.arrayContaining([
+        '.pdf',
+        '.docx',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        'application/pdf',
+        docxType,
+        'image/png',
+        'image/jpeg',
+      ]),
+    );
+  });
+
+  it('refuses a file of another type right away, naming the allowed types and size, and sends nothing for it', async () => {
+    const user = setUpPickingAnyFile();
+    const sent = openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['GIF89a'], 'letter.gif', { type: 'image/gif' }));
+
+    expect(button).toHaveAttribute('aria-invalid', 'true');
+    expect(button).toHaveAccessibleDescription(typeRefused);
+    expect(screen.queryByText('letter.gif')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
+  it('refuses a file over 5 MB right away, naming the allowed types and size', async () => {
+    const user = setUpPickingAnyFile();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File([new Uint8Array(5_000_001)], 'letter.pdf', { type: 'application/pdf' }));
+
+    expect(button).toHaveAccessibleDescription(sizeRefused);
+    expect(screen.queryByText('letter.pdf')).not.toBeInTheDocument();
+  });
+
+  it('accepts a file of exactly 5 MB', async () => {
+    const user = setUpPickingAnyFile();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File([new Uint8Array(5_000_000)], 'letter.pdf', { type: 'application/pdf' }));
+
+    expect(screen.getByText('letter.pdf')).toBeVisible();
+    expect(button).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('drops a file picked earlier when the candidate picks one that is refused', async () => {
+    const user = setUpPickingAnyFile();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+    await pickFile(user, new File(['GIF89a'], 'letter.gif', { type: 'image/gif' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(screen.queryByText('letter.pdf')).not.toBeInTheDocument();
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
+  it('drops the refusal once the candidate picks an allowed file', async () => {
+    const user = setUpPickingAnyFile();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    await pickFile(user, new File(['GIF89a'], 'letter.gif', { type: 'image/gif' }));
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+
+    expect(button).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByText('letter.pdf')).toBeVisible();
+  });
+
+  it('sends a DOCX the browser gives no type for with the DOCX type, taken from its extension', async () => {
+    const user = setUpPickingAnyFile();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['PK'], 'Letter.DOCX'));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([
+      { answers: { cover_letter: { content_type: docxType, data: btoa('PK'), file_name: 'Letter.DOCX' } } },
+    ]);
+  });
+
+  it('refuses a file with no type whose extension isn’t allowed', async () => {
+    const user = setUpPickingAnyFile();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['hello'], 'notes.txt'));
+
+    expect(button).toHaveAccessibleDescription(typeRefused);
+  });
+
+  it('empties the field and asks for the file again when the browser can’t read it', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    // As when the file was moved or deleted after it was picked.
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+      setTimeout(() => this.dispatchEvent(new ProgressEvent('error')));
+    });
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+
+    await waitFor(() =>
+      expect(button).toHaveAccessibleDescription('This file couldn’t be read. Choose it again.'),
+    );
+    expect(screen.queryByText('letter.pdf')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
+  it('names the allowed types and size in German for a German job', async () => {
+    const user = setUpPickingAnyFile();
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({
+          ...noQuestions,
+          language: 'de',
+          questions: [{ type: 'file', id: 'cover_letter', question: letterQuestion, required: false }],
+        } satisfies JobQuestionnaire),
+      ),
+    );
+    renderAt('/jobs/job-short');
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['GIF89a'], 'letter.gif', { type: 'image/gif' }));
+
+    expect(button).toHaveAccessibleDescription(
+      'Diese Art von Datei können wir nicht annehmen. Wähle eine PDF-, DOCX-, PNG- oder JPG-Datei mit höchstens 5 MB.',
+    );
+  });
+
   it('shows the name and size of the file the candidate picks', async () => {
     const user = userEvent.setup();
     openFile();

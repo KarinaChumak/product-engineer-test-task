@@ -45,6 +45,12 @@ export const de: Record<MessageKey, string> = {
   'answerError.date_out_of_range':
     '{bounds, select, both {Wähle ein Datum vom {min} bis zum {max}.} min {Wähle den {min} oder ein späteres Datum.} other {Wähle den {max} oder ein früheres Datum.}}',
   'answerError.not_a_date': 'Gib ein Datum ein, das es gibt, oder wähle eins im Kalender.',
+  'answerError.file_type_not_allowed':
+    'Diese Art von Datei können wir nicht annehmen. Wähle eine PDF-, DOCX-, PNG- oder JPG-Datei mit höchstens {maxFileSize}.',
+  'answerError.file_too_large':
+    'Diese Datei ist zu groß. Wähle eine PDF-, DOCX-, PNG- oder JPG-Datei mit höchstens {maxFileSize}.',
+  'answerError.not_base64': 'Diese Datei konnten wir nicht lesen. Wähle sie noch einmal.',
+  'answerError.missing_file_name': 'Diese Datei hat keinen Namen. Benenne sie um und wähle sie noch einmal.',
   'prequalification.completed.title': 'Du hast die Fragen zu diesem Job schon beantwortet',
   'prequalification.completed.body':
     'Du hast die Fragen zu {title} bei {company} schon beantwortet. Die Fragen eines Jobs kannst du nur einmal beantworten, hier gibt es also nichts mehr zu tun.',

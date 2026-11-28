@@ -19,6 +19,21 @@ export interface PrequalificationResult {
 /** The longest text answer the server stores, in characters. */
 export const maxTextAnswerLength = 5000;
 
+/** The file types a file answer may have, by content type, with the extensions each goes by. */
+export const allowedFileTypes: Readonly<Record<string, readonly string[]>> = {
+  'application/pdf': ['.pdf'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+};
+
+/** Whether a file answer may have this content type. */
+export const isAllowedFileType = (contentType: string): boolean =>
+  Object.hasOwn(allowedFileTypes, contentType);
+
+/** The largest file a file answer may carry, in bytes before base64: 5 MB, counted in thousands as the field shows sizes. */
+export const maxFileBytes = 5_000_000;
+
 const answerErrors = [
   'required',
   'wrong_type',
@@ -29,6 +44,10 @@ const answerErrors = [
   'out_of_range',
   'too_long',
   'not_a_date',
+  'file_type_not_allowed',
+  'file_too_large',
+  'not_base64',
+  'missing_file_name',
 ] as const;
 
 /**

@@ -1,4 +1,6 @@
 import {
+  isAllowedFileType,
+  maxFileBytes,
   maxTextAnswerLength,
   type AnswerError,
   type PrequalificationRequest,
@@ -20,6 +22,13 @@ export const isFileAnswer = (value: unknown): value is FileAnswer =>
   typeof value.data === 'string' &&
   'file_name' in value &&
   typeof value.file_name === 'string';
+
+/** Whether the text is standard base64 with its padding, as a data URL carries it. */
+const isBase64 = (text: string): boolean => text.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(text);
+
+/** How many bytes base64 text decodes to: three for every four characters, less one for each `=`. */
+const countBase64Bytes = (text: string): number =>
+  (text.length / 4) * 3 - (text.match(/=*$/)?.[0].length ?? 0);
 
 /** Whether a sent value says nothing: blank text, no choices or a file without content. It counts as no answer. */
 export const isEmptyAnswer = (value: AnswerValue): boolean =>
@@ -61,8 +70,11 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
     case 'boolean':
       return typeof value === 'boolean' ? undefined : 'wrong_type';
     case 'file':
-      // Only the shape: which types and sizes are allowed is checked separately.
-      return isFileAnswer(value) ? undefined : 'wrong_type';
+      if (!isFileAnswer(value)) return 'wrong_type';
+      if (value.file_name.trim() === '') return 'missing_file_name';
+      if (!isAllowedFileType(value.content_type)) return 'file_type_not_allowed';
+      if (!isBase64(value.data)) return 'not_base64';
+      return countBase64Bytes(value.data) > maxFileBytes ? 'file_too_large' : undefined;
     case 'date':
       if (typeof value !== 'string') return 'wrong_type';
       if (!isCalendarDate(value)) return 'not_a_date';

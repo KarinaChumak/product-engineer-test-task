@@ -629,14 +629,32 @@ describe('POST /api/jobs/:id/prequalification', () => {
 
   it('accepts a body big enough for a 5 MB file encoded as base64', async () => {
     const { app, saved } = appStoringIn({ jobs: coverLetterJob });
-    const base64Characters = Math.ceil((5 * 1024 * 1024) / 3) * 4;
+    // 5,000,000 bytes: 1,666,666 groups of three, then a group carrying the last two.
+    const data = `${'A'.repeat(1_666_666 * 4)}AAA=`;
 
     const response = await submitAnswers(app, 'job-file', {
-      answers: { cover_letter: fileAnswer(base64Characters) },
+      answers: { cover_letter: { ...fileAnswer(0), data } },
     });
 
     expect(response.status).toBe(201);
     expect(saved).toHaveLength(1);
+  });
+
+  it.each([
+    ['a type that is not allowed', { content_type: 'image/gif' }, 'file_type_not_allowed'],
+    ['over 5 MB once decoded', { data: 'A'.repeat(1_666_667 * 4) }, 'file_too_large'],
+    ['data that is not base64', { data: 'not base64!' }, 'not_base64'],
+    ['an empty file name', { file_name: '' }, 'missing_file_name'],
+  ])('refuses a file with %s with 422 and stores nothing', async (_, change, code) => {
+    const { app, saved } = appStoringIn({ jobs: coverLetterJob });
+
+    const response = await submitAnswers(app, 'job-file', {
+      answers: { cover_letter: { ...fileAnswer(100), ...change } },
+    });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ fields: { cover_letter: code } });
+    expect(saved).toEqual([]);
   });
 
   it('refuses a body bigger than that with 413 and stores nothing', async () => {

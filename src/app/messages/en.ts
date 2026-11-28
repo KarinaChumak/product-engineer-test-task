@@ -41,6 +41,12 @@ export const en = {
   'answerError.date_out_of_range':
     '{bounds, select, both {Pick a date from {min} to {max}.} min {Pick {min} or a later date.} other {Pick {max} or an earlier date.}}',
   'answerError.not_a_date': 'Enter a date that exists, or pick one from the calendar.',
+  'answerError.file_type_not_allowed':
+    'This type of file can’t be attached. Choose a PDF, DOCX, PNG or JPG file of up to {maxFileSize}.',
+  'answerError.file_too_large':
+    'This file is too big. Choose a PDF, DOCX, PNG or JPG file of up to {maxFileSize}.',
+  'answerError.not_base64': 'This file couldn’t be read. Choose it again.',
+  'answerError.missing_file_name': 'This file has no name. Rename it and choose it again.',
   'prequalification.completed.title': 'You’ve already answered the questions for this job',
   'prequalification.completed.body':
     'You answered the questions for {title} at {company}. Each job’s questions can be answered only once, so there’s nothing more to do here.',

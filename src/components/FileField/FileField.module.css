@@ -4,6 +4,11 @@
   align-items: flex-start;
 }
 
+/* Marked like every field in error: a danger border beside the message's icon and text. */
+.choose[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
 .status {
   width: 100%;
 }

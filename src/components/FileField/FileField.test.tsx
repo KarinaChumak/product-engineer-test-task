@@ -69,6 +69,12 @@ describe('FileField', () => {
     expect(screen.getByRole('button', { name: /Cover letter/ })).toHaveTextContent('Choose another file');
   });
 
+  it('offers only the file types it is given in the picker', () => {
+    renderFileField({ accept: '.pdf,application/pdf' });
+
+    expect(getPicker()).toHaveAttribute('accept', '.pdf,application/pdf');
+  });
+
   it('offers no remove button while no file is picked', () => {
     renderFileField();
 
