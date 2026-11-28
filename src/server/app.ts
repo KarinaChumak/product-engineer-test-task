@@ -98,13 +98,13 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     return c.json(toJobQuestionnaire(job, profile, isCompleted));
   });
 
-  // Prequalification, not an application: the answers reach the employer only if they pass screening.
-  const refuseBigBody = bodyLimit({
+  const limitRequestBodySize = bodyLimit({
     maxSize: maxRequestBodyBytes,
     onError: (c) => c.json({ error: 'payload_too_large' }, 413),
   });
 
-  app.post('/api/jobs/:id/prequalification', refuseBigBody, async (c) => {
+  // Prequalification, not an application: the answers reach the employer only if they pass screening.
+  app.post('/api/jobs/:id/prequalification', limitRequestBodySize, async (c) => {
     const id = c.req.param('id');
     const config = await jobs.find(id);
     if (config === undefined) return c.json({ error: 'not_found' }, 404);
