@@ -13,6 +13,7 @@ const multi: ClientQuestion = { ...base, id: 'stack', type: 'select', options, m
 const numeric: ClientQuestion = { ...base, id: 'salary', type: 'numeric', min: 20000, max: 300000 };
 const text: ClientQuestion = { ...base, id: 'note', type: 'text', multiline: true };
 const yesNo: ClientQuestion = { ...base, id: 'permit', type: 'boolean' };
+const date: ClientQuestion = { ...base, id: 'start', type: 'date' };
 
 const questionsOf = (...questions: ClientQuestion[]) => questions;
 
@@ -101,6 +102,22 @@ describe('findAnswerError', () => {
     ['a list', ['true']],
   ])('refuses a yes/no answer that is %s', (_, value) => {
     expect(findAnswerError(yesNo, value)).toBe('wrong_type');
+  });
+
+  it.each(['2026-12-01', '2028-02-29', '1999-12-31', '0050-01-01'])('accepts the date %s', (value) => {
+    expect(findAnswerError(date, value)).toBeUndefined();
+  });
+
+  it.each<[string, AnswerValue, string]>([
+    ['a day the month does not have', '2026-02-30', 'not_a_date'],
+    ['February 29th in a year that is not a leap year', '2027-02-29', 'not_a_date'],
+    ['month 13', '2026-13-01', 'not_a_date'],
+    ['written in words', '1 May', 'not_a_date'],
+    ['in another order', '01.12.2026', 'not_a_date'],
+    ['with a time', '2026-12-01T00:00', 'not_a_date'],
+    ['a number', 20261201, 'wrong_type'],
+  ])('refuses a date answer that is %s', (_, value, error) => {
+    expect(findAnswerError(date, value)).toBe(error);
   });
 });
 

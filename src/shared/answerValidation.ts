@@ -46,7 +46,22 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
       return [...value].length > maxTextAnswerLength ? 'too_long' : undefined;
     case 'boolean':
       return typeof value === 'boolean' ? undefined : 'wrong_type';
+    case 'date':
+      if (typeof value !== 'string') return 'wrong_type';
+      return isCalendarDate(value) ? undefined : 'not_a_date';
   }
+}
+
+/** Whether the text is a `YYYY-MM-DD` date that exists in the calendar, so `2026-02-30` isn't one. */
+function isCalendarDate(text: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return false;
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  // An impossible day rolls over into the next month, so only a real date comes back unchanged.
+  // setUTCFullYear, unlike Date.UTC, keeps years 0 to 99 as they are rather than moving them to the 1900s.
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 /**

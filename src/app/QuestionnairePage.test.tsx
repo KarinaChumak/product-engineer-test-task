@@ -173,16 +173,16 @@ describe('QuestionnairePage', () => {
 
   it('does not render question types that are not supported yet', async () => {
     // A type the client has no component for yet, as a newer server could send it.
-    const dateQuestion = { type: 'date', id: 'start_date', question: 'When can you start?', required: true };
+    const fileQuestion = { type: 'file', id: 'cv', question: 'Attach your CV', required: true };
     server.use(
       http.get('/api/jobs/:id/questionnaire', () =>
-        HttpResponse.json({ ...questionnaire, questions: [...questionnaire.questions, dateQuestion] }),
+        HttpResponse.json({ ...questionnaire, questions: [...questionnaire.questions, fileQuestion] }),
       ),
     );
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox', noticePeriod);
-    expect(screen.queryByText('When can you start?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Attach your CV')).not.toBeInTheDocument();
   });
 
   it('shows the free-text question exactly as the recruiter wrote it, emoji included, in a textarea', async () => {
@@ -808,6 +808,53 @@ describe('QuestionnairePage yes/no questions', () => {
     expect(group).toHaveAccessibleDescription('Answer this question to continue.');
     expect(within(group).getByRole('radio', { name: 'Yes' })).toHaveFocus();
     expect(screen.getByRole('radiogroup', relocate)).not.toHaveAttribute('aria-invalid');
+    expect(sent).toEqual([]);
+  });
+});
+
+describe('QuestionnairePage date question', () => {
+  const startQuestion = 'When could you start?';
+  const openDate = () => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({
+          ...noQuestions,
+          questions: [{ type: 'date', id: 'starting_date', question: startQuestion, required: true }],
+        } satisfies JobQuestionnaire),
+      ),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+  // A date input has no ARIA role, so it's found by its label, whose text also holds the hidden " *".
+  const findStartDate = () => screen.findByLabelText(startQuestion, { exact: false });
+
+  it('sends the picked date as YYYY-MM-DD', async () => {
+    const user = userEvent.setup();
+    const sent = openDate();
+
+    await user.type(await findStartDate(), '2027-01-15');
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { starting_date: '2027-01-15' } }]);
+  });
+
+  it('marks a required date left empty and moves focus to it, without sending', async () => {
+    const user = userEvent.setup();
+    const sent = openDate();
+
+    const startDate = await findStartDate();
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    expect(startDate).toBeInvalid();
+    expect(startDate).toHaveAccessibleDescription('Answer this question to continue.');
+    expect(startDate).toHaveFocus();
     expect(sent).toEqual([]);
   });
 });

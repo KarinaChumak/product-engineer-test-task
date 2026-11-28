@@ -69,10 +69,10 @@ describe('parseJob duplicate question ids', () => {
   it('keeps a later question when the first with its id was dropped for an unsupported type', () => {
     const { job: parsed } = parse({
       ...job,
-      questions: [text('start', 'When?', { type: 'date' }), text('start', 'Start date as text?')],
+      questions: [text('cv', 'Your CV?', { type: 'video' }), text('cv', 'Link to your CV?')],
     });
 
-    expect(parsed.questions.map(({ client }) => client.question)).toEqual(['Start date as text?']);
+    expect(parsed.questions.map(({ client }) => client.question)).toEqual(['Link to your CV?']);
   });
 
   it('leaves job-bad with one notice_period question and no other duplicate', async () => {
@@ -119,6 +119,36 @@ describe('parseJob screening rules', () => {
       required: true,
     });
     expect(warnings).toEqual([]);
+  });
+
+  it('keeps a date question', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'date', id: 'start', question: 'Start?', required: true }],
+    });
+
+    expect(parsed.questions[0]?.client).toEqual({
+      type: 'date',
+      id: 'start',
+      question: 'Start?',
+      required: true,
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it('ignores a date question’s min and max for now, with a warning', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'date', id: 'start', question: 'Start?', min: 'today', max: '2027-12-31' }],
+    });
+
+    expect(parsed.questions[0]?.client).toEqual({
+      type: 'date',
+      id: 'start',
+      question: 'Start?',
+      required: false,
+    });
+    expect(warnings).toEqual([expect.stringContaining('min and max on "start"')]);
   });
 
   it('ignores must_be_true on a question that is not boolean, with a warning', () => {

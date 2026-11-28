@@ -120,6 +120,18 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     });
   });
 
+  it('returns job-long with its starting_date as a required date question', async () => {
+    const response = await createApp(silent).request('/api/jobs/job-long/questionnaire');
+
+    const job = (await response.json()) as JobQuestionnaire;
+    expect(job.questions.find((q) => q.id === 'starting_date')).toEqual({
+      type: 'date',
+      id: 'starting_date',
+      question: 'Ab wann könnten Sie bei uns starten?',
+      required: true,
+    });
+  });
+
   const levels = [
     { label: 'B1', value: 'B1' },
     { label: 'C1', value: 'C1' },
@@ -500,6 +512,29 @@ describe('POST /api/jobs/:id/prequalification', () => {
     await submitAnswers(app, 'job-multi', { answers: { stack: ['react', 'vue'] } });
 
     expect(saved[0]?.payload.answers).toEqual([{ id: 'stack', values: ['react', 'vue'] }]);
+  });
+
+  const startDateJob = storeOf({
+    id: 'job-start',
+    questions: [{ type: 'date', id: 'start', question: 'Start?', required: true }],
+  });
+
+  it('stores a date answer as its YYYY-MM-DD string', async () => {
+    const { app, saved } = appStoringIn({ jobs: startDateJob });
+
+    await submitAnswers(app, 'job-start', { answers: { start: '2027-01-15' } });
+
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'start', value: '2027-01-15' }]);
+  });
+
+  it('refuses a date that is not in the calendar with not_a_date', async () => {
+    const { app, saved } = appStoringIn({ jobs: startDateJob });
+
+    const response = await submitAnswers(app, 'job-start', { answers: { start: '2027-02-30' } });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ fields: { start: 'not_a_date' } });
+    expect(saved).toEqual([]);
   });
 
   it.each([

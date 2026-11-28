@@ -40,7 +40,12 @@ export interface BooleanQuestion extends QuestionBase {
   type: 'boolean';
 }
 
-export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion;
+/** A calendar date, answered as a `YYYY-MM-DD` string. */
+export interface DateQuestion extends QuestionBase {
+  type: 'date';
+}
+
+export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion | DateQuestion;
 
 export type QuestionType = ClientQuestion['type'];
 
