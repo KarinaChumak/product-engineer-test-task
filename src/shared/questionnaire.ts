@@ -3,7 +3,15 @@
 
 export type Language = 'de' | 'en';
 
-export type AnswerValue = string | number | boolean | string[];
+/** A file the candidate attached, as the README's payload carries it. */
+export interface FileAnswer {
+  content_type: string;
+  /** The file's content, base64-encoded. */
+  data: string;
+  file_name: string;
+}
+
+export type AnswerValue = string | number | boolean | string[] | FileAnswer;
 
 export interface SelectOption {
   label: string;
@@ -49,7 +57,13 @@ export interface DateQuestion extends QuestionBase {
   max?: string;
 }
 
-export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion | DateQuestion;
+/** A file upload, answered with a `FileAnswer`. */
+export interface FileQuestion extends QuestionBase {
+  type: 'file';
+}
+
+export type ClientQuestion =
+  SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion | DateQuestion | FileQuestion;
 
 export type QuestionType = ClientQuestion['type'];
 

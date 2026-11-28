@@ -1,6 +1,6 @@
 import { isRecord, type Job } from '@/server/normalize';
 import type { Screening } from '@/server/screening';
-import { getSentAnswer } from '@/shared/answerValidation';
+import { getSentAnswer, isFileAnswer } from '@/shared/answerValidation';
 import type { PrequalificationRequest } from '@/shared/prequalification';
 import type { AnswerValue } from '@/shared/questionnaire';
 
@@ -21,7 +21,8 @@ const isAnswerValue = (value: unknown): value is AnswerValue =>
   typeof value === 'string' ||
   typeof value === 'number' ||
   typeof value === 'boolean' ||
-  (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+  (Array.isArray(value) && value.every((item) => typeof item === 'string')) ||
+  isFileAnswer(value);
 
 /** Whether a request body has the shape of a `PrequalificationRequest`. */
 export function isPrequalificationRequest(body: unknown): body is PrequalificationRequest {

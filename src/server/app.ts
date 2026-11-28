@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
 import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
@@ -16,6 +17,12 @@ import type {
   PrequalificationResult,
 } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
+
+/**
+ * The largest request body the API reads: 7 MiB. A 5 MB file is about 6.99 million base64 characters, so
+ * this leaves about 350 KB for the rest of the JSON. A bigger body is refused with a 413 before it is parsed.
+ */
+const maxRequestBodyBytes = 7 * 1024 * 1024;
 
 export interface AppDeps {
   jobs: JobStore;
@@ -40,8 +47,18 @@ const defaultDeps = (): AppDeps => ({
   today: () => new Date().toLocaleDateString('sv'),
   logError: (error) => console.error(error),
   logSubmission: (submission) =>
-    console.info(`prequalification: stored ${JSON.stringify(submission, null, 2)}`),
+    console.info(`prequalification: stored ${formatSubmissionForLog(submission)}`),
 });
+
+/** The submission as indented JSON, with each file's base64 `data` (up to ~7 MB) replaced by its length. */
+export function formatSubmissionForLog(submission: Submission): string {
+  return JSON.stringify(
+    submission,
+    (key, value: unknown) =>
+      key === 'data' && typeof value === 'string' ? `<${value.length} base64 characters>` : value,
+    2,
+  );
+}
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
@@ -81,8 +98,13 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     return c.json(toJobQuestionnaire(job, profile, isCompleted));
   });
 
+  const limitRequestBodySize = bodyLimit({
+    maxSize: maxRequestBodyBytes,
+    onError: (c) => c.json({ error: 'payload_too_large' }, 413),
+  });
+
   // Prequalification, not an application: the answers reach the employer only if they pass screening.
-  app.post('/api/jobs/:id/prequalification', async (c) => {
+  app.post('/api/jobs/:id/prequalification', limitRequestBodySize, async (c) => {
     const id = c.req.param('id');
     const config = await jobs.find(id);
     if (config === undefined) return c.json({ error: 'not_found' }, 404);

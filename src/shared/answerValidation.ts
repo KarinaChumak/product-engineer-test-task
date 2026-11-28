@@ -3,15 +3,29 @@ import {
   type AnswerError,
   type PrequalificationRequest,
 } from '@/shared/prequalification';
-import type { AnswerValue, ClientQuestion } from '@/shared/questionnaire';
+import type { AnswerValue, ClientQuestion, FileAnswer } from '@/shared/questionnaire';
 
 // Checks a candidate's answers against the questions they saw. The server runs it before storing
 // anything and the client before sending, so both refuse the same answers with the same codes. It only
 // checks the input and knows no rule about which answers the employer wants, so it is safe to ship.
 
-/** Whether a sent value says nothing: blank text or no choices. It counts as no answer. */
+/** Whether a value is `{ content_type, data, file_name }`, each a string. */
+export const isFileAnswer = (value: unknown): value is FileAnswer =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value) &&
+  'content_type' in value &&
+  typeof value.content_type === 'string' &&
+  'data' in value &&
+  typeof value.data === 'string' &&
+  'file_name' in value &&
+  typeof value.file_name === 'string';
+
+/** Whether a sent value says nothing: blank text, no choices or a file without content. It counts as no answer. */
 export const isEmptyAnswer = (value: AnswerValue): boolean =>
-  (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
+  (typeof value === 'string' && value.trim() === '') ||
+  (Array.isArray(value) && value.length === 0) ||
+  (isFileAnswer(value) && value.data === '');
 
 /**
  * The answer sent for a question, or undefined when there's none or it's empty. Only the request's own keys
@@ -46,6 +60,9 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
       return [...value].length > maxTextAnswerLength ? 'too_long' : undefined;
     case 'boolean':
       return typeof value === 'boolean' ? undefined : 'wrong_type';
+    case 'file':
+      // Only the shape: which types and sizes are allowed is checked separately.
+      return isFileAnswer(value) ? undefined : 'wrong_type';
     case 'date':
       if (typeof value !== 'string') return 'wrong_type';
       if (!isCalendarDate(value)) return 'not_a_date';

@@ -257,6 +257,19 @@ describe('parseJob profile fields', () => {
   });
 });
 
+describe('parseJob file questions', () => {
+  it('keeps a file question as { type: file }, without a warning', () => {
+    const cover = { type: 'file', id: 'cover_letter', question: 'Cover letter?', required: true };
+
+    const { job: parsed, warnings } = parse({ ...job, questions: [cover] });
+
+    expect(toJobQuestionnaire(parsed).questions).toEqual([
+      { type: 'file', id: 'cover_letter', question: 'Cover letter?', required: true },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+});
+
 describe('toJobQuestionnaire', () => {
   it('sends only the client question, without its profile field or screening rules', () => {
     const { job: parsed } = parse({
