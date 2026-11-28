@@ -32,6 +32,7 @@ Read by every reviewer of this repo: `/code-review`, the `reviewer` subagent, an
 
 - Formatting and import order. The formatter and linter own them.
 - Lockfiles and generated files.
+- The size of changes to files listed in `.claude/pr-size-ignore`, `claude-notes/` among them. They don't count toward the 500-line limit, so judge a PR's size by the count `.claude/scripts/pr-size` prints, never by the raw diff.
 
 ## Rules for findings
 
