@@ -370,7 +370,7 @@ describe('POST /api/jobs/:id/prequalification', () => {
       const path = join(directory, 'submissions.json');
       const app = createApp({ ...silent, submissions: submissionsFromFile(path) });
 
-      const salaries = [95000, 60000];
+      const salaries = [validShortAnswers.answers.salary_expectation, 60000];
       const statuses = (
         await Promise.all([
           submitAnswers(app, 'job-short', validShortAnswers),

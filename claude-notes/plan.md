@@ -174,7 +174,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 - Size: ~110 lines, restored from T-08's branch (commit `90fab5b`)
 - After: T-08a
 - Branch: T-08b-must-be-true
-- Outcome: `parseRules` keeps `must_be_true: true` on a boolean question as `ScreeningRules.mustBeTrue`; a value that isn't `true`, or the rule on another type, is ignored with a warning. `screenAnswers` fails anything but a JSON `true` under it, a missing answer included, so job-long now screens on `eu_work_permit` and job-bad on `onsite` and `driving_license` (its `must_be_true` on the text `country` stays ignored). Main's `it.todo` for job-long's permit is gone. T-14's e2e payloads for job-long and job-bad need `true` for those questions to pass screening.
+- Outcome: `parseRules` keeps `must_be_true: true` on a boolean question as `ScreeningRules.mustBeTrue`; a value that isn't `true`, or the rule on another type, is ignored with a warning. `screenAnswers` fails anything but a JSON `true` under it, a missing answer included, so job-long now screens on `eu_work_permit` and job-bad on `onsite` and `driving_license` (its `must_be_true` on the text `country` stays ignored). Main's `it.todo` for job-long's permit is gone. T-14's e2e payloads for job-long and job-bad need `true` for those questions to pass screening. Also fixed: `app.test.ts`'s test for two submissions sent at once assumed the first request wins and failed about 1 run in 3; it now accepts either winner and checks its answers are the ones kept.
 
 ### T-09 Pick several options in a multi-choice question
 
