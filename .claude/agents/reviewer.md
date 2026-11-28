@@ -8,10 +8,10 @@ You review one branch's changes. You report; you never edit files, commit or pus
 
 ## Read
 
-1. `git diff main...HEAD` (or `origin/main...HEAD`) and `git log --oneline main..HEAD`.
+1. `git diff <base>...HEAD` and `git log --oneline --decorate <base>..HEAD`, where `<base>` is the base you were given (the branch below a stack of slices), or `main` (or `origin/main`) when none was given. For a stack, review it as one feature, and say in each finding which slice branch the line is in.
 2. `.claude/REVIEW.md`: what to flag, what to skip, and how to write findings. Follow it.
 3. `.claude/CLAUDE.md` and `claude-notes/decisions.md`.
-4. The ticket's section in `claude-notes/plan.md`, found by the branch name's ID (`T-04-…` is T-04). Find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section, not the whole plan.
+4. Each ticket's section in `claude-notes/plan.md`: the IDs you were given, or the branch name's ID (`T-04-…` is T-04). Find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section, not the whole plan.
 5. Enough of the surrounding code to be sure. Read a function before saying what it does.
 
 ## Look for

@@ -13,6 +13,8 @@ Finished phases are in [plan-archive.md](plan-archive.md): Phase 1.
 
 ## Phase 2: Every question type and messy configs
 
+From T-12c on, tickets are built a feature at a time and reviewed as stacked PRs, one per ticket (see "The rest of the task is built in features and reviewed as stacked PRs" in `decisions.md`). The lanes below are history.
+
 Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11a, then T-11b ‖ T-12a, then T-12b, then T-12c, then T-13, then T-14.
 
 T-11 was split into T-11a (the date field) and T-11b (its range). T-12 needs only T-11a, since both add a question type; T-11b touches the date question alone, so it runs beside T-12, and whichever merges second rebases over the message files.
@@ -84,7 +86,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 Split from T-11 ("Pick a start date within the job's range") when it came to ~450 lines; the range half is T-11b.
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - A date question shows a date field, and its answer is sent and stored as `YYYY-MM-DD`. A value that isn't a real calendar date (`2026-02-30`, `1 May`) is refused as `not_a_date` (test)
   - The field marks a required question, shows its error, and moves focus on submit like the other fields, through a shared `Field` component that holds the label, annotation and error wiring (test)
@@ -98,7 +100,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 
 ### T-11b The start date must be within the job's range
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - `min` and `max` are inclusive, and `"today"` is resolved on the server to the server's current date on each request, so the client gets plain dates. The picker greys out dates outside the range, and a date outside it is refused with a message naming the range in the UI locale's date format (test)
   - A `min` or `max` that isn't a `YYYY-MM-DD` date or `"today"` is dropped with a warning; a `min` after `max` drops both, with one warning, since which one is wrong can't be told (test)
@@ -113,7 +115,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 
 Split from T-12 ("Attach a file, and it's sent in the payload") when the whole came to ~600 lines; the browser half is T-12b and T-12c.
 
-- Status: in review
+- Status: done (merged)
 - Done when:
   - A `file` question is kept by the server and sent to the client as `{ type: 'file' }`, so job-bad's `cover_letter` is no longer dropped (test)
   - A file answer `{ content_type, data, file_name }` is accepted, and stored as that object in the payload; anything else is refused as `wrong_type` (test)
@@ -128,7 +130,7 @@ Split from T-12 ("Attach a file, and it's sent in the payload") when the whole c
 
 Split from T-12b ("Pick a file and see it, or remove it") when its estimate came to ~330 lines; removing the file is T-12d.
 
-- Status: in review
+- Status: done (merged)
 - Outcome: `FileField` (on `Field`) is a button that opens a hidden `<input type="file">` and shows the picked file's name and size in a success-coloured block. `FileQuestion` keeps the picked `File` in state for display only and formats its size (decimal kB/MB). T-12d and T-12c build on both; tests pick a file through the input marked `data-file-picker`.
 - Done when:
   - A file question shows a button that opens the file picker; the chosen file's name and size are shown, and choosing another replaces it (test)
@@ -140,7 +142,7 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-12d Remove the picked file
 
-- Status: in review
+- Status: done (merged)
 - Outcome: A picked file shows a remove button (an X in the file block) that empties the field and moves focus to the choose button; `Button` now accepts `ref`. The remove button sits inside the `role="status"` region, so the removal itself isn't announced (focus moving to the choose button is the only cue); T-12c needs no change for this.
 - Done when:
   - A picked file has a remove button, by mouse or keyboard; removing it empties the field and moves focus to the choose button (test)

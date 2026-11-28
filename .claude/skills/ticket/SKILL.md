@@ -1,48 +1,39 @@
 ---
 name: ticket
-description: Start or resume work on a ticket from the plan in its own branch and worktree. Use when the user says "work on ticket T-04", "next ticket", "continue T-04", or runs /ticket.
+description: Build the next feature (a few tickets from the plan) as a stack of slice branches, one per ticket, on top of the current stack. Use when the user says "work on ticket T-04", "next ticket", "next feature", "continue T-04", or runs /ticket.
 ---
 
-# Work on a ticket
+# Build a feature as a stack of slices
 
-One ticket, one session, one worktree. The main checkout stays on `main`, so other sessions can run their own tickets in parallel.
+A feature is a few tickets that belong together (all of T-12, or T-13 and T-14). Each ticket is one slice: one branch and later one PR, based on the slice below it. See "The rest of the task is built in features and reviewed as stacked PRs" in `claude-notes/decisions.md`.
 
-## 1. Find the ticket
+## 1. Pick the feature
 
-- Read the ticket's `### <ID> <title>` section in `claude-notes/plan.md`. On a ticket's branch the SessionStart hook has already printed it, so use that. Otherwise find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section (Read with `offset` and `limit`). Don't read the whole plan: it grows with every ticket.
-- For "next ticket": list the tickets and their statuses with `grep -nE '^### |Status:' claude-notes/plan.md`, pick the first with `Status: todo` whose `After` tickets are all done, and confirm it with the user. Finished phases are in `claude-notes/plan-archive.md`; their tickets are all done.
-- If its `After` tickets aren't merged yet, or another ticket in progress has the same `Touches`, say so and ask before starting.
+- List the tickets with `grep -nE '^### |Status:' claude-notes/plan.md` and read only the sections you'll build. Take the next `todo` tickets that make one behavior together, two to four of them, and say which in one line.
+- `After` tickets only need to be built, on this stack or on `main`. They don't need to be merged.
+- A ticket estimated over 500 lines becomes two tickets in `plan.md` here, before building, not halfway through.
 
-## 2. Move into its worktree
+## 2. Find the top of the stack
 
-1. Run `.claude/scripts/ticket start <ID> <short-slug>`, with a slug of 2–4 words from the title. It pulls the latest `main` first, so the branch starts from it. It prints `path`, `branch`, `port` and `new`. Run it even when the session already started in a worktree of its own.
-2. Call the EnterWorktree tool with that `path`, so the rest of the session works there.
-3. If `new=yes`, run `.claude/scripts/setup` there: a new worktree has no installed dependencies.
-4. If `new=no`, this is a resumed ticket: read `git log --oneline main..HEAD` and `git status` to see where it stands, and carry on from there.
-5. The dev server and e2e tests in this worktree use `port`. Pass it on if you start anything else that listens.
+Work in this worktree for the whole stack; don't make a new one. If `git status` isn't clean, ask before switching branches.
 
-## 3. Read before proposing
+The base for the first slice is the top of the stack: the newest slice branch whose PR isn't merged yet (`gh pr list --author @me --state open --json headRefName,baseRefName`), or `origin/main` when there is none. Run `git fetch origin` first.
 
-- `.claude/CLAUDE.md`, the ticket's section, and `claude-notes/product.md`.
-- `claude-notes/decisions.md`. If it's in the repo, read it as it is on `main` (`git show origin/main:claude-notes/decisions.md`, or `main:` without a remote), since other tickets may have added decisions after this branch started.
-- The code in the ticket's `Touches`.
+## 3. Build each slice
 
-## 4. Mark it started
+For each ticket, in order:
 
-In the ticket's section, set `Status: in progress` and `Branch: <branch>`. If the notes are in the repo, commit that with the first code change, not alone.
+1. `git switch -c <ID>-<short-slug> <base>`, where the base is the previous slice's branch (or the top of the stack, for the first).
+2. Read the code in its `Touches` and only the decision log entries it touches. If the approach is obvious, state it in two or three lines and build; ask only about a choice that changes another ticket or what the user sees.
+3. Build it with its types, copy and tests, in commits. Run `.claude/scripts/test` on what you touched and `.claude/scripts/pr-size <base>` (it must stay under 500).
+4. Set the ticket's `Status: in review` in `plan.md` with a one-line `Outcome`, and commit it on this slice.
 
-## 5. Propose, then build
+Don't run `check`, `/design-check`, `/verify-ui` or the reviewer between slices.
 
-- Propose the approach in a few lines: what changes in which files, with an estimate of changed lines per file, how each "done when" will be proved, the names of new modules, components, hooks and functions (each saying exactly what it is or does), and any dependency you'll add. Wait for the user's approval.
-- If the estimate is over the ticket's `Size`, or over 300 lines, don't build it as one PR. Propose splitting it into smaller tickets in `plan.md`, each a complete behavior, and build only the first.
-- When the user says how to split, use their split. Don't offer a different one as a choice or a suggested reply; if theirs still comes out too big, say so and propose splitting their first part further.
-- When a word in the ticket or the user's message could mean two parts of the system ("validation" could mean checking the input or applying a business rule), ask which one before building.
-- Questions that only affect this ticket: decide, and mention the choice in the proposal. Questions that affect other tickets, or change what the user sees in another ticket's "done when": ask, since they become entries in `claude-notes/decisions.md`.
-- Build in small commits, with the types, copy, keys and tests of each behavior. Run `.claude/scripts/pr-size` after each commit. Past 400 lines, stop and tell the user before going on.
-- Never drop, merge or thin out tests to stay under the size limit. A behavior with every case tested that doesn't fit is a ticket to split.
+## 4. Finish the feature
 
-## 6. Finish
+When the last slice is built, run the `finish` skill with the list of slice branches, bottom first, and the base of the bottom one. It runs the expensive checks once for the whole feature and opens one stacked PR per slice.
 
-When every "done when" holds, run the `finish` skill right away, without waiting to be asked. It has a separate agent review the branch, then hands the fixes, the PR and CI to a finisher agent with a fresh context, so they don't re-send this whole build conversation on every step.
+## 5. Comments on a PR
 
-When the user says the PR has comments, run the `address-review` skill. Don't merge; a human does.
+When the user says a PR has comments, run the `address-review` skill on that PR's branch: fixes are new commits there. Then switch to the top branch of the stack, run `git rebase --update-refs <fixed-branch>`, run `.claude/scripts/check`, and push every branch above it with `git push --force-with-lease`. Never merge; the user merges bottom up with merge commits.
