@@ -98,7 +98,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 
 ### T-11b The start date must be within the job's range
 
-- Status: todo
+- Status: in review
 - Done when:
   - `min` and `max` are inclusive, and `"today"` is resolved on the server to the server's current date on each request, so the client gets plain dates. The picker greys out dates outside the range, and a date outside it is refused with a message naming the range in the UI locale's date format (test)
   - A `min` or `max` that isn't a `YYYY-MM-DD` date or `"today"` is dropped with a warning; a `min` after `max` drops both, with one warning, since which one is wrong can't be told (test)
@@ -107,6 +107,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 - Size: ~170 lines
 - After: T-11a
 - Branch: claude/task-11-b-1c423c
+- Outcome: A date question's `min` and `max` are resolved by `parseJob(raw, today, warn)`: `"today"` becomes the server's date from `AppDeps.today` on each request, a bad bound is dropped with a warning, and a `min` after `max` drops both. `findAnswerError` refuses a date outside the range, inclusive, as `out_of_range`; `DateField` takes `min` and `max`; the message `answerError.date_out_of_range` names the range in the UI locale. Later tickets that call `parseJob` pass a date.
 
 ### T-12 Attach a file, and it's sent in the payload
 

@@ -36,6 +36,7 @@ const defaultDeps = (): AppDeps => ({
   loadProfile: () => profileFromFile('profile.json'),
   submissions: submissionsFromFile('data/submissions.json'),
   warn: (message) => console.warn(`normalize: ${message}`),
+  // The Swedish locale writes a date as YYYY-MM-DD, in the server's local timezone.
   today: () => new Date().toLocaleDateString('sv'),
   logError: (error) => console.error(error),
   logSubmission: (submission) =>
