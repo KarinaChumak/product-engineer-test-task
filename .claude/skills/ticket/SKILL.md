@@ -9,8 +9,8 @@ One ticket, one session, one worktree. The main checkout stays on `main`, so oth
 
 ## 1. Find the ticket
 
-- Read the ticket's `### <ID> <title>` section in `claude-notes/plan.md`.
-- For "next ticket": pick the first ticket with `Status: todo` whose `After` tickets are all done, and confirm it with the user.
+- Read the ticket's `### <ID> <title>` section in `claude-notes/plan.md`. On a ticket's branch the SessionStart hook has already printed it, so use that. Otherwise find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section (Read with `offset` and `limit`). Don't read the whole plan: it grows with every ticket.
+- For "next ticket": list the tickets and their statuses with `grep -nE '^### |Status:' claude-notes/plan.md`, pick the first with `Status: todo` whose `After` tickets are all done, and confirm it with the user. Finished phases are in `claude-notes/plan-archive.md`; their tickets are all done.
 - If its `After` tickets aren't merged yet, or another ticket in progress has the same `Touches`, say so and ask before starting.
 
 ## 2. Move into its worktree
@@ -43,6 +43,6 @@ In the ticket's section, set `Status: in progress` and `Branch: <branch>`. If th
 
 ## 6. Finish
 
-When every "done when" holds, run the `finish` skill right away, without waiting to be asked. It has a separate agent review the branch, fixes what it finds, and opens the PR.
+When every "done when" holds, commit everything and tell the user: "Type `/clear`, then `/finish`." `finish` works from the branch and the notes, so it runs in a fresh context instead of re-sending this whole build conversation on every step. It has a separate agent review the branch, fixes what it finds, and opens the PR.
 
 When the user says the PR has comments, run the `address-review` skill. Don't merge; a human does.
