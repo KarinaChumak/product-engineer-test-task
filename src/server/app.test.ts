@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createApp, type AppDeps } from '@/server/app';
+import { createApp, formatSubmissionForLog, type AppDeps } from '@/server/app';
 import type { JobStore } from '@/server/jobs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -34,6 +34,30 @@ const silent = {
 const storeOf = (...configs: Record<string, unknown>[]): JobStore => ({
   find: async (id) => configs.find((config) => config.id === id),
   list: async () => configs,
+});
+
+describe('formatSubmissionForLog', () => {
+  it('writes a file answer’s data as its length, and keeps every other answer as it is', () => {
+    const text = formatSubmissionForLog({
+      candidate_id: 'cand-1',
+      payload: {
+        job_id: 'job-file',
+        answers: [
+          {
+            id: 'cover_letter',
+            value: { content_type: 'application/pdf', data: 'A'.repeat(1000), file_name: 'a.pdf' },
+          },
+          { id: 'salary', value: 95000 },
+        ],
+        screening: { passed: true, failed: [] },
+      },
+    });
+
+    expect(text).toContain('<1000 base64 characters>');
+    expect(text).not.toContain('AAAA');
+    expect(text).toContain('"file_name": "a.pdf"');
+    expect(text).toContain('95000');
+  });
 });
 
 describe('GET /api/jobs', () => {

@@ -47,8 +47,18 @@ const defaultDeps = (): AppDeps => ({
   today: () => new Date().toLocaleDateString('sv'),
   logError: (error) => console.error(error),
   logSubmission: (submission) =>
-    console.info(`prequalification: stored ${JSON.stringify(submission, null, 2)}`),
+    console.info(`prequalification: stored ${formatSubmissionForLog(submission)}`),
 });
+
+/** The submission as indented JSON, with each file's base64 `data` (up to ~7 MB) replaced by its length. */
+export function formatSubmissionForLog(submission: Submission): string {
+  return JSON.stringify(
+    submission,
+    (key, value: unknown) =>
+      key === 'data' && typeof value === 'string' ? `<${value.length} base64 characters>` : value,
+    2,
+  );
+}
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
