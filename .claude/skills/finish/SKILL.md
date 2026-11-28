@@ -1,6 +1,6 @@
 ---
 name: finish
-description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, opens the PR, then fixes what CI and the CI review find. Run it automatically when a ticket's work is done, or when the user runs /finish.
+description: Finish a ticket and open its PR. Proves each "done when", has a separate reviewer agent review the branch, fixes what it finds, updates the plan and decisions, opens the PR, then fixes what CI and the CI review find. Run it when the user runs /finish, in a fresh context after /clear; when a ticket's work is done, ask the user to type /clear and then /finish instead of running it in the build conversation.
 ---
 
 # Finish a ticket
@@ -43,7 +43,7 @@ Commit the fixes with messages that say what changed.
 The reviewer and the CI review both read every branch. Run the extra passes only where they find things those reviews don't, using the line count `pr-size` printed in step 2:
 
 1. `/simplify`: only when the branch changes more than 150 lines. Commit what it changes.
-2. `design-check`: only when the branch changes a file in `src/components/` or a `.css` file.
+2. `design-check`: when the branch changes a `.tsx` or `.css` file under `src/` (CLAUDE.md requires it for UI changes).
 3. `verify-ui`: when the branch changes what renders. Keep the screenshot paths for the PR description.
 4. If any of these changed code, run `.claude/scripts/check` again.
 
