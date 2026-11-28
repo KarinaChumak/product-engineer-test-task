@@ -103,7 +103,7 @@ Before T-01 can be proved in the browser, a human adds the `/api` proxy to the p
   - A number outside the field's `min`/`max` shows a format message that doesn't reveal any screening threshold (test)
   - The server's 422 field errors are shown on the matching fields the same way (test)
   - Errors are linked to their field with `aria-describedby`, and the field is marked `aria-invalid` (test)
-  - The error states match the "Fehler- & Feldzustände" board on the design canvas at mobile and desktop widths (screenshot)
+  - The error states match the "Fehler- & Feldzustände" board on the [design canvas](https://claude.ai/artifact/7Fcz7h2BkNLy85Jzyp5q3N#artboard-Errors) at mobile and desktop widths (screenshot)
 - Touches: src/components (Select, NumberField, TextField error states, a shared FieldError), src/app/validation
 - Size: ~280 lines
 - PRs: one

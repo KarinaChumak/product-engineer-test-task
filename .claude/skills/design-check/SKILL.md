@@ -5,7 +5,7 @@ allowed-tools: [Read, Edit, Grep, Glob, Bash]
 ---
 
 1. Read `.claude/DESIGN.md`.
-2. Find the changed UI files: `git diff --name-only $(git merge-base HEAD main) -- 'src/**/*.tsx' 'src/**/*.css'`, plus untracked ones from `git ls-files --others --exclude-standard src`.
+2. Find the changed UI files: `git diff --name-only $(git merge-base HEAD main) -- 'src/**/*.tsx' 'src/**/*.css'`, plus untracked ones from `git ls-files --others --exclude-standard src`. For each changed component, read its board on the design canvas (the table in `.claude/DESIGN.md`) with the Artifact tool, and check the component against it: borders, radii, spacing, states and copy rules. If the canvas can't be read, say so in the report and check against `.claude/DESIGN.md` alone.
 3. Run the mechanical checks first:
    - `.claude/scripts/raw-styles` lists added lines with raw hex colors or pixel sizes outside `src/index.css`.
    - Interactive elements (`button`, `a`, `input`, anything with `onClick`) have an accessible name and work by keyboard.

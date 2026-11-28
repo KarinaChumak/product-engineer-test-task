@@ -7,6 +7,7 @@
   --space-8: 32px;
   --radius-2: 6px;
   --radius-3: 12px;
+  --radius-4: 16px;
   --radius-pill: 999px;
   --touch-target: 44px;
   --page-width: 720px;
@@ -27,7 +28,11 @@
   --color-on-accent: #ffffff;
   --color-accent-soft: #e2bdff;
   --color-on-accent-soft: #5e2f82;
+  --color-selected-soft: #faf3ff;
   --color-focus: #5e2f82;
+  --color-success: #219653;
+  --color-success-soft: #dcf8db;
+  --color-on-success-soft: #145931;
   --color-danger: #b3261e;
   --color-danger-soft: #fdecea;
   --shadow-popover: 0 4px 16px rgb(0 0 0 / 12%);
@@ -51,7 +56,11 @@
     --color-on-accent: #1a0d26;
     --color-accent-soft: #3d2354;
     --color-on-accent-soft: #e2bdff;
+    --color-selected-soft: #2a1a3a;
     --color-focus: #d0a8f5;
+    --color-success: #5cc283;
+    --color-success-soft: #173a22;
+    --color-on-success-soft: #a6e3b0;
     --color-danger: #f2b8b5;
     --color-danger-soft: #3b1715;
     --shadow-popover: 0 4px 16px rgb(0 0 0 / 50%);
