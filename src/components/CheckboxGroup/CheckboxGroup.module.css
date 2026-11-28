@@ -1,0 +1,105 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* A legend can't be a flex container in every browser, so it holds one. */
+.legend {
+  display: contents;
+}
+
+.legend > * {
+  margin-right: var(--space-2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.required {
+  color: var(--color-accent);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch-target);
+}
+
+.checkbox {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  height: 1.25em;
+  padding: 0;
+  border: 2px solid var(--color-field-border);
+  border-radius: var(--radius-2);
+  background: var(--color-bg);
+  color: var(--color-on-accent);
+  cursor: pointer;
+}
+
+.checkbox:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.checkbox[data-state='checked'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.checkbox[aria-invalid='true']:not([data-state='checked']) {
+  border-color: var(--color-danger);
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.checkbox:disabled {
+  border-color: var(--color-line);
+  background: var(--color-surface);
+  cursor: not-allowed;
+}
+
+.checkbox:disabled + .optionLabel {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.indicator {
+  display: inline-flex;
+}
+
+.indicator svg {
+  width: 1em;
+  height: 1em;
+}
+
+.optionLabel {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
