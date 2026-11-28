@@ -14,7 +14,7 @@ Tests and typechecks don't catch a blank screen, a broken layout or a console er
    - `pnpm exec playwright screenshot --viewport-size=1280,800 --full-page http://localhost:${PORT:-5173}<route> .verify/<slug>-desktop.png`
    - Add `--color-scheme=dark` versions if the change touched colors.
 5. Run `.claude/scripts/e2e` to catch console errors and broken interactions. The smoke test fails on any console error.
-6. Read every screenshot. Check that the change is visible, nothing overlaps or overflows, there's no horizontal scroll on mobile, and loading, empty and error states look right if the change touched them. If the user gave a mockup, compare against it side by side.
+6. Read every screenshot. Check that the change is visible, nothing overlaps or overflows, there's no horizontal scroll on mobile, and loading, empty and error states look right if the change touched them. Compare each screen with its board on the design canvas (the table in `.claude/DESIGN.md`, read with the Artifact tool), or with a mockup the user gave, and list where they differ.
 7. Stop the dev server.
 
 ## Report

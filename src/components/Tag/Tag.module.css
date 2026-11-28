@@ -9,6 +9,12 @@
   font-size: var(--font-size-s);
 }
 
+.success {
+  background: var(--color-success-soft);
+  color: var(--color-on-success-soft);
+  font-weight: 500;
+}
+
 .icon {
   display: inline-flex;
 }
