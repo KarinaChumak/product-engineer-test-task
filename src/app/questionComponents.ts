@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { BooleanQuestion } from '@/app/questions/BooleanQuestion';
 import { DateQuestion } from '@/app/questions/DateQuestion';
+import { FileQuestion } from '@/app/questions/FileQuestion';
 import { NumericQuestion } from '@/app/questions/NumericQuestion';
 import { SelectQuestion } from '@/app/questions/SelectQuestion';
 import { TextQuestion } from '@/app/questions/TextQuestion';
@@ -18,6 +19,7 @@ const questionComponents: QuestionComponents = {
   text: TextQuestion,
   boolean: BooleanQuestion,
   date: DateQuestion,
+  file: FileQuestion,
 };
 
 /** The component that renders this question, or undefined while its type isn't supported yet. */

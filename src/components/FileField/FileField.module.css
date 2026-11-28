@@ -1,0 +1,51 @@
+.control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.status {
+  width: 100%;
+}
+
+/* Out of the layout, but kept in the document so the button can open the picker. */
+.picker {
+  display: none;
+}
+
+.file {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--color-success);
+  border-radius: var(--radius-3);
+  background: var(--color-success-soft);
+  color: var(--color-on-success-soft);
+}
+
+.check {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
+}
+
+.name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.size {
+  font-size: var(--font-size-s);
+}
