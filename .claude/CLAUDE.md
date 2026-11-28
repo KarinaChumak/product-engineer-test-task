@@ -41,7 +41,7 @@ These scripts are the entry points in this repo. Use them instead of calling the
 
 - `claude-notes/product.md` says what the product is for; `claude-notes/plan.md` holds the phases and the current phase's tickets. `/kickoff` creates both; `/plan-phase` breaks down the next phase.
 - A ticket is one behavior the user can see, delivered as one PR with its UI, types, API, copy and tests, under 500 changed lines. A ticket that would be bigger is split into smaller tickets before any code is written, each landing on `main` before the next one starts. Never stack PRs on top of each other.
-- Each ticket runs in its own branch and worktree under `.claude/worktrees/`, set up by the `ticket` skill; the main checkout stays on `main`. When a ticket is done, the `finish` skill has a separate reviewer agent review it, fixes what it finds, and opens the PR. `address-review` fixes the comments reviewers leave on the PR.
+- Each ticket runs in its own branch and worktree under `.claude/worktrees/`, set up by the `ticket` skill; the main checkout stays on `main`. When a ticket is done, the `finish` skill has a separate reviewer agent review it, then a `finisher` agent with a fresh context fixes what it finds and opens the PR. `address-review` fixes the comments reviewers leave on the PR.
 
 # Conventions
 
