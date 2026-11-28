@@ -12,7 +12,7 @@ import type {
 // question: its profile field and screening rules. The candidate's questionnaire, and the check and the
 // screening of their prequalification answers, are all read from that `Job`, so they agree on every
 // repair. Server-only data lives beside each client question, never inside it, so it can't leave the server.
-// A skeleton: Phase 2 adds the remaining types and the full set of repairs.
+// Every repair is logged through `warn`, so the logs tell the recruiter what was wrong with the config.
 
 export type Warn = (message: string) => void;
 
@@ -84,6 +84,48 @@ function parseDateBounds(raw: Raw, id: string, today: string, warn: Warn): { min
   return bounds;
 }
 
+/** The longest question text shown, in characters (code points, so an emoji is never split). */
+export const maxQuestionLength = 255;
+
+/** The question text, cut to `maxQuestionLength` characters with "…" as the last, so the cut shows. */
+function cutQuestionText(question: string, id: string, warn: Warn): string {
+  const characters = [...question];
+  if (characters.length <= maxQuestionLength) return question;
+  warn(`Cut the question text of "${id}" to ${maxQuestionLength} characters, from ${characters.length}`);
+  return `${characters.slice(0, maxQuestionLength - 1).join('')}…`;
+}
+
+/**
+ * How many options a select question allows: its `max_choices`, 1 when it has none, at least 1 and at
+ * most the option count, with a warning for each repair.
+ */
+function parseMaxChoices(raw: Raw, id: string, optionCount: number, warn: Warn): number {
+  const maxChoices = asInteger(raw.max_choices) ?? 1;
+  if (maxChoices < 1) {
+    warn(`Set max_choices on "${id}" to 1: ${maxChoices} allows no choice`);
+    return 1;
+  }
+  if (maxChoices > optionCount) {
+    warn(`Capped max_choices on "${id}" at ${optionCount}, its number of options, from ${maxChoices}`);
+    return optionCount;
+  }
+  return maxChoices;
+}
+
+const defaultNumericRange = { min: 0, max: 100_000_000 };
+
+/**
+ * A numeric question's `min` and `max`, each defaulting to `defaultNumericRange`. When `min` is above
+ * `max` both fall back to the default, with one warning, since which one is wrong can't be told.
+ */
+function parseNumericRange(raw: Raw, id: string, warn: Warn): { min: number; max: number } {
+  const min = asInteger(raw.min) ?? defaultNumericRange.min;
+  const max = asInteger(raw.max) ?? defaultNumericRange.max;
+  if (min <= max) return { min, max };
+  warn(`Ignored min and max on "${id}": min ${min} is above max ${max}`);
+  return defaultNumericRange;
+}
+
 function normalizeQuestion(raw: Raw, today: string, warn: Warn): ClientQuestion | undefined {
   const id = asString(raw.id);
   const question = asString(raw.question);
@@ -91,23 +133,19 @@ function normalizeQuestion(raw: Raw, today: string, warn: Warn): ClientQuestion 
     warn(`Dropped a question without an id or question text`);
     return undefined;
   }
-  const base = { id, question, required: raw.required === true };
+  const base = { id, question: cutQuestionText(question, id, warn), required: raw.required === true };
 
   switch (raw.type) {
-    case 'select':
-      return {
-        ...base,
-        type: 'select',
-        options: normalizeOptions(raw.options),
-        maxChoices: asInteger(raw.max_choices) ?? 1,
-      };
+    case 'select': {
+      const options = normalizeOptions(raw.options);
+      if (options.length === 0) {
+        warn(`Dropped question "${id}": a select question needs at least one option`);
+        return undefined;
+      }
+      return { ...base, type: 'select', options, maxChoices: parseMaxChoices(raw, id, options.length, warn) };
+    }
     case 'numeric':
-      return {
-        ...base,
-        type: 'numeric',
-        min: asInteger(raw.min) ?? 0,
-        max: asInteger(raw.max) ?? 100_000_000,
-      };
+      return { ...base, type: 'numeric', ...parseNumericRange(raw, id, warn) };
     case 'text':
       return { ...base, type: 'text', multiline: raw.multiline === true };
     case 'boolean':

@@ -286,7 +286,10 @@ describe('GET /api/jobs/:id/questionnaire', () => {
           question: 'Notice?',
           max_choices: 2,
           profile_field: 'notice_period',
-          options: [{ label: '3 months', value: '3_months' }],
+          options: [
+            { label: '3 months', value: '3_months' },
+            { label: 'More', value: 'more' },
+          ],
         },
       ],
     });
@@ -701,6 +704,44 @@ describe('POST /api/jobs/:id/prequalification', () => {
       },
     });
     expect(saved).toEqual([]);
+  });
+
+  describe('job-bad react_years, whose min of 5 is an input range, not a screening rule', () => {
+    const jobBadAnswers = (reactYears: number) => ({
+      answers: {
+        notice_period: '3_months',
+        salutation: 'mr',
+        country: 'DE',
+        salary_expectation: 60000,
+        onsite: true,
+        driving_license: true,
+        cover_letter: fileAnswer(100),
+        safe: 'Two years on a SAFe train',
+        strengths_weaknesses: 'Strong in testing, impatient with meetings',
+        react_years: reactYears,
+        tech_stack: ['react', 'vue'],
+        availability: false,
+      },
+    });
+
+    it('refuses 3 as out of range with a 422, so it is never screened or stored', async () => {
+      const { app, saved } = appStoringIn();
+
+      const response = await submitAnswers(app, 'job-bad', jobBadAnswers(3));
+
+      expect(response.status).toBe(422);
+      expect(await response.json()).toMatchObject({ fields: { react_years: 'out_of_range' } });
+      expect(saved).toEqual([]);
+    });
+
+    it('passes screening with 5, the lowest answer the field allows', async () => {
+      const { app, saved } = appStoringIn();
+
+      const response = await submitAnswers(app, 'job-bad', jobBadAnswers(5));
+
+      expect(response.status).toBe(201);
+      expect(saved[0]?.payload.screening).toEqual({ passed: true, failed: [] });
+    });
   });
 
   it('returns 422 for a required question left blank', async () => {

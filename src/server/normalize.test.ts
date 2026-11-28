@@ -270,6 +270,116 @@ describe('parseJob file questions', () => {
   });
 });
 
+describe('parseJob job-bad', () => {
+  it('logs one warning per repair of jobs/bad.json', async () => {
+    const raw: unknown = JSON.parse(await readFile('jobs/bad.json', 'utf8'));
+
+    const { warnings } = parse(raw);
+
+    expect(warnings).toEqual([
+      'Dropped a second question "notice_period": only the first question with an id counts',
+      'Ignored must_be_true on "country": it only applies to boolean questions',
+      'Capped max_choices on "tech_stack" at 5, its number of options, from 10',
+      'Dropped question "typescript_level": type "rating" is not supported',
+    ]);
+  });
+});
+
+describe('parseJob select questions', () => {
+  const options = [
+    { label: 'React', value: 'react' },
+    { label: 'Vue', value: 'vue' },
+  ];
+  const parseSelect = (extra: object) =>
+    parse({ ...job, questions: [{ type: 'select', id: 'stack', question: 'Stack?', options, ...extra }] });
+
+  it('keeps a max_choices within the options, without a warning', () => {
+    const { job: parsed, warnings } = parseSelect({ max_choices: 2 });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ maxChoices: 2 });
+    expect(warnings).toEqual([]);
+  });
+
+  it('caps max_choices at the number of options, with a warning', () => {
+    const { job: parsed, warnings } = parseSelect({ max_choices: 10 });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ maxChoices: 2 });
+    expect(warnings).toEqual(['Capped max_choices on "stack" at 2, its number of options, from 10']);
+  });
+
+  it.each([0, -1])('makes a max_choices of %i a single choice, with a warning', (maxChoices) => {
+    const { job: parsed, warnings } = parseSelect({ max_choices: maxChoices });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ maxChoices: 1 });
+    expect(warnings).toEqual([expect.stringContaining('max_choices on "stack" to 1')]);
+  });
+
+  it.each([
+    ['no options', undefined],
+    ['an empty option list', []],
+    ['only options without a label or value', [{ label: 'React' }, 'vue']],
+  ])('drops a select question with %s, with a warning', (_, rawOptions) => {
+    const { job: parsed, warnings } = parseSelect({ options: rawOptions, required: true });
+
+    expect(parsed.questions).toEqual([]);
+    expect(warnings).toEqual(['Dropped question "stack": a select question needs at least one option']);
+  });
+});
+
+describe('parseJob numeric ranges', () => {
+  const parseNumeric = (range: object) => parse({ ...job, questions: [{ ...salary, ...range }] });
+
+  it('keeps a min equal to max, without a warning', () => {
+    const { job: parsed, warnings } = parseNumeric({ min: 5, max: 5 });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: 5, max: 5 });
+    expect(warnings).toEqual([]);
+  });
+
+  it('drops both bounds when min is above max, with one warning', () => {
+    const { job: parsed, warnings } = parseNumeric({ min: 50, max: 5 });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: 0, max: 100_000_000 });
+    expect(warnings).toEqual(['Ignored min and max on "salary": min 50 is above max 5']);
+  });
+
+  it('drops both bounds when only a min is set, above the default max', () => {
+    const { job: parsed, warnings } = parseNumeric({ min: 200_000_000, max: undefined });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: 0, max: 100_000_000 });
+    expect(warnings).toHaveLength(1);
+  });
+});
+
+describe('parseJob question text', () => {
+  const parseText = (question: string) =>
+    parse({ ...job, questions: [{ type: 'text', id: 'about', question }] });
+
+  it('keeps a question of 255 characters as it is, without a warning', () => {
+    const question = 'a'.repeat(255);
+
+    const { job: parsed, warnings } = parseText(question);
+
+    expect(parsed.questions[0]?.client.question).toBe(question);
+    expect(warnings).toEqual([]);
+  });
+
+  it('cuts a longer question to 255 characters, the last an ellipsis, with a warning', () => {
+    const { job: parsed, warnings } = parseText('a'.repeat(300));
+
+    expect(parsed.questions[0]?.client.question).toBe(`${'a'.repeat(254)}…`);
+    expect(warnings).toEqual(['Cut the question text of "about" to 255 characters, from 300']);
+  });
+
+  it('counts an emoji as one character and never splits it', () => {
+    const { job: parsed } = parseText('🚀'.repeat(300));
+
+    const question = parsed.questions[0]?.client.question ?? '';
+    expect([...question]).toHaveLength(255);
+    expect(question).toBe(`${'🚀'.repeat(254)}…`);
+  });
+});
+
 describe('toJobQuestionnaire', () => {
   it('sends only the client question, without its profile field or screening rules', () => {
     const { job: parsed } = parse({
