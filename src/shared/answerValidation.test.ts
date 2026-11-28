@@ -119,6 +119,26 @@ describe('findAnswerError', () => {
   ])('refuses a date answer that is %s', (_, value, error) => {
     expect(findAnswerError(date, value)).toBe(error);
   });
+
+  const dateInRange: ClientQuestion = { ...date, min: '2026-06-15', max: '2026-12-31' };
+
+  it.each(['2026-06-15', '2026-09-01', '2026-12-31'])(
+    'accepts the date %s within min and max, both inclusive',
+    (value) => {
+      expect(findAnswerError(dateInRange, value)).toBeUndefined();
+    },
+  );
+
+  it.each([
+    ['the day before min', '2026-06-14'],
+    ['the day after max', '2027-01-01'],
+  ])('refuses a date that is %s', (_, value) => {
+    expect(findAnswerError(dateInRange, value)).toBe('out_of_range');
+  });
+
+  it('accepts any date after min when there is no max', () => {
+    expect(findAnswerError({ ...date, min: '2026-06-15' }, '2099-01-01')).toBeUndefined();
+  });
 });
 
 describe('findInvalidAnswers', () => {

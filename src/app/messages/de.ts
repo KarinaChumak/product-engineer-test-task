@@ -39,6 +39,8 @@ export const de: Record<MessageKey, string> = {
   'answerError.not_an_integer': 'Gib eine ganze Zahl ohne Nachkommastellen ein.',
   'answerError.out_of_range': 'Gib eine Zahl von {min} bis {max} ein.',
   'answerError.too_long': 'Kürze deine Antwort auf höchstens {maxLength} Zeichen.',
+  'answerError.date_out_of_range':
+    '{bounds, select, both {Wähle ein Datum vom {min} bis zum {max}.} min {Wähle den {min} oder ein späteres Datum.} other {Wähle den {max} oder ein früheres Datum.}}',
   'answerError.not_a_date': 'Gib ein Datum ein, das es gibt, oder wähle eins im Kalender.',
   'prequalification.completed.title': 'Du hast die Fragen zu diesem Job schon beantwortet',
   'prequalification.completed.body':

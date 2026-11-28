@@ -27,7 +27,8 @@ const screen = (job: Job, answers: Record<string, AnswerValue>) =>
   screenAnswers(job, new Map(Object.entries(answers)));
 
 /** Parses a real job config from `jobs/`, without its repair warnings. */
-const parseJobFile = (file: string) => parseJob(JSON.parse(readFileSync(`jobs/${file}`, 'utf8')), () => {});
+const parseJobFile = (file: string) =>
+  parseJob(JSON.parse(readFileSync(`jobs/${file}`, 'utf8')), '2026-06-15', () => {});
 
 describe('screenAnswers', () => {
   describe('without rules', () => {

@@ -3,11 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { parseJob, toJobQuestionnaire } from '@/server/normalize';
 
 const job = { id: 'job-x', title: 'X', company: 'Acme', questions: [] };
+const today = '2026-06-15';
 
 /** Parses `raw`, collecting the warnings. */
 const parse = (raw: unknown) => {
   const warnings: string[] = [];
-  return { job: parseJob(raw, (message) => warnings.push(message)), warnings };
+  return { job: parseJob(raw, today, (message) => warnings.push(message)), warnings };
 };
 
 describe('parseJob language', () => {
@@ -78,7 +79,7 @@ describe('parseJob duplicate question ids', () => {
   it('leaves job-bad with one notice_period question and no other duplicate', async () => {
     const raw: unknown = JSON.parse(await readFile('jobs/bad.json', 'utf8'));
 
-    const ids = parseJob(raw, () => {}).questions.map(({ client }) => client.id);
+    const ids = parseJob(raw, today, () => {}).questions.map(({ client }) => client.id);
 
     expect(ids.filter((id) => id === 'notice_period')).toHaveLength(1);
     expect(new Set(ids).size).toBe(ids.length);
@@ -136,19 +137,63 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([]);
   });
 
-  it('ignores a date question’s min and max for now, with a warning', () => {
-    const { job: parsed, warnings } = parse({
-      ...job,
-      questions: [{ type: 'date', id: 'start', question: 'Start?', min: 'today', max: '2027-12-31' }],
-    });
+  const parseDateQuestion = (bounds: Record<string, unknown>) =>
+    parse({ ...job, questions: [{ type: 'date', id: 'start', question: 'Start?', ...bounds }] });
+
+  it('turns a date question’s "today" into the server’s date, so the client gets plain dates', () => {
+    const { job: parsed, warnings } = parseDateQuestion({ min: 'today', max: '2027-12-31' });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: '2026-06-15', max: '2027-12-31' });
+    expect(warnings).toEqual([]);
+  });
+
+  it('keeps a date question with only a max', () => {
+    const { job: parsed } = parseDateQuestion({ max: 'today' });
 
     expect(parsed.questions[0]?.client).toEqual({
       type: 'date',
       id: 'start',
       question: 'Start?',
       required: false,
+      max: '2026-06-15',
     });
+  });
+
+  it('keeps a date question whose min and max are the same day', () => {
+    const { job: parsed, warnings } = parseDateQuestion({ min: '2026-07-01', max: '2026-07-01' });
+
+    expect(parsed.questions[0]?.client).toMatchObject({ min: '2026-07-01', max: '2026-07-01' });
+    expect(warnings).toEqual([]);
+  });
+
+  it.each([
+    ['text', 'next week'],
+    ['a date that does not exist', '2026-02-30'],
+    ['a date in another format', '01.07.2026'],
+    ['a number', 20260701],
+  ])('drops a bound that is %s, with a warning', (_, bound) => {
+    const { job: parsed, warnings } = parseDateQuestion({ min: bound, max: '2027-12-31' });
+
+    const client = parsed.questions[0]?.client;
+    expect(client).toMatchObject({ max: '2027-12-31' });
+    expect(client).not.toHaveProperty('min');
+    expect(warnings).toEqual([expect.stringContaining('min on "start"')]);
+  });
+
+  it('drops both bounds when min is after max, with one warning', () => {
+    const { job: parsed, warnings } = parseDateQuestion({ min: '2027-01-01', max: '2026-12-31' });
+
+    const client = parsed.questions[0]?.client;
+    expect(client).not.toHaveProperty('min');
+    expect(client).not.toHaveProperty('max');
     expect(warnings).toEqual([expect.stringContaining('min and max on "start"')]);
+  });
+
+  it('drops both bounds when "today" as min is after max', () => {
+    const { job: parsed, warnings } = parseDateQuestion({ min: 'today', max: '2026-06-01' });
+
+    expect(parsed.questions[0]?.client).not.toHaveProperty('min');
+    expect(warnings).toHaveLength(1);
   });
 
   it('ignores must_be_true on a question that is not boolean, with a warning', () => {

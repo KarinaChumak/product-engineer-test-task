@@ -23,7 +23,12 @@ const submissionsIn = (saved: Submission[]): SubmissionStore => {
 
 // Everything else comes from the real `jobs/` and `profile.json`, but never the real `data/submissions.json`.
 // Normalization warnings are expected.
-const silent = { warn: () => {}, logSubmission: () => {}, submissions: submissionsIn([]) };
+const silent = {
+  warn: () => {},
+  logSubmission: () => {},
+  submissions: submissionsIn([]),
+  today: () => '2026-06-15',
+};
 
 /** A store holding just these configs. */
 const storeOf = (...configs: Record<string, unknown>[]): JobStore => ({
@@ -120,7 +125,7 @@ describe('GET /api/jobs/:id/questionnaire', () => {
     });
   });
 
-  it('returns job-long with its starting_date as a required date question', async () => {
+  it('returns job-long with its starting_date as a required date question from today on', async () => {
     const response = await createApp(silent).request('/api/jobs/job-long/questionnaire');
 
     const job = (await response.json()) as JobQuestionnaire;
@@ -129,7 +134,34 @@ describe('GET /api/jobs/:id/questionnaire', () => {
       id: 'starting_date',
       question: 'Ab wann könnten Sie bei uns starten?',
       required: true,
+      min: '2026-06-15',
     });
+  });
+
+  it('resolves "today" on each request, so a server running past midnight moves the range', async () => {
+    let date = '2026-06-15';
+    const app = createApp({ ...silent, today: () => date });
+    const minOf = async () => {
+      const response = await app.request('/api/jobs/job-long/questionnaire');
+      const job = (await response.json()) as JobQuestionnaire;
+      return job.questions.find((q) => q.id === 'starting_date');
+    };
+
+    expect(await minOf()).toMatchObject({ min: '2026-06-15' });
+    date = '2026-06-16';
+    expect(await minOf()).toMatchObject({ min: '2026-06-16' });
+  });
+
+  it('refuses a start date before today with a 422', async () => {
+    const app = createApp({ ...silent, today: () => '2026-06-15' });
+    const response = await app.request('/api/jobs/job-long/prequalification', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ answers: { starting_date: '2026-06-14' } }),
+    });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ fields: { starting_date: 'out_of_range' } });
   });
 
   const levels = [

@@ -1,4 +1,5 @@
 import { isProfileField, prefillFor, type Profile, type ProfileField } from '@/server/prefill';
+import { isCalendarDate } from '@/shared/answerValidation';
 import type {
   ClientQuestion,
   JobQuestionnaire,
@@ -62,7 +63,28 @@ function normalizeOptions(raw: unknown): SelectOption[] {
   });
 }
 
-function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
+/**
+ * A date question's `min` and `max` as plain `YYYY-MM-DD` dates, `"today"` resolved to `today`. A bound
+ * that is neither is dropped with a warning. When `min` is after `max` both are dropped, with one warning,
+ * since which one is wrong can't be told.
+ */
+function parseDateBounds(raw: Raw, id: string, today: string, warn: Warn): { min?: string; max?: string } {
+  const bounds: { min?: string; max?: string } = {};
+  for (const key of ['min', 'max'] as const) {
+    if (!(key in raw)) continue;
+    const bound = raw[key];
+    if (bound === 'today') bounds[key] = today;
+    else if (typeof bound === 'string' && isCalendarDate(bound)) bounds[key] = bound;
+    else warn(`Ignored ${key} on "${id}": ${JSON.stringify(bound)} is not a YYYY-MM-DD date or "today"`);
+  }
+  if (bounds.min !== undefined && bounds.max !== undefined && bounds.min > bounds.max) {
+    warn(`Ignored min and max on "${id}": min ${bounds.min} is after max ${bounds.max}`);
+    return {};
+  }
+  return bounds;
+}
+
+function normalizeQuestion(raw: Raw, today: string, warn: Warn): ClientQuestion | undefined {
   const id = asString(raw.id);
   const question = asString(raw.question);
   if (!id || !question) {
@@ -91,11 +113,7 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
     case 'boolean':
       return { ...base, type: 'boolean' };
     case 'date':
-      // Any date is taken until T-11b applies the range, so the candidate isn't refused a date the
-      // recruiter would accept.
-      if ('min' in raw || 'max' in raw)
-        warn(`Ignored min and max on "${id}": a date question's range isn't applied yet`);
-      return { ...base, type: 'date' };
+      return { ...base, type: 'date', ...parseDateBounds(raw, id, today, warn) };
     default:
       warn(`Dropped question "${id}": type ${JSON.stringify(raw.type)} is not supported`);
       return undefined;
@@ -140,8 +158,11 @@ export function toJobSummary(raw: unknown): JobSummary | undefined {
   return { id, title: asString(raw.title) || id, company: asString(raw.company) ?? '' };
 }
 
-/** Parses a job config and repairs it, warning about each repair. Throws when the config isn't an object. */
-export function parseJob(raw: unknown, warn: Warn): Job {
+/**
+ * Parses a job config and repairs it, warning about each repair. `today` is the server's current date as
+ * `YYYY-MM-DD`, which a date question's `"today"` becomes. Throws when the config isn't an object.
+ */
+export function parseJob(raw: unknown, today: string, warn: Warn): Job {
   if (!isRecord(raw)) throw new Error('Job config is not an object');
   const language = toLanguage(raw.language, warn);
   const questions = Array.isArray(raw.questions) ? raw.questions : [];
@@ -154,7 +175,7 @@ export function parseJob(raw: unknown, warn: Warn): Job {
     ...(language && { language }),
     questions: questions.flatMap((question) => {
       if (!isRecord(question)) return [];
-      const client = normalizeQuestion(question, warn);
+      const client = normalizeQuestion(question, today, warn);
       if (!client) return [];
       // The README: on duplicate ids only the first question counts. A dropped question doesn't claim its id.
       if (seenIds.has(client.id)) {
