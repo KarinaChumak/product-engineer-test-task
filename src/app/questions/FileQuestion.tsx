@@ -35,6 +35,8 @@ export function FileQuestion({
     setPickError(undefined);
     latestPickRef.current = file;
     setPickedFile(file);
+    // Until the new file is read there is no answer, so a submit meanwhile never sends an earlier file.
+    onChange(undefined);
     try {
       const answer = await readFileAnswer(file);
       if (latestPickRef.current === file) onChange(answer);

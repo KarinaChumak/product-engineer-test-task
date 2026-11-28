@@ -1153,6 +1153,23 @@ describe('QuestionnairePage file question', () => {
     expect(sent).toEqual([{ answers: {} }]);
   });
 
+  it('sends no earlier file when the candidate submits while a replacement is still being read', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+    const releaseFirstRead = holdFileReads();
+    await pickFile(user, new File(['first'], 'first.pdf', { type: 'application/pdf' }));
+    await act(releaseFirstRead);
+    const releaseFileReads = holdFileReads();
+
+    await pickFile(user, new File(['second'], 'second.pdf', { type: 'application/pdf' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+    await act(releaseFileReads);
+
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
   it('refuses to submit a required file question without a file, and shows the required error', async () => {
     const user = userEvent.setup();
     const sent = openFile({ required: true });
