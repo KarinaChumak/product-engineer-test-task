@@ -10,6 +10,9 @@
   --radius-4: 16px;
   --radius-pill: 999px;
   --touch-target: 44px;
+  /* The canvas's yes/no buttons and option cards are at least this tall. */
+  --choice-height: 52px;
+  --focus-ring-width: 4px;
   --page-width: 720px;
   --icon-s: 14px;
   --font-size-s: 0.875rem;

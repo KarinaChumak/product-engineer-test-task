@@ -94,7 +94,7 @@ export function CheckboxGroup({
           {hint}
         </p>
       )}
-      <div>
+      <div className={styles.options}>
         {options.map((option) => {
           const isChecked = value.includes(option.value);
           return (
