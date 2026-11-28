@@ -209,7 +209,7 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 Split from T-11 ("Pick a start date within the job's range") when it came to ~450 lines; the range half is T-11b.
 
-- Status: in progress
+- Status: in review
 - Done when:
   - A date question shows a date field, and its answer is sent and stored as `YYYY-MM-DD`. A value that isn't a real calendar date (`2026-02-30`, `1 May`) is refused as `not_a_date` (test)
   - The field marks a required question, shows its error, and moves focus on submit like the other fields, through a shared `Field` component that holds the label, annotation and error wiring (test)
@@ -219,6 +219,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 - Size: ~290 lines (Field with CSS and tests ~100, DateField with CSS and tests ~80, shared type and check with tests ~45, normalize and API tests ~45, adapter, copy and page tests ~65). Moving `TextField`, `NumberField` and `Select` onto `Field` is left to Phase 4's a11y pass
 - After: T-08a
 - Branch: T-11-start-date-field
+- Outcome: Came to ~450 lines (component tests and CSS ran over), kept as one PR by the user's choice. `Field` (label, required `*`, annotation, `FieldError`, and the control's `id`/`required`/`aria-*` through a render function) is the base for new single-control fields; `DateField` is `<input type="date">` on it, so the browser shows the date in its own format (decided in `decisions.md`, superseding the locale rule for this field). The server keeps `date` questions and logs on every request that job-long's `min: "today"` is ignored; T-11b replaces that warning. `findAnswerError` refuses a date that isn't a real `YYYY-MM-DD` as `not_a_date` (`isCalendarDate` in `src/shared/answerValidation.ts`). A date input has no ARIA role, so tests find it by its label with `exact: false` (the label text holds the hidden `*`). T-12's `FileField` should be built on `Field`. The repo's Playwright (1.65) has no browser in the cloud container and can't download one, so e2e ran only in CI here.
 
 ### T-11b The start date must be within the job's range
 
