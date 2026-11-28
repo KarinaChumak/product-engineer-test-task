@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { useRef, type ChangeEvent, type ReactNode } from 'react';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -16,6 +16,10 @@ export interface FileFieldProps {
   fileSizeLabel?: string;
   /** Called with the file the user picks. */
   onFilePick: (file: File) => void;
+  /** The remove button's accessible name, such as "Remove file". */
+  removeLabel: string;
+  /** Called when the user removes the picked file. Focus then moves to the choose button. */
+  onFileRemove: () => void;
   required?: boolean;
   /** Shown next to the label and read as the field's description, such as a tag. */
   annotation?: ReactNode;
@@ -36,12 +40,21 @@ export function FileField({
   fileName,
   fileSizeLabel,
   onFilePick,
+  removeLabel,
+  onFileRemove,
   required,
   annotation,
   error,
   onBlur,
 }: FileFieldProps) {
   const pickerRef = useRef<HTMLInputElement>(null);
+  const chooseButtonRef = useRef<HTMLButtonElement>(null);
+
+  function removeFile() {
+    onFileRemove();
+    // The remove button leaves the page with the file, so focus would otherwise be lost.
+    chooseButtonRef.current?.focus();
+  }
 
   function pickFileFromInput(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -66,6 +79,7 @@ export function FileField({
           />
           <Button
             {...controlProps}
+            ref={chooseButtonRef}
             variant="secondary"
             aria-required={isRequired || undefined}
             onClick={() => pickerRef.current?.click()}
@@ -82,6 +96,9 @@ export function FileField({
                   <span className={styles.name}>{fileName}</span>
                   {fileSizeLabel && <span className={styles.size}>{fileSizeLabel}</span>}
                 </span>
+                <button type="button" className={styles.remove} aria-label={removeLabel} onClick={removeFile}>
+                  <X aria-hidden="true" className={styles.removeIcon} />
+                </button>
               </p>
             )}
           </div>

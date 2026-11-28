@@ -140,13 +140,13 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-12d Remove the picked file
 
-- Status: todo
+- Status: in progress
 - Done when:
   - A picked file has a remove button, by mouse or keyboard; removing it empties the field and moves focus to the choose button (test)
 - Touches: src/components (`FileField`), src/app (the remove message)
 - Size: ~130 lines
 - After: T-12b
-- Branch: none yet
+- Branch: T-12d-remove-picked-file
 
 ### T-12c A picked file is read and sent in the payload
 
