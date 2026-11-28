@@ -1291,6 +1291,26 @@ describe('QuestionnairePage file question', () => {
     expect(button).toHaveAccessibleDescription(typeRefused);
   });
 
+  it('empties the field and asks for the file again when the browser can’t read it', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    // As when the file was moved or deleted after it was picked.
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+      setTimeout(() => this.dispatchEvent(new ProgressEvent('error')));
+    });
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+
+    await waitFor(() =>
+      expect(button).toHaveAccessibleDescription('This file couldn’t be read. Choose it again.'),
+    );
+    expect(screen.queryByText('letter.pdf')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
   it('names the allowed types and size in German for a German job', async () => {
     const user = setUpPickingAnyFile();
     server.use(

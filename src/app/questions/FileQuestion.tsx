@@ -54,8 +54,11 @@ export function FileQuestion({
       const answer = await readFileAnswer(file);
       if (latestPickRef.current === file) onChange(answer);
     } catch {
-      // The browser couldn't read it (the file was moved or deleted since), so the field goes back to empty.
-      if (latestPickRef.current === file) removeFile();
+      // The browser couldn't read it (the file was moved or deleted since), so the field goes back to empty
+      // and says why.
+      if (latestPickRef.current !== file) return;
+      removeFile();
+      setPickError('not_base64');
     }
   }
 
