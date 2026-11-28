@@ -9,6 +9,8 @@ export const en = {
   'question.no': 'No',
   'question.maxChoices': 'Pick up to {maxChoices}',
   'question.required': 'required',
+  'question.file.choose': 'Choose a file',
+  'question.file.replace': 'Choose another file',
   'job.error.title': 'We couldn’t load this job',
   'job.error.server': 'Our server ran into a problem. Please try again in a moment.',
   'job.error.network': 'We couldn’t reach the server. Check your internet connection.',

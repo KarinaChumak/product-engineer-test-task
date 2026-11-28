@@ -173,16 +173,16 @@ describe('QuestionnairePage', () => {
 
   it('does not render question types that are not supported yet', async () => {
     // A type the client has no component for yet, as a newer server could send it.
-    const fileQuestion = { type: 'file', id: 'cv', question: 'Attach your CV', required: true };
+    const videoQuestion = { type: 'video', id: 'intro', question: 'Record an intro', required: true };
     server.use(
       http.get('/api/jobs/:id/questionnaire', () =>
-        HttpResponse.json({ ...questionnaire, questions: [...questionnaire.questions, fileQuestion] }),
+        HttpResponse.json({ ...questionnaire, questions: [...questionnaire.questions, videoQuestion] }),
       ),
     );
     renderAt('/jobs/job-short');
 
     await screen.findByRole('combobox', noticePeriod);
-    expect(screen.queryByText('Attach your CV')).not.toBeInTheDocument();
+    expect(screen.queryByText('Record an intro')).not.toBeInTheDocument();
   });
 
   it('shows the free-text question exactly as the recruiter wrote it, emoji included, in a textarea', async () => {
@@ -1033,5 +1033,33 @@ describe('QuestionnairePage already completed', () => {
     await waitFor(() => expect(loads).toBe(2));
     await act(() => delay(50));
     expect(screen.getByRole('heading', sent)).toBeInTheDocument();
+  });
+});
+
+describe('QuestionnairePage file question', () => {
+  const letterQuestion = 'Your cover letter';
+  const openFile = () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () =>
+        HttpResponse.json({
+          ...noQuestions,
+          questions: [{ type: 'file', id: 'cover_letter', question: letterQuestion, required: false }],
+        } satisfies JobQuestionnaire),
+      ),
+    );
+    renderAt('/jobs/job-short');
+  };
+
+  it('shows the name and size of the file the candidate picks', async () => {
+    const user = userEvent.setup();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    const letter = new File([new Uint8Array(1500)], 'letter.pdf', { type: 'application/pdf' });
+
+    await user.upload(document.querySelector<HTMLInputElement>('[data-file-picker]')!, letter);
+
+    expect(screen.getByText('letter.pdf')).toBeVisible();
+    expect(screen.getByText('1.5 kB')).toBeVisible();
+    expect(button).toHaveTextContent('Choose another file');
   });
 });

@@ -124,15 +124,27 @@ Split from T-12 ("Attach a file, and it's sent in the payload") when the whole c
 - Branch: T-12-file-field
 - Outcome: Came to ~175 lines. `FileAnswer` (`{ content_type, data, file_name }`) is in `AnswerValue`, `isFileAnswer` in `src/shared/answerValidation.ts` checks its shape, and `findAnswerError` answers `wrong_type` for anything else. The server keeps `file` questions and the POST is limited to 7 MiB (`payload_too_large`, 413). The stored-submission log writes a file's `data` as its length. The client still has no component for `file`, so it skips the question until T-12b. The unsplit work (607 lines) is on the local branch `T-12-full-wip`, to cut T-12b and T-12c from. A file with an empty `data` counts as no answer (`required` on a required question); T-13 must also refuse an empty `file_name`.
 
-### T-12b Pick a file and see it, or remove it
+### T-12b Pick a file and see it
+
+Split from T-12b ("Pick a file and see it, or remove it") when its estimate came to ~330 lines; removing the file is T-12d.
+
+- Status: in progress
+- Done when:
+  - A file question shows a button that opens the file picker; the chosen file's name and size are shown, and choosing another replaces it (test)
+  - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `FileField` on `Field`), src/app (a `FileQuestion` adapter, its map entry, messages)
+- Size: ~200 lines (`FileField` with CSS and tests ~150, adapter, map entry, messages and page test ~50). The adapter keeps the picked `File` only for display; T-12c reads it into the answer
+- After: T-12a
+- Branch: T-12b-file-field-picker
+
+### T-12d Remove the picked file
 
 - Status: todo
 - Done when:
-  - A file question shows a button that opens the file picker; the chosen file's name and size are shown, with a way to remove it, by mouse or keyboard (test)
-  - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
-- Touches: src/components (a new `FileField` on `Field`), src/app (a `FileQuestion` adapter, its map entry, messages)
-- Size: ~330 lines (`FileField` with CSS and tests ~300). Done when the adapter keeps the picked `File` only for display; T-12c reads it into the answer
-- After: T-12a
+  - A picked file has a remove button, by mouse or keyboard; removing it empties the field and moves focus to the choose button (test)
+- Touches: src/components (`FileField`), src/app (the remove message)
+- Size: ~130 lines
+- After: T-12b
 - Branch: none yet
 
 ### T-12c A picked file is read and sent in the payload
@@ -143,7 +155,7 @@ Split from T-12 ("Attach a file, and it's sent in the payload") when the whole c
   - A required file question with no file shows the `required` error; an optional one without a file is left out of the payload (test)
 - Touches: src/app (`readFileAnswer`, the `FileQuestion` adapter keeps a `FileAnswer`, page tests)
 - Size: ~170 lines
-- After: T-12b
+- After: T-12d
 - Branch: none yet
 
 The full, unsplit work is on the local branch `T-12-full-wip` (607 lines, `check` passing), to cut T-12b and T-12c from.
