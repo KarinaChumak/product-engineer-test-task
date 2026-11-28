@@ -1043,6 +1043,28 @@ describe('QuestionnairePage file question', () => {
   const pickFile = (user: ReturnType<typeof userEvent.setup>, file: File) =>
     user.upload(document.querySelector<HTMLInputElement>('[data-file-picker]')!, file);
 
+  afterEach(() => vi.restoreAllMocks());
+
+  /**
+   * Holds every file read the browser starts, as a slow disk would. The returned function lets them run and
+   * resolves once they have all finished.
+   */
+  const holdFileReads = () => {
+    const heldReads: (() => Promise<void>)[] = [];
+    const readAsDataURL = FileReader.prototype.readAsDataURL;
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader, blob) {
+      heldReads.push(() => {
+        const finished = new Promise<void>((resolve) => this.addEventListener('loadend', () => resolve()));
+        readAsDataURL.call(this, blob);
+        return finished;
+      });
+    });
+    return async () => {
+      vi.restoreAllMocks();
+      await Promise.all(heldReads.map((read) => read()));
+    };
+  };
+
   /** Opens a job with only a cover letter question, collecting the prequalification POSTs. */
   const openFile = ({ required = false } = {}) => {
     const sent: unknown[] = [];
@@ -1110,6 +1132,21 @@ describe('QuestionnairePage file question', () => {
 
     await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
     await user.click(screen.getByRole('button', { name: 'Remove file' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
+  it('sends no file when the candidate removes it before it is read', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+    const releaseFileReads = holdFileReads();
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+    await user.click(screen.getByRole('button', { name: 'Remove file' }));
+    await act(releaseFileReads);
     await user.click(screen.getByRole('button', submitAnswers));
     await screen.findByRole('heading', answersSent);
 
