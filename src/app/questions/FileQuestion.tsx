@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useIntl, type IntlShape } from 'react-intl';
 import { FromProfileTag } from '@/app/questions/FromProfileTag';
+import { readFileAnswer } from '@/app/questions/readFileAnswer';
 import type { QuestionProps } from '@/app/questions/types';
 import { FileField } from '@/components/FileField';
 import type { FileQuestion as FileQuestionData } from '@/shared/questionnaire';
@@ -21,13 +22,36 @@ function formatFileSize(intl: IntlShape, bytes: number) {
   return intl.formatNumber(value, { style: 'unit', unit, maximumFractionDigits: 1 });
 }
 
-/**
- * Shows the file the candidate picks. It doesn't set the answer yet: reading the file into one is a later
- * ticket's work.
- */
-export function FileQuestion({ question, fromProfile, error, onBlur }: QuestionProps<FileQuestionData>) {
+/** Shows the file the candidate picks, and answers with it once it is read. */
+export function FileQuestion({
+  question,
+  onChange,
+  fromProfile,
+  error,
+  onBlur,
+}: QuestionProps<FileQuestionData>) {
   const intl = useIntl();
   const [pickedFile, setPickedFile] = useState<File>();
+  // The file picked last, so a slow read of an earlier one, or of one since removed, doesn't answer.
+  const latestPickRef = useRef<File>(undefined);
+
+  async function answerWithFile(file: File) {
+    latestPickRef.current = file;
+    setPickedFile(file);
+    try {
+      const answer = await readFileAnswer(file);
+      if (latestPickRef.current === file) onChange(answer);
+    } catch {
+      // The browser couldn't read it (the file was moved or deleted since), so the field goes back to empty.
+      if (latestPickRef.current === file) removeFile();
+    }
+  }
+
+  function removeFile() {
+    latestPickRef.current = undefined;
+    setPickedFile(undefined);
+    onChange(undefined);
+  }
 
   return (
     <FileField
@@ -36,9 +60,9 @@ export function FileQuestion({ question, fromProfile, error, onBlur }: QuestionP
       replaceLabel={intl.formatMessage({ id: 'question.file.replace' })}
       fileName={pickedFile?.name}
       fileSizeLabel={pickedFile && formatFileSize(intl, pickedFile.size)}
-      onFilePick={setPickedFile}
+      onFilePick={(file) => void answerWithFile(file)}
       removeLabel={intl.formatMessage({ id: 'question.file.remove' })}
-      onFileRemove={() => setPickedFile(undefined)}
+      onFileRemove={removeFile}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}

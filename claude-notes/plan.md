@@ -153,16 +153,15 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-12c A picked file is read and sent in the payload
 
-- Status: todo
+- Status: in review
+- Outcome: `readFileAnswer` (in `src/app/questions`) reads the picked file into a `FileAnswer` with base64 `data`, and `FileQuestion` answers with it once read; a read that finishes after another pick or a remove is dropped, and a failed read empties the field. Required and optional file questions needed no page change. Written fresh: `T-12-full-wip` wasn't available.
 - Done when:
   - The file is read in the browser and sent as `{ content_type, data, file_name }`, with `data` base64, and stored that way in the payload (test)
   - A required file question with no file shows the `required` error; an optional one without a file is left out of the payload (test)
 - Touches: src/app (`readFileAnswer`, the `FileQuestion` adapter keeps a `FileAnswer`, page tests)
 - Size: ~170 lines
 - After: T-12d
-- Branch: none yet
-
-The full, unsplit work is on the local branch `T-12-full-wip` (607 lines, `check` passing), to cut T-12b and T-12c from.
+- Branch: T-12c-read-file-answer
 
 ### T-13 A file of the wrong type or over 5 MB is refused
 

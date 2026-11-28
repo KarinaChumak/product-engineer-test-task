@@ -1038,17 +1038,106 @@ describe('QuestionnairePage already completed', () => {
 
 describe('QuestionnairePage file question', () => {
   const letterQuestion = 'Your cover letter';
-  const openFile = () => {
+  const submitAnswers = { name: 'Submit answers' };
+  const answersSent = { name: 'Your answers have been sent to Kranich Health GmbH' };
+  const pickFile = (user: ReturnType<typeof userEvent.setup>, file: File) =>
+    user.upload(document.querySelector<HTMLInputElement>('[data-file-picker]')!, file);
+
+  /** Opens a job with only a cover letter question, collecting the prequalification POSTs. */
+  const openFile = ({ required = false } = {}) => {
+    const sent: unknown[] = [];
     server.use(
       http.get('/api/jobs/:id/questionnaire', () =>
         HttpResponse.json({
           ...noQuestions,
-          questions: [{ type: 'file', id: 'cover_letter', question: letterQuestion, required: false }],
+          questions: [{ type: 'file', id: 'cover_letter', question: letterQuestion, required }],
         } satisfies JobQuestionnaire),
       ),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
     );
     renderAt('/jobs/job-short');
+    return sent;
   };
+
+  it('sends the picked file with its type, its content as base64 and its name', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([
+      {
+        answers: {
+          cover_letter: {
+            content_type: 'application/pdf',
+            data: btoa('Dear Kranich,'),
+            file_name: 'letter.pdf',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('sends the file picked last when the candidate picks another', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['first'], 'first.pdf', { type: 'application/pdf' }));
+    await pickFile(user, new File(['second'], 'second.png', { type: 'image/png' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([
+      {
+        answers: {
+          cover_letter: { content_type: 'image/png', data: btoa('second'), file_name: 'second.png' },
+        },
+      },
+    ]);
+  });
+
+  it('leaves an optional file question out of the answers when no file is picked, or the picked one is removed', async () => {
+    const user = userEvent.setup();
+    const sent = openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+    await user.click(screen.getByRole('button', { name: 'Remove file' }));
+    await user.click(screen.getByRole('button', submitAnswers));
+    await screen.findByRole('heading', answersSent);
+
+    expect(sent).toEqual([{ answers: {} }]);
+  });
+
+  it('refuses to submit a required file question without a file, and shows the required error', async () => {
+    const user = userEvent.setup();
+    const sent = openFile({ required: true });
+    const button = await screen.findByRole('button', { name: letterQuestion });
+
+    await user.click(screen.getByRole('button', submitAnswers));
+
+    expect(button).toHaveAttribute('aria-invalid', 'true');
+    expect(button).toHaveAccessibleDescription('Answer this question to continue.');
+    expect(sent).toEqual([]);
+  });
+
+  it('drops the required error once a file is picked', async () => {
+    const user = userEvent.setup();
+    openFile({ required: true });
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    await user.click(screen.getByRole('button', submitAnswers));
+
+    await pickFile(user, new File(['Dear Kranich,'], 'letter.pdf', { type: 'application/pdf' }));
+
+    await waitFor(() => expect(button).not.toHaveAttribute('aria-invalid'));
+  });
 
   it('shows the name and size of the file the candidate picks', async () => {
     const user = userEvent.setup();
