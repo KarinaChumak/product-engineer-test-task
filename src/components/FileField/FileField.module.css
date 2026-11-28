@@ -51,7 +51,7 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  /* A touch target of 44px, which the 2px border and padding of the block make up for visually. */
+  /* A full-size touch target. The negative margin lets it sit inside the block's padding. */
   width: 2.75rem;
   height: 2.75rem;
   margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) auto;
