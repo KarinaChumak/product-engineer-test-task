@@ -107,7 +107,7 @@ export function CheckboxGroup({
                 aria-invalid={error ? true : undefined}
               >
                 <Checkbox.Indicator>
-                  <Check aria-hidden="true" />
+                  <Check aria-hidden="true" size="1em" />
                 </Checkbox.Indicator>
               </Checkbox.Root>
               {option.label}

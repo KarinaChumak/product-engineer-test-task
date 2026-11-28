@@ -41,7 +41,6 @@
   font-size: var(--font-size-s);
 }
 
-/* The whole row is the label, so it's a full touch target. */
 .option {
   display: flex;
   align-items: center;
@@ -65,12 +64,12 @@
   cursor: inherit;
 }
 
-.option:hover .checkbox:not(:disabled),
-.checkbox[data-state='checked'] {
+.option:hover .checkbox:not(:disabled) {
   border-color: var(--color-accent);
 }
 
 .checkbox[data-state='checked'] {
+  border-color: var(--color-accent);
   background: var(--color-accent);
 }
 
@@ -91,9 +90,4 @@
 .option:has(:disabled) {
   color: var(--color-text-muted);
   cursor: not-allowed;
-}
-
-.checkbox svg {
-  width: 1em;
-  height: 1em;
 }

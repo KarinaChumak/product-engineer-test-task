@@ -766,7 +766,6 @@ describe('QuestionnairePage multi-choice question', () => {
     const user = userEvent.setup();
     openMultiChoice(multiChoiceQuestionnaire({ required: true }));
 
-    // The group's name says it's required, as a select's required state does.
     const group = await screen.findByRole('group', { name: `${focusAreas.name} required` });
     await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
     await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
