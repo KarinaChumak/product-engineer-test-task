@@ -14,6 +14,13 @@ if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView ??= () => {};
 }
 
+// jsdom lacks ResizeObserver, which Radix Checkbox uses to size its hidden input inside a form.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 
 afterEach(() => {

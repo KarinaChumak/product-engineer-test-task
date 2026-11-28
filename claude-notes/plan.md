@@ -164,7 +164,7 @@ Settled while planning, to record in `decisions.md` by the ticket that needs it:
 
 ### T-09 Pick several options in a multi-choice question
 
-- Status: todo
+- Status: in review
 - Done when:
   - A select question with `max_choices` above 1 shows its options as checkboxes and says how many can be picked ("Pick up to 2") (test)
   - Once `max_choices` options are picked, the others are disabled until one is unpicked. When `max_choices` is at least the number of options, every option can be picked and no limit is shown (test)
@@ -172,9 +172,10 @@ Settled while planning, to record in `decisions.md` by the ticket that needs it:
   - The checkboxes work by keyboard and are grouped under the question as their legend (test)
   - job-long's `focus_areas` renders at mobile and desktop widths (screenshot)
 - Touches: src/components (a new `CheckboxGroup` on `@radix-ui/react-checkbox`), src/app (the select adapter picks `CheckboxGroup` for multi-choice and drops the one-pick stand-in, "Pick up to" messages)
-- Size: ~260 lines (CheckboxGroup with CSS and tests ~180, adapter ~30, page and payload tests ~50)
+- Size: ~490 lines (the ~260 estimate was low: CheckboxGroup with CSS and tests came to ~290, the page tests to ~120)
 - After: T-07
-- Branch: none yet
+- Branch: T-09-multi-choice
+- Outcome: `CheckboxGroup` (a `fieldset` whose `legend` is the label, one Radix checkbox per option in a full-row `label`) answers select questions with `maxChoices` above 1; `SelectQuestion` picks it over `Select`, and the one-pick stand-in is gone. Picks are kept in option order, and no picks is sent as `undefined`, so an optional question is left out. Below the option count, `maxChoices` disables the unchecked options once reached and shows "Pick up to {maxChoices}" as the group's description; at or above it there's no limit, so job-bad's `tech_stack` already works before T-14 caps it. `onBlur` fires only when focus leaves the group, and an error marks every checkbox `aria-invalid`, so `Form` focuses the first. `src/test/setup.ts` stubs `ResizeObserver`, which jsdom lacks and Radix Checkbox calls inside a form. A group can't take `aria-required`, so a required one adds a visually hidden `requiredLabel` ("required", "Pflichtfeld") to its legend beside the `aria-hidden` `*`. Payload storage under `values` was already covered by the server tests.
 
 ### T-10 job-long's German level and years of experience come prefilled from the profile
 

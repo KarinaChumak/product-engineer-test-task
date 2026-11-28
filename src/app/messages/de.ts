@@ -8,6 +8,8 @@ export const de: Record<MessageKey, string> = {
   'job.noQuestions': 'Für diesen Job musst du keine Fragen beantworten.',
   'question.placeholder': 'Option auswählen',
   'question.fromProfile': 'Aus deinem Profil',
+  'question.maxChoices': 'Wähle bis zu {maxChoices} aus',
+  'question.required': 'Pflichtfeld',
   'job.error.title': 'Wir konnten diesen Job nicht laden',
   'job.error.server': 'Auf unserem Server ist ein Fehler aufgetreten. Versuche es gleich noch einmal.',
   'job.error.network': 'Wir konnten den Server nicht erreichen. Prüfe deine Internetverbindung.',
