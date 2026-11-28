@@ -140,7 +140,8 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-12d Remove the picked file
 
-- Status: in progress
+- Status: in review
+- Outcome: A picked file shows a remove button (an X in the file block) that empties the field and moves focus to the choose button; `Button` now accepts `ref`. The remove button sits inside the `role="status"` region, so the removal itself isn't announced (focus moving to the choose button is the only cue); T-12c needs no change for this.
 - Done when:
   - A picked file has a remove button, by mouse or keyboard; removing it empties the field and moves focus to the choose button (test)
 - Touches: src/components (`FileField`), src/app (the remove message)
