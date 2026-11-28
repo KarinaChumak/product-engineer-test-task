@@ -45,7 +45,7 @@ These scripts are the entry points in this repo. Use them instead of calling the
 - A feature is a few tickets built together in one batch (all of T-12, or T-13 and T-14). Build it slice by slice, each ticket's branch on top of the one before, in this one worktree. Don't stop between slices.
 - The expensive checks run once per feature, not per slice: `/finish` (the reviewer agent, the finisher, `/design-check` and `/verify-ui`) runs when the feature's last slice is built.
 - The PRs are stacked: each slice's PR is based on the branch below it, and the bottom one on `main`. Nothing waits on a merge: start the next feature on top of the stack while the user reviews.
-- A fix asked for in a PR is a new commit on that PR's branch, never a rewrite of it. Then carry it up the stack from the top branch with `git rebase --update-refs <fixed-branch>` and push the branches above with `--force-with-lease`. The user merges from the bottom up, with merge commits, not squash.
+- A fix asked for in a PR is a new commit added on top of that PR's branch, so that branch's history and its review threads stay as they are. The branches above it are then rewritten on purpose, to sit on the fixed branch: from the top branch, `git rebase --update-refs <fixed-branch>`, then `git push --force-with-lease` each rewritten branch. Do this right after the fix, before any new work lands on those branches. The user merges from the bottom up, with merge commits, not squash.
 - Update `plan.md` only for a ticket's status and a one-line outcome. Add a decision log entry only for a choice another reader would ask about.
 
 # Conventions

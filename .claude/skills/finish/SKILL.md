@@ -18,7 +18,7 @@ For each "done when" of each ticket in the feature, name the test, e2e test or s
 ## 2. Check and size
 
 1. On the top branch, run `.claude/scripts/check` and fix what fails, on the slice the fix belongs to (see "Fix a lower slice" below).
-2. Run `.claude/scripts/pr-size <branch below>` for each slice. A slice over 500 lines: stop and propose how to split it. Never cut tests to get under it.
+2. Run `.claude/scripts/pr-size <branch below>` for each slice. A slice over 500 lines: stop and propose how to split it. Never cut tests to get under it. Only a human can add the `size-exception` label.
 3. Commit everything, so both agents see all of it.
 
 ## 3. Review by a separate agent
@@ -47,4 +47,4 @@ Pass the finisher's report on to the user, briefly:
 
 ## Fix a lower slice
 
-A fix that belongs to a lower slice is a new commit on that slice's branch: `git switch <slice>`, commit, `git switch <top>`, `git rebase --update-refs <slice>`. Once the PRs are open, push the rebased branches above it with `git push --force-with-lease`.
+A fix that belongs to a lower slice is a new commit added on top of that slice's branch, which is never rewritten: `git switch <slice>`, commit. The branches above it are then rewritten on purpose, to sit on the fixed slice: `git switch <top>`, `git rebase --update-refs <slice>`. Do it right after the fix, before any new work lands above. Once the PRs are open, push each rewritten branch with `git push --force-with-lease`.
