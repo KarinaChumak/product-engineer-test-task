@@ -370,19 +370,23 @@ describe('POST /api/jobs/:id/prequalification', () => {
       const path = join(directory, 'submissions.json');
       const app = createApp({ ...silent, submissions: submissionsFromFile(path) });
 
-      const responses = await Promise.all([
-        submitAnswers(app, 'job-short', validShortAnswers),
-        submitAnswers(app, 'job-short', {
-          answers: { notice_period: 'immediately', salary_expectation: 60000 },
-        }),
-      ]);
+      const salaries = [95000, 60000];
+      const statuses = (
+        await Promise.all([
+          submitAnswers(app, 'job-short', validShortAnswers),
+          submitAnswers(app, 'job-short', {
+            answers: { notice_period: 'immediately', salary_expectation: salaries[1] },
+          }),
+        ])
+      ).map((response) => response.status);
 
-      expect(responses.map((response) => response.status)).toEqual([201, 409]);
+      // Either request can reach the store first; exactly one wins, and its answers are the ones kept.
+      expect([...statuses].sort()).toEqual([201, 409]);
       const stored = JSON.parse(await readFile(path, 'utf8')) as Record<string, Submission>;
       expect(Object.keys(stored)).toEqual(['talent-4711:job-short']);
       expect(stored['talent-4711:job-short']?.payload.answers).toContainEqual({
         id: 'salary_expectation',
-        value: 95000,
+        value: salaries[statuses.indexOf(201)],
       });
     } finally {
       await rm(directory, { recursive: true, force: true });
@@ -452,11 +456,11 @@ describe('POST /api/jobs/:id/prequalification', () => {
     expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
   });
 
-  it('stores yes/no answers as JSON booleans', async () => {
+  it('stores a yes/no answer as a JSON boolean, and screens false against must_be_true', async () => {
     const jobs = storeOf({
       id: 'job-permit',
       questions: [
-        { type: 'boolean', id: 'permit', question: 'EU permit?', required: true },
+        { type: 'boolean', id: 'permit', question: 'EU permit?', required: true, must_be_true: true },
         { type: 'boolean', id: 'relocate', question: 'Relocate?' },
       ],
     });
@@ -464,11 +468,15 @@ describe('POST /api/jobs/:id/prequalification', () => {
 
     const response = await submitAnswers(app, 'job-permit', { answers: { permit: false, relocate: true } });
 
-    expect(response.status).toBe(201);
-    expect(saved[0]?.payload.answers).toEqual([
-      { id: 'permit', value: false },
-      { id: 'relocate', value: true },
-    ]);
+    expect([response.status, await response.json()]).toEqual([201, { passed: false }]);
+    expect(saved[0]?.payload).toEqual({
+      job_id: 'job-permit',
+      answers: [
+        { id: 'permit', value: false },
+        { id: 'relocate', value: true },
+      ],
+      screening: { passed: false, failed: ['permit'] },
+    });
   });
 
   it('stores a multi-choice answer as values', async () => {

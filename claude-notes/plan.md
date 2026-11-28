@@ -166,14 +166,15 @@ Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") whe
 
 ### T-08b `must_be_true` screens yes/no answers
 
-- Status: todo
+- Status: in review
 - Done when:
   - `must_be_true` on a boolean question is kept as a rule: `false` fails it, and so does no answer to an optional question with the rule. `must_be_true` on any other type is still ignored with a warning (test)
-- Settled while planning, to record in `decisions.md` here: a missing answer fails a question's rule, as the README says (the open question in `product.md`). `screenAnswers` already does this for numeric rules; T-08b keeps it for `must_be_true`. Every rule question in the three jobs is required anyway.
+- Settled while planning, recorded in `decisions.md`: a missing answer fails a question's rule, as the README says (the open question in `product.md`, now marked settled).
 - Touches: src/server (`parseRules` and `mustBeTrue` in `ScreeningRules`, `screenAnswers`, their tests, job-long's and job-bad's screening tests), claude-notes/decisions.md
-- Size: ~110 lines. The code and tests were written on T-08's branch and can be restored from branch `T-08b-must-be-true-wip`, commit `90fab5b` (`src/server/normalize.ts` `parseRules`, `src/server/screening.ts`, `src/server/screening.test.ts`, the `must_be_true` cases in `normalize.test.ts` and `app.test.ts`)
+- Size: ~110 lines, restored from T-08's branch (commit `90fab5b`)
 - After: T-08a
-- Branch: none yet
+- Branch: T-08b-must-be-true
+- Outcome: `parseRules` keeps `must_be_true: true` on a boolean question as `ScreeningRules.mustBeTrue`; a value that isn't `true`, or the rule on another type, is ignored with a warning. `screenAnswers` fails anything but a JSON `true` under it, a missing answer included, so job-long now screens on `eu_work_permit` and job-bad on `onsite` and `driving_license` (its `must_be_true` on the text `country` stays ignored). Main's `it.todo` for job-long's permit is gone. T-14's e2e payloads for job-long and job-bad need `true` for those questions to pass screening.
 
 ### T-09 Pick several options in a multi-choice question
 

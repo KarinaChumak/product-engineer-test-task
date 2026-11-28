@@ -21,6 +21,8 @@ export interface ScreeningRules {
   mustBeAtLeast?: number;
   /** Numeric: passes when the answer is below this (strict). */
   mustBeBelow?: number;
+  /** Boolean: passes only when the answer is `true`. */
+  mustBeTrue?: true;
 }
 
 /** A question as the server knows it. `client` is what the candidate sees, and nothing else is sent. */
@@ -108,13 +110,12 @@ function parseRules(raw: Raw, client: ClientQuestion, warn: Warn): ScreeningRule
       warn(`Ignored ${key} on "${client.id}": it isn't a number`);
     else rules[name] = threshold;
   }
-  // Not kept as a rule yet, even on a boolean question: T-08b screens by it.
-  if ('must_be_true' in raw)
-    warn(
-      client.type === 'boolean'
-        ? `Ignored must_be_true on "${client.id}": screening by it is not applied yet`
-        : `Ignored must_be_true on "${client.id}": it only applies to boolean questions`,
-    );
+  if ('must_be_true' in raw) {
+    if (client.type !== 'boolean')
+      warn(`Ignored must_be_true on "${client.id}": it only applies to boolean questions`);
+    else if (raw.must_be_true !== true) warn(`Ignored must_be_true on "${client.id}": it isn't true`);
+    else rules.mustBeTrue = true;
+  }
   return rules;
 }
 
