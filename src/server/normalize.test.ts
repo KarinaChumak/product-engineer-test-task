@@ -106,6 +106,21 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_at_least on "city"')]);
   });
 
+  it('keeps a yes/no question', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'EU permit?', required: true }],
+    });
+
+    expect(parsed.questions[0]?.client).toEqual({
+      type: 'boolean',
+      id: 'permit',
+      question: 'EU permit?',
+      required: true,
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('ignores must_be_true on a question that is not boolean, with a warning', () => {
     const { job: parsed, warnings } = parse({
       ...job,
@@ -114,6 +129,15 @@ describe('parseJob screening rules', () => {
 
     expect(parsed.questions[0]?.rules).toEqual({});
     expect(warnings).toEqual([expect.stringContaining('must_be_true on "country"')]);
+  });
+
+  it('warns that must_be_true on a boolean question is not applied yet, without calling it the wrong type', () => {
+    const { warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'Permit?', must_be_true: true }],
+    });
+
+    expect(warnings).toEqual(['Ignored must_be_true on "permit": screening by it is not applied yet']);
   });
 
   it('ignores a rule whose threshold is not a number, with a warning', () => {

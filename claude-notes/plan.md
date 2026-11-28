@@ -138,28 +138,41 @@ Asked for by the user after T-06's PR was opened. It didn't fit in that PR's siz
 
 ## Phase 2: Every question type and messy configs
 
-Lanes: T-08 ‖ T-09 ‖ T-10, then T-11, then T-12, then T-13, then T-14.
+Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11, then T-12, then T-13, then T-14.
 
 Planned with T-07 counted as done. Every ticket that adds or changes a question adapter waits for T-07 to merge, because T-07 gives each adapter an `onBlur`. T-10 touches only the server's prefill, so it can start now.
 
-T-08 and T-11 both add a type to `ClientQuestion`, `normalizeQuestion`, `findAnswerError` and the adapter map, so they run one after the other. T-09 changes only the select adapter and adds a component, so it runs beside T-08; whichever of T-08 and T-09 merges second rebases over the message files.
+T-08a and T-11 both add a type to `ClientQuestion`, `normalizeQuestion`, `findAnswerError` and the adapter map, so they run one after the other. T-08b changes only `parseRules` and screening, so it can run beside T-11. T-09 changes only the select adapter and adds a component, so it runs beside T-08a; whichever of T-08a and T-09 merges second rebases over the message files.
 
-Settled while planning, to record in `decisions.md` by the ticket that needs it:
+Settled while planning, to record in `decisions.md` by the ticket that needs it (the missing-answer rule moved to T-08b's section):
 
-- A missing answer fails a question's rule, as the README says (the open question in `product.md`). `screenAnswers` already does this for numeric rules; T-08 keeps it for `must_be_true`. Every rule question in the three jobs is required anyway.
 - A field's own `min`/`max` is input validation, never a screen-out, even when the recruiter used it as a floor (`react_years`, `min: 5`). The field says "between 5 and 50", which the question text already says. T-14 records it.
 
-### T-08 Answer yes/no questions, and `must_be_true` screens them
+### T-08a Answer yes/no questions
 
-- Status: todo
+Split from T-08 ("Answer yes/no questions, and `must_be_true` screens them") when it came to ~550 lines; the screening half is T-08b.
+
+- Status: in review
 - Done when:
   - A boolean question shows two choices, "Yes" and "No" in the UI language ("Ja", "Nein" in `de`), with neither picked at first, and they work by keyboard (arrow keys move, as in a radio group) (test)
   - The answer is sent and stored as a JSON `true` or `false`, and a required boolean left unanswered shows the `required` error (test)
-  - `must_be_true` on a boolean question is kept as a rule: `false` fails it, and so does no answer to an optional question with the rule. `must_be_true` on any other type is still ignored with a warning (test)
   - job-long's `eu_work_permit` and `willing_to_relocate` render, at mobile and desktop widths (screenshot)
-- Touches: src/components (a new `RadioGroup` on `@radix-ui/react-radio-group`), src/app (a `BooleanQuestion` adapter, its map entry, "Yes"/"No" messages), src/shared (`BooleanQuestion` in `ClientQuestion`, a `boolean` case in `findAnswerError`), src/server (`normalizeQuestion` and `parseRules` for `boolean`, `mustBeTrue` in `ScreeningRules` and `screenAnswers`)
-- Size: ~300 lines (RadioGroup with CSS and tests ~150, adapter and copy ~35, shared type and check with tests ~35, normalize, rules and screening with tests ~80)
+- Touches: src/components (a new `RadioGroup` on `@radix-ui/react-radio-group`), src/app (a `BooleanQuestion` adapter, its map entry, "Yes"/"No" messages), src/shared (`BooleanQuestion` in `ClientQuestion`, a `boolean` case in `findAnswerError`), src/server (`normalizeQuestion` for `boolean`)
+- Size: ~440 lines (RadioGroup with CSS and tests ~250, adapter, copy and page tests ~120, shared type and check with tests ~30, normalize with tests ~20). Over the ~300 estimate, under the 500 limit
+- PRs: one
 - After: T-07
+- Branch: T-08-boolean-questions
+- Outcome: `RadioGroup` (a generic labelled set of one-pick options, side by side as touch-target tiles, on Radix) answers boolean questions through the `boolean` map entry; `BooleanQuestion` maps its radios to JSON `true`/`false`. The server keeps `boolean` questions, and `findAnswerError` refuses anything but a JSON boolean as `wrong_type`. `RadioGroup` puts `aria-invalid` and `aria-describedby` on the radiogroup, which Radix makes focusable, so `Form`'s focus-the-first-invalid-field lands on its first radio; its `onBlur` fires only when focus leaves the group. `must_be_true` is still ignored with its warning on every type, boolean included, until T-08b. `src/test/setup.ts` now stubs `ResizeObserver`, which Radix RadioGroup calls inside a form. Radix moves focus a tick after an arrow key and picks only while the key is down, so keyboard tests hold it (`{ArrowDown>}`). In an optional group, clicking the picked option again (or Space on it) clears it, so an optional yes/no answer can go back to unanswered and is left out of the payload; a required group keeps its pick.
+
+### T-08b `must_be_true` screens yes/no answers
+
+- Status: todo
+- Done when:
+  - `must_be_true` on a boolean question is kept as a rule: `false` fails it, and so does no answer to an optional question with the rule. `must_be_true` on any other type is still ignored with a warning (test)
+- Settled while planning, to record in `decisions.md` here: a missing answer fails a question's rule, as the README says (the open question in `product.md`). `screenAnswers` already does this for numeric rules; T-08b keeps it for `must_be_true`. Every rule question in the three jobs is required anyway.
+- Touches: src/server (`parseRules` and `mustBeTrue` in `ScreeningRules`, `screenAnswers`, their tests, job-long's and job-bad's screening tests), claude-notes/decisions.md
+- Size: ~110 lines. The code and tests were written on T-08's branch and can be restored from branch `T-08b-must-be-true-wip`, commit `90fab5b` (`src/server/normalize.ts` `parseRules`, `src/server/screening.ts`, `src/server/screening.test.ts`, the `must_be_true` cases in `normalize.test.ts` and `app.test.ts`)
+- After: T-08a
 - Branch: none yet
 
 ### T-09 Pick several options in a multi-choice question
@@ -200,7 +213,7 @@ Settled while planning, to record in `decisions.md` by the ticket that needs it:
   - job-long's `starting_date` renders at mobile and desktop widths (screenshot)
 - Touches: src/components (a new `DateField` on the native date input, a new `Field` used by `DateField`), src/app (a `DateQuestion` adapter, its map entry, date error messages), src/shared (`DateQuestion`, a `date` case in `findAnswerError`), src/server (`normalizeQuestion` for `date`, resolving `"today"`)
 - Size: ~300 lines (Field ~70, DateField with CSS and tests ~110, adapter and copy ~35, shared type and check with tests ~40, normalize with tests ~50). Moving `TextField`, `NumberField` and `Select` onto `Field` is left to Phase 4's a11y pass, to keep this under the limit
-- After: T-08
+- After: T-08a
 - Branch: none yet
 
 ### T-12 Attach a file, and it's sent in the payload
@@ -239,5 +252,5 @@ Settled while planning, to record in `decisions.md` by the ticket that needs it:
   - An e2e run answers and submits job-long and job-bad, and each stored payload matches the README contract: every answer shape, `values` for multi-choice, optional empty answers left out, and `screening` (e2e)
 - Touches: src/server (normalize.ts repairs), e2e (job-long and job-bad specs, clearing their submissions first like job-short's)
 - Size: ~250 lines
-- After: T-08, T-09, T-10, T-11, T-12, T-13
+- After: T-08a, T-08b, T-09, T-10, T-11, T-12, T-13
 - Branch: none yet

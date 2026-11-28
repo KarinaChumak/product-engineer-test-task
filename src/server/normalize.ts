@@ -86,6 +86,8 @@ function normalizeQuestion(raw: Raw, warn: Warn): ClientQuestion | undefined {
       };
     case 'text':
       return { ...base, type: 'text', multiline: raw.multiline === true };
+    case 'boolean':
+      return { ...base, type: 'boolean' };
     default:
       warn(`Dropped question "${id}": type ${JSON.stringify(raw.type)} is not supported`);
       return undefined;
@@ -106,9 +108,13 @@ function parseRules(raw: Raw, client: ClientQuestion, warn: Warn): ScreeningRule
       warn(`Ignored ${key} on "${client.id}": it isn't a number`);
     else rules[name] = threshold;
   }
-  // Boolean questions, the only type it applies to, aren't supported yet (Phase 2).
+  // Not kept as a rule yet, even on a boolean question: T-08b screens by it.
   if ('must_be_true' in raw)
-    warn(`Ignored must_be_true on "${client.id}": it only applies to boolean questions`);
+    warn(
+      client.type === 'boolean'
+        ? `Ignored must_be_true on "${client.id}": screening by it is not applied yet`
+        : `Ignored must_be_true on "${client.id}": it only applies to boolean questions`,
+    );
   return rules;
 }
 

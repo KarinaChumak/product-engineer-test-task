@@ -44,6 +44,8 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
       if (typeof value !== 'string') return 'wrong_type';
       // Counted in characters as the candidate sees them, so an emoji is one, not two UTF-16 units.
       return [...value].length > maxTextAnswerLength ? 'too_long' : undefined;
+    case 'boolean':
+      return typeof value === 'boolean' ? undefined : 'wrong_type';
   }
 }
 

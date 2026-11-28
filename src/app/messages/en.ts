@@ -5,6 +5,8 @@ export const en = {
   'job.noQuestions': 'This job has no questions for you to answer.',
   'question.placeholder': 'Choose an option',
   'question.fromProfile': 'From your profile',
+  'question.yes': 'Yes',
+  'question.no': 'No',
   'question.maxChoices': 'Pick up to {maxChoices}',
   'question.required': 'required',
   'job.error.title': 'We couldn’t load this job',
