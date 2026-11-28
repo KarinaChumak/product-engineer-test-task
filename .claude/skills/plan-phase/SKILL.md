@@ -26,6 +26,8 @@ Each ticket is one behavior a user can see, delivered end to end in the same PR:
 Each ticket is one PR. Estimates run low, often by half, and review adds more, so plan well under the 500-line limit.
 
 - Estimate changed lines per ticket, file by file, tests included. Lockfiles, generated files, snapshots and data files don't count.
+- Business rules (validation, pricing, permissions, eligibility) need a test per boundary and edge case, so their tests often run 2–3 times their code. Estimate those tests first, from the list of cases, and size the ticket around them.
+- More than 3 "done when" items, or rules and the UI that uses them in one ticket, usually means several behaviors. Split by behavior, not by layer: "book a slot and see the confirmation", then "a slot that's already taken is refused with a message", then "a booking over the customer's weekly limit waits for approval".
 - The first 2–3 tickets of a project: about 150 lines each. They set the patterns (data fetching, page structure, components, tests) that every later ticket copies, so they get the most review rounds. Keep them small enough that reworking a pattern is cheap.
 - Every other ticket: at most about 300 lines.
 - Bigger than that: split it into separate tickets, each still a complete behavior, with `After` linking them. Example: "the page lists the customer's bookings, or says there are none", then "a booking can be cancelled", then "cancelling asks for a reason". Never one ticket with several stacked PRs.

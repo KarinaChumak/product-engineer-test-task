@@ -14,7 +14,7 @@ For each "done when" of the ticket (or of this PR, if the ticket has several), n
 ## 2. Check and size
 
 1. Run `.claude/scripts/check` and fix what fails.
-2. Run `.claude/scripts/pr-size`. If it's over the limit, stop and propose how to split the work into smaller tickets that each land on `main` on their own. Only a human can add the `size-exception` label.
+2. Run `.claude/scripts/pr-size`. If it's over the limit, stop and propose how to split the work into smaller tickets that each land on `main` on their own. Never cut tests to get under it. Only a human can add the `size-exception` label.
 
 Commit what you have before the review, so the reviewer sees all of it.
 
