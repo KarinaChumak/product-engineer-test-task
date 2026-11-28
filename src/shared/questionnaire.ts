@@ -35,7 +35,12 @@ export interface TextQuestion extends QuestionBase {
   multiline: boolean;
 }
 
-export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion;
+/** A yes/no question, answered `true` or `false`. */
+export interface BooleanQuestion extends QuestionBase {
+  type: 'boolean';
+}
+
+export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion;
 
 export type QuestionType = ClientQuestion['type'];
 

@@ -14,6 +14,13 @@ if (typeof Element !== 'undefined') {
   Element.prototype.scrollIntoView ??= () => {};
 }
 
+// jsdom has no ResizeObserver, which Radix RadioGroup calls to size its hidden input inside a form.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 
 afterEach(() => {

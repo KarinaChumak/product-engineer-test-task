@@ -452,6 +452,25 @@ describe('POST /api/jobs/:id/prequalification', () => {
     expect(saved[0]?.payload.answers).toEqual([{ id: 'salary', value: 85000 }]);
   });
 
+  it('stores yes/no answers as JSON booleans', async () => {
+    const jobs = storeOf({
+      id: 'job-permit',
+      questions: [
+        { type: 'boolean', id: 'permit', question: 'EU permit?', required: true },
+        { type: 'boolean', id: 'relocate', question: 'Relocate?' },
+      ],
+    });
+    const { app, saved } = appStoringIn({ jobs });
+
+    const response = await submitAnswers(app, 'job-permit', { answers: { permit: false, relocate: true } });
+
+    expect(response.status).toBe(201);
+    expect(saved[0]?.payload.answers).toEqual([
+      { id: 'permit', value: false },
+      { id: 'relocate', value: true },
+    ]);
+  });
+
   it('stores a multi-choice answer as values', async () => {
     const jobs = storeOf({
       id: 'job-multi',

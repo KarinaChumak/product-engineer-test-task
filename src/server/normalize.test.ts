@@ -106,6 +106,21 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_at_least on "city"')]);
   });
 
+  it('keeps a yes/no question', () => {
+    const { job: parsed, warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'EU permit?', required: true }],
+    });
+
+    expect(parsed.questions[0]?.client).toEqual({
+      type: 'boolean',
+      id: 'permit',
+      question: 'EU permit?',
+      required: true,
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('ignores must_be_true on a question that is not boolean, with a warning', () => {
     const { job: parsed, warnings } = parse({
       ...job,

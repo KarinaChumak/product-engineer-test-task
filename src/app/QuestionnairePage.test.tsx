@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { jobListHandler } from '@/test/jobs';
@@ -701,6 +701,80 @@ describe('QuestionnairePage errors on leaving a field', () => {
     await user.click(select);
     await user.click(screen.getByRole('option', { name: '1 month' }));
     expect(select).not.toHaveAttribute('aria-invalid');
+  });
+});
+
+describe('QuestionnairePage yes/no questions', () => {
+  const yesNoQuestionnaire: JobQuestionnaire = {
+    ...noQuestions,
+    questions: [
+      {
+        type: 'boolean',
+        id: 'eu_work_permit',
+        question: 'Are you allowed to work in the EU?',
+        required: true,
+      },
+      { type: 'boolean', id: 'relocate', question: 'Are you willing to relocate?', required: false },
+    ],
+  };
+  const permit = { name: 'Are you allowed to work in the EU?' };
+  const relocate = { name: 'Are you willing to relocate?' };
+
+  const openYesNo = (opened: JobQuestionnaire = yesNoQuestionnaire) => {
+    const sent: unknown[] = [];
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(opened)),
+      http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
+        sent.push(await request.json());
+        return HttpResponse.json({ passed: true }, { status: 201 });
+      }),
+    );
+    renderAt('/jobs/job-short');
+    return sent;
+  };
+
+  // Picking by keyboard is RadioGroup's own test.
+  it('shows Yes and No with neither picked', async () => {
+    openYesNo();
+
+    const group = await screen.findByRole('radiogroup', permit);
+    for (const name of ['Yes', 'No']) expect(within(group).getByRole('radio', { name })).not.toBeChecked();
+  });
+
+  it('says Ja and Nein for a German job', async () => {
+    openYesNo({ ...yesNoQuestionnaire, language: 'de' });
+
+    const group = await screen.findByRole('radiogroup', permit);
+    expect(within(group).getByRole('radio', { name: 'Ja' })).toBeInTheDocument();
+    expect(within(group).getByRole('radio', { name: 'Nein' })).toBeInTheDocument();
+  });
+
+  it('sends the answers as JSON true and false', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(
+      within(await screen.findByRole('radiogroup', permit)).getByRole('radio', { name: 'No' }),
+    );
+    await user.click(within(screen.getByRole('radiogroup', relocate)).getByRole('radio', { name: 'Yes' }));
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { eu_work_permit: false, relocate: true } }]);
+  });
+
+  it('marks a required yes/no question left unanswered and moves focus to it, without sending', async () => {
+    const user = userEvent.setup();
+    const sent = openYesNo();
+
+    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+
+    const group = screen.getByRole('radiogroup', permit);
+    expect(group).toHaveAttribute('aria-invalid', 'true');
+    expect(group).toHaveAccessibleDescription('Answer this question to continue.');
+    expect(within(group).getByRole('radio', { name: 'Yes' })).toHaveFocus();
+    expect(screen.getByRole('radiogroup', relocate)).not.toHaveAttribute('aria-invalid');
+    expect(sent).toEqual([]);
   });
 });
 

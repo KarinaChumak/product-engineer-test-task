@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { BooleanQuestion } from '@/app/questions/BooleanQuestion';
 import { NumericQuestion } from '@/app/questions/NumericQuestion';
 import { SelectQuestion } from '@/app/questions/SelectQuestion';
 import { TextQuestion } from '@/app/questions/TextQuestion';
@@ -14,6 +15,7 @@ const questionComponents: QuestionComponents = {
   select: SelectQuestion,
   numeric: NumericQuestion,
   text: TextQuestion,
+  boolean: BooleanQuestion,
 };
 
 /** The component that renders this question, or undefined while its type isn't supported yet. */
