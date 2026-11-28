@@ -33,15 +33,20 @@ These scripts are the entry points in this repo. Use them instead of calling the
 # Verification
 
 - A change is done when `.claude/scripts/check` passes.
-- For UI changes, `/design-check` passes and `/verify-ui` shows the change rendering at mobile and desktop widths with no console errors.
+- For UI changes, check the screen once in the browser at mobile and desktop widths with no console errors. The full `/design-check` and `/verify-ui` run once per feature, in `/finish`, not per slice.
 - When you report done, include the command you ran and its output, or the screenshot path.
 - Bug fixes start with a failing test that reproduces the bug.
 
 # Planning
 
 - `claude-notes/product.md` says what the product is for; `claude-notes/plan.md` holds the phases and the current phase's tickets. `/kickoff` creates both; `/plan-phase` breaks down the next phase.
-- A ticket is one behavior the user can see, delivered as one PR with its UI, types, API, copy and tests, under 500 changed lines. A ticket that would be bigger is split into smaller tickets before any code is written, each landing on `main` before the next one starts. Never stack PRs on top of each other.
-- Each ticket runs in its own branch and worktree under `.claude/worktrees/`, set up by the `ticket` skill; the main checkout stays on `main`. When a ticket is done, the `finish` skill has a separate reviewer agent review it, then a `finisher` agent with a fresh context fixes what it finds and opens the PR. `address-review` fixes the comments reviewers leave on the PR.
+- This is a time-boxed test task, so the process stays light (see "The rest of the task is built in features and reviewed as stacked PRs" in the decision log).
+- A ticket is one behavior the user can see, with its UI, types, API, copy and tests, under 500 changed lines. It is one slice: one branch and one PR.
+- A feature is a few tickets built together in one batch (all of T-12, or T-13 and T-14). Build it slice by slice, each ticket's branch on top of the one before, in this one worktree. Don't stop between slices.
+- The expensive checks run once per feature, not per slice: `/finish` (the reviewer agent, the finisher, `/design-check` and `/verify-ui`) runs when the feature's last slice is built.
+- The PRs are stacked: each slice's PR is based on the branch below it, and the bottom one on `main`. Nothing waits on a merge: start the next feature on top of the stack while the user reviews.
+- A fix asked for in a PR is a new commit added on top of that PR's branch, so that branch's history and its review threads stay as they are. The branches above it are then rewritten on purpose, to sit on the fixed branch: from the top branch, `git rebase --update-refs <fixed-branch>`, then `git push --force-with-lease` each rewritten branch. Do this right after the fix, before any new work lands on those branches. The user merges from the bottom up, with merge commits, not squash.
+- Update `plan.md` only for a ticket's status and a one-line outcome. Add a decision log entry only for a choice another reader would ask about.
 
 # Conventions
 

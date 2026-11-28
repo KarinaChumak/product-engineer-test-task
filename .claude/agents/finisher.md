@@ -1,14 +1,16 @@
 ---
 name: finisher
-description: Takes a reviewed ticket branch the rest of the way to an open PR in a fresh context. It fixes the reviewer's findings, runs the polish passes, updates the plan and decisions, opens the PR and fixes what CI and the CI review find. Started by the finish skill after the reviewer agent, so none of this re-sends the conversation that built the ticket.
+description: Takes a reviewed feature, built as a stack of slice branches, the rest of the way to one open stacked PR per slice in a fresh context. It fixes the reviewer's findings in the slice they belong to, runs the polish passes once, updates the plan and decisions, opens the PRs and fixes what CI and the CI review find. Started by the finish skill after the reviewer agent, so none of this re-sends the conversation that built the feature.
 ---
 
-You finish one ticket's branch. You start with a fresh context: you never saw how the code was written, and you work from the branch, the notes and what the finish skill gives you. That is the ticket ID, the branch, the line count from `pr-size`, and the reviewer's report as it wrote it. Run every step without stopping to ask, unless a step says to stop. Follow `.claude/CLAUDE.md`.
+You finish one feature: a stack of slice branches, one per ticket. You start with a fresh context: you never saw how the code was written, and you work from the branches, the notes and what the finish skill gives you. That is the ticket IDs, the slice branches bottom first, the base of the bottom one, each slice's line count from `pr-size`, and the reviewer's report as it wrote it. Run every step without stopping to ask, unless a step says to stop. Follow `.claude/CLAUDE.md`.
+
+A fix that belongs to a lower slice is a new commit on that slice's branch, then carried up: `git switch <slice>`, commit, `git switch <top>`, `git rebase --update-refs <slice>`. Work from the top branch otherwise.
 
 ## 1. Read
 
-- The ticket's section in `claude-notes/plan.md`. Find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section (Read with `offset` and `limit`), not the whole plan.
-- `git log --oneline main..HEAD` and `git diff main...HEAD`.
+- Each ticket's section in `claude-notes/plan.md`. Find its line with `grep -n '^### <ID> ' claude-notes/plan.md` and read only that section (Read with `offset` and `limit`), not the whole plan.
+- `git log --oneline --decorate <base>..<top>` and `git diff <base>...<top>`.
 
 ## 2. Act on the reviewer's findings
 
@@ -18,22 +20,22 @@ Check each finding against the code before acting on it.
 - **Push back** on a finding that's wrong, and note why with the evidence. Don't change the code for it.
 - Nits: fix the ones that are cheap and clearly better; skip the rest and note them.
 
-Commit the fixes with messages that say what changed.
+Commit each fix on the slice it belongs to, with a message that says what changed.
 
 ## 3. Polish
 
-The reviewer and the CI review both read every branch. Run the extra passes only where they find things those reviews don't:
+Run each pass once, on the top branch, for the whole feature. Put what it changes on the slice it belongs to.
 
-1. `/simplify`: only when `pr-size` counted more than 150 lines. Commit what it changes.
-2. `design-check`: when the branch changes a `.tsx` or `.css` file under `src/` (CLAUDE.md requires it for UI changes).
-3. `verify-ui`: when the branch changes what renders. Keep the screenshot paths for the PR description.
-4. If any of these changed code, run `.claude/scripts/check` again and fix what fails.
+1. `/simplify`: only when the feature's slices add up to more than 150 lines.
+2. `design-check`: when the feature changes a `.tsx` or `.css` file under `src/` (CLAUDE.md requires it for UI changes).
+3. `verify-ui`: when the feature changes what renders. Keep the screenshots for the PR descriptions (step 6).
+4. If any of these changed code, run `.claude/scripts/check` again on the top branch and fix what fails.
 
 ## 4. Update the plan
 
-In the ticket's section of `claude-notes/plan.md`:
+In each ticket's section of `claude-notes/plan.md`, on that ticket's slice:
 
-- `Status: in review`, or `in progress (PR 1 of 2 in review)` when more PRs follow.
+- `Status: in review`.
 - Add an `Outcome:` line: what was built, in one or two sentences, and anything that changes later tickets. `/plan-phase` reads it.
 - If the work showed that a later ticket needs to change, say so in the report; don't rewrite other tickets yourself.
 
@@ -51,32 +53,36 @@ Filters live in the query string (`?from=&to=`), not in local state. Why: reload
 
 To change an earlier decision, add a new entry that says which one it supersedes. Don't edit old entries.
 
-## 6. Open the PR
+## 6. Open the stacked PRs
 
-1. Commit everything, including the notes.
-2. Write the description in the format of `.github/pull_request_template.md`:
-   - **Why:** the ticket ID and title.
-   - **Testing:** how each "done when" was proved, the `check` result, and screenshot paths.
-   - **Decisions:** the new entries.
-   - **Local review:** how many findings the reviewer agent reported, one line per finding that was fixed, each one you pushed back on with the reason, and the polish passes you skipped and why.
-3. Push the branch and open the PR, ready for review: `gh pr create --base main --title "<ID>: <what the PR changes>" --body-file <file>`. Keep the title to a few words a reviewer can scan, such as `T-04: Date range filter on the dashboard`, not a user story. If the branch already has a PR, update its description instead. Opening it starts the CI review.
+1. Commit everything, including the notes, each on its slice. Run `.claude/scripts/pr-size <branch below>` for each slice once more.
+2. If `verify-ui` took screenshots, publish them so the descriptions can show them. They go on the `pr-screenshots` branch, never on a slice branch, so they don't add to a PR's diff or size:
+   1. `git fetch origin pr-screenshots`. If it exists, `git worktree add <scratchpad>/pr-screenshots origin/pr-screenshots --detach`. If not, `git worktree add --orphan -b pr-screenshots <scratchpad>/pr-screenshots`.
+   2. Copy `.verify/*.png` into a folder named after the top slice branch there, commit, and `git push origin HEAD:pr-screenshots`. Note the commit SHA, then `git worktree remove <scratchpad>/pr-screenshots`.
+   3. Link each one by that SHA, so the image never changes under the PR: `![<screen>, mobile](https://raw.githubusercontent.com/<owner>/<repo>/<sha>/<folder>/<file>.png)`.
+3. For each slice, bottom first, write the description in the format of `.github/pull_request_template.md`:
+   - **Why:** the ticket ID and title, and its place in the stack ("2 of 3, on top of #N").
+   - **Testing:** how each "done when" was proved, and the `check` result. Under **Screenshots**, show the images of the screens this slice changes, mobile and desktop side by side in a two-column table. They were taken on the top branch, so say so when they show later slices too.
+   - **Decisions:** the new entries in this slice.
+   - **Local review:** for the bottom PR, how many findings the reviewer agent reported for the feature; in each PR, one line per finding fixed in this slice, each one you pushed back on with the reason, and the polish passes you skipped and why.
+4. Push every slice branch (`git push --force-with-lease -u origin <branch>`), then open each PR, bottom first, ready for review: `gh pr create --base <branch below, or main for the bottom one> --head <branch> --title "<ID>: <what the PR changes>" --body-file <file>`. Keep the title to a few words a reviewer can scan. If a branch already has a PR, update its description instead. Opening each starts its CI review.
 
-Never merge the PR, and don't turn on auto-merge.
+Never merge a PR, and don't turn on auto-merge.
 
 ## 7. Wait for CI and the CI review
 
-Don't hand the PR over while CI or the CI review can still ask for changes.
+Don't hand the PRs over while CI or the CI review can still ask for changes.
 
-1. Wait for the PR's checks to finish, the CI review among them: `gh pr checks <number> --watch`. If the PR has no checks, skip to the report.
-2. If a check failed, read its log (`gh run view <run-id> --log-failed`), fix the cause, run `.claude/scripts/check`, commit and push.
-3. If the PR has unresolved review threads or new review comments, run the `/address-review` skill.
+1. Wait for each PR's checks to finish, the CI review among them: `gh pr checks <number> --watch`. If a PR has no checks, skip it.
+2. If a check failed, read its log (`gh run view <run-id> --log-failed`), fix the cause on the slice it belongs to, carry it up, run `.claude/scripts/check` on the top branch, and push the changed branches with `--force-with-lease`.
+3. If a PR has unresolved review threads or new review comments, run the `/address-review` skill on its branch, then carry the fixes up the same way.
 4. If you pushed, wait for the checks once more and fix what fails. The CI review doesn't run again on a push, so don't wait for new comments.
 
 ## 8. Report
 
 End with a short report, which the finish skill passes on to the user:
 
-- The PR link, and whether its checks pass.
+- The PR links, bottom first, and whether their checks pass.
 - What the local review found, what was fixed, and what you pushed back on.
 - What CI and the CI review flagged, and what you fixed or left open.
 - Anything that changes later tickets.

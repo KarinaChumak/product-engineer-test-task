@@ -8,7 +8,7 @@ Tests and typechecks don't catch a blank screen, a broken layout or a console er
 
 1. From `git diff --name-only $(git merge-base HEAD main)` and untracked files, list the routes or screens the change affects. If unsure, use `/`.
 2. Make sure Chromium is installed: `pnpm exec playwright install chromium`.
-3. Start the dev server in the background with `.claude/scripts/dev`. It uses `PORT` (default 5173), so parallel worktrees don't collide. Wait until `curl -sf http://localhost:${PORT:-5173}` succeeds.
+3. Start the dev server in the background with `.claude/scripts/dev`. It uses `PORT` (default 5173), so it doesn't collide with another dev server. Wait until `curl -sf http://localhost:${PORT:-5173}` succeeds.
 4. For each screen, take both screenshots:
    - `pnpm exec playwright screenshot --viewport-size=390,844 --full-page http://localhost:${PORT:-5173}<route> .verify/<slug>-mobile.png`
    - `pnpm exec playwright screenshot --viewport-size=1280,800 --full-page http://localhost:${PORT:-5173}<route> .verify/<slug>-desktop.png`

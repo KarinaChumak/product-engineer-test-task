@@ -24,7 +24,7 @@ Each ticket is one behavior a user can see, delivered end to end in the same PR:
 
 ## 3. Size
 
-Each ticket is one PR. Estimates run low, often by half, and review adds more, so plan well under the 500-line limit.
+Each ticket is one slice: one branch and one PR, stacked on the ticket before it in its feature (see "The rest of the task is built in features and reviewed as stacked PRs" in `claude-notes/decisions.md`). Estimates run low, often by half, and review adds more, so plan well under the 500-line limit.
 
 - Estimate changed lines per ticket, file by file, tests included. Lockfiles, generated files, snapshots and data files don't count.
 - Business rules (validation, pricing, permissions, eligibility) need a test per boundary and edge case, so their tests often run 2–3 times their code. Estimate those tests first, from the list of cases, and size the ticket around them.
@@ -34,11 +34,11 @@ Each ticket is one PR. Estimates run low, often by half, and review adds more, s
 - Bigger than that: split it into separate tickets, each still a complete behavior, with `After` linking them. Example: "the page lists the customer's bookings, or says there are none", then "a booking can be cancelled", then "cancelling asks for a reason". Never one ticket with several stacked PRs.
 - Well under 50 lines: merge it into a neighbouring ticket unless it stands alone.
 
-## 4. Order and parallel lanes
+## 4. Order and features
 
-- Fill in `Touches` with the folders or modules each ticket changes, and `After` with the tickets it needs merged first.
-- Tickets that touch different areas and don't depend on each other can run in parallel, each in its own session and worktree. Mark them as lanes at the top of the phase, for example: `Lanes: T-04 ‖ T-05, then T-06`.
-- Tickets that touch the same area run one after another, even if they look independent.
+- Fill in `Touches` with the folders or modules each ticket changes, and `After` with the tickets it needs built first (built below it in the stack, or merged; not necessarily merged).
+- Group the tickets into features: two to four tickets in a row that make one behavior together, built in one batch and stacked in that order. Mark them at the top of the phase, for example: `Features: T-04 → T-05, then T-06 → T-07 → T-08`.
+- All tickets are built one after another in one worktree, so there are no parallel lanes.
 
 ## 5. Write the tickets
 

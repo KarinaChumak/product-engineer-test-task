@@ -9,7 +9,7 @@ Phases run in order. Each has a one-line goal and exit below. Only the phases th
 
 ## Phase 1: Walking skeleton
 
-Lanes: T-01, then T-02 ‖ T-03.
+Features: T-01, then T-02 → T-03.
 
 ### T-01 <Behavior the user can see>
 
