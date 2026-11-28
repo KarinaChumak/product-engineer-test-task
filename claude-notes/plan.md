@@ -106,7 +106,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 - Touches: src/server (`normalizeQuestion` for date bounds, the server's date in `AppDeps`), src/shared (`min`/`max` on `DateQuestion`, the range in the `date` case), src/components (`min`/`max` on `DateField`), src/app (the range message), claude-notes/decisions.md
 - Size: ~170 lines
 - After: T-11a
-- Branch: none yet
+- Branch: claude/task-11-b-1c423c
 
 ### T-12 Attach a file, and it's sent in the payload
 

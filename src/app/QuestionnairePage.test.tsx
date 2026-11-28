@@ -814,13 +814,15 @@ describe('QuestionnairePage yes/no questions', () => {
 
 describe('QuestionnairePage date question', () => {
   const startQuestion = 'When could you start?';
-  const openDate = () => {
+  const openDate = (range: { min?: string; max?: string } = {}) => {
     const sent: unknown[] = [];
     server.use(
       http.get('/api/jobs/:id/questionnaire', () =>
         HttpResponse.json({
           ...noQuestions,
-          questions: [{ type: 'date', id: 'starting_date', question: startQuestion, required: true }],
+          questions: [
+            { type: 'date', id: 'starting_date', question: startQuestion, required: true, ...range },
+          ],
         } satisfies JobQuestionnaire),
       ),
       http.post('/api/jobs/job-short/prequalification', async ({ request }) => {
@@ -856,6 +858,40 @@ describe('QuestionnairePage date question', () => {
     expect(startDate).toHaveAccessibleDescription('Answer this question to continue.');
     expect(startDate).toHaveFocus();
     expect(sent).toEqual([]);
+  });
+
+  it.each<[string, { min?: string; max?: string }, string]>([
+    [
+      'a date before the range',
+      { min: '2027-01-10', max: '2027-03-31' },
+      'Pick a date from January 10, 2027 to March 31, 2027.',
+    ],
+    ['a date before the earliest day', { min: '2027-01-10' }, 'Pick January 10, 2027 or a later date.'],
+    ['a date after the latest day', { max: '2027-01-10' }, 'Pick January 10, 2027 or an earlier date.'],
+  ])('names the range when the candidate picks %s', async (_, range, message) => {
+    const user = userEvent.setup();
+    const sent = openDate(range);
+    // Both before and after are outside; one of them is outside for every case.
+    const outside = range.min ? '2027-01-01' : '2027-02-01';
+
+    const startDate = await findStartDate();
+    await user.type(startDate, outside);
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    expect(startDate).toBeInvalid();
+    expect(startDate).toHaveAccessibleDescription(message);
+    expect(sent).toEqual([]);
+  });
+
+  it('sends a date on the first day of the range', async () => {
+    const user = userEvent.setup();
+    const sent = openDate({ min: '2027-01-10', max: '2027-03-31' });
+
+    await user.type(await findStartDate(), '2027-01-10');
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+
+    await screen.findByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' });
+    expect(sent).toEqual([{ answers: { starting_date: '2027-01-10' } }]);
   });
 });
 

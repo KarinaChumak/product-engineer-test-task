@@ -22,6 +22,8 @@ export interface AppDeps {
   loadProfile: () => Promise<Profile>;
   submissions: SubmissionStore;
   warn: Warn;
+  /** The server's current date as `YYYY-MM-DD`, read on each request. */
+  today: () => string;
   /** Reports an error that ended a request with a 500. */
   logError: (error: unknown) => void;
   /** Reports a stored submission, the payload an employer integration would receive. */
@@ -34,6 +36,7 @@ const defaultDeps = (): AppDeps => ({
   loadProfile: () => profileFromFile('profile.json'),
   submissions: submissionsFromFile('data/submissions.json'),
   warn: (message) => console.warn(`normalize: ${message}`),
+  today: () => new Date().toLocaleDateString('sv'),
   logError: (error) => console.error(error),
   logSubmission: (submission) =>
     console.info(`prequalification: stored ${JSON.stringify(submission, null, 2)}`),
@@ -41,7 +44,7 @@ const defaultDeps = (): AppDeps => ({
 
 /** The API. Each dependency defaults to the real one, so tests pass only the ones they fake. */
 export function createApp(overrides: Partial<AppDeps> = {}) {
-  const { jobs, loadProfile, submissions, warn, logError, logSubmission } = {
+  const { jobs, loadProfile, submissions, warn, today, logError, logSubmission } = {
     ...defaultDeps(),
     ...overrides,
   };
@@ -69,7 +72,7 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
       );
       return {};
     });
-    const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
+    const job = parseJob(config, today(), (message) => warn(`[${id}] ${message}`));
     // Without a candidate id nothing can have been stored under it, and the POST would refuse to store it.
     // Unlike the profile, a submissions file that can't be read is a 500: the answers couldn't be stored
     // either, so the page shows its retry error instead of a form that can't be sent.
@@ -90,7 +93,7 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
     }
 
     // 1. Check the answers against the questions the candidate saw. Screening never runs on invalid input.
-    const job = parseJob(config, (message) => warn(`[${id}] ${message}`));
+    const job = parseJob(config, today(), (message) => warn(`[${id}] ${message}`));
     const fields = findInvalidAnswers(
       job.questions.map(({ client }) => client),
       body,

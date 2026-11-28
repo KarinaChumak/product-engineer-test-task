@@ -45,6 +45,21 @@ describe('DateField', () => {
     expect(kept()).toHaveTextContent('empty');
   });
 
+  it('limits the picker to the dates from min to max', () => {
+    render(
+      <DateField
+        label={label}
+        value={undefined}
+        onValueChange={() => {}}
+        min="2026-06-15"
+        max="2026-12-31"
+      />,
+    );
+
+    expect(field()).toHaveAttribute('min', '2026-06-15');
+    expect(field()).toHaveAttribute('max', '2026-12-31');
+  });
+
   it('calls onBlur when focus leaves the field', async () => {
     const user = userEvent.setup();
     const left: string[] = [];

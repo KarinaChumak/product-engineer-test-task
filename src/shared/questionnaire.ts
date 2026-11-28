@@ -43,6 +43,10 @@ export interface BooleanQuestion extends QuestionBase {
 /** A calendar date, answered as a `YYYY-MM-DD` string. */
 export interface DateQuestion extends QuestionBase {
   type: 'date';
+  /** The earliest date allowed, as `YYYY-MM-DD`. Inclusive. */
+  min?: string;
+  /** The latest date allowed, as `YYYY-MM-DD`. Inclusive. */
+  max?: string;
 }
 
 export type ClientQuestion = SelectQuestion | NumericQuestion | TextQuestion | BooleanQuestion | DateQuestion;

@@ -7,6 +7,10 @@ export interface DateFieldProps {
   /** The date picked, as `YYYY-MM-DD`, or undefined while the field is empty. */
   value: string | undefined;
   onValueChange: (value: string | undefined) => void;
+  /** The earliest date the picker offers, as `YYYY-MM-DD`. Earlier dates are greyed out. */
+  min?: string;
+  /** The latest date the picker offers, as `YYYY-MM-DD`. Later dates are greyed out. */
+  max?: string;
   required?: boolean;
   /** Shown next to the label and read as the field's description, such as a tag. */
   annotation?: ReactNode;
@@ -24,6 +28,8 @@ export function DateField({
   label,
   value,
   onValueChange,
+  min,
+  max,
   required,
   annotation,
   error,
@@ -42,6 +48,8 @@ export function DateField({
           {...controlProps}
           className={styles.control}
           type="date"
+          min={min}
+          max={max}
           value={value ?? ''}
           onChange={setDateFromInput}
           onBlur={onBlur}

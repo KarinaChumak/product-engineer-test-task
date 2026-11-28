@@ -16,6 +16,8 @@ export function DateQuestion({
       label={question.question}
       value={typeof value === 'string' ? value : undefined}
       onValueChange={onChange}
+      min={question.min}
+      max={question.max}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}

@@ -48,12 +48,15 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
       return typeof value === 'boolean' ? undefined : 'wrong_type';
     case 'date':
       if (typeof value !== 'string') return 'wrong_type';
-      return isCalendarDate(value) ? undefined : 'not_a_date';
+      if (!isCalendarDate(value)) return 'not_a_date';
+      // Both are `YYYY-MM-DD`, so comparing them as text compares the dates.
+      if (question.min !== undefined && value < question.min) return 'out_of_range';
+      return question.max !== undefined && value > question.max ? 'out_of_range' : undefined;
   }
 }
 
 /** Whether the text is a `YYYY-MM-DD` date that exists in the calendar, so `2026-02-30` isn't one. */
-function isCalendarDate(text: string): boolean {
+export function isCalendarDate(text: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
   if (!match) return false;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];

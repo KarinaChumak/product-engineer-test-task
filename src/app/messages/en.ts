@@ -35,6 +35,8 @@ export const en = {
   'answerError.not_an_integer': 'Enter a whole number, without decimals.',
   'answerError.out_of_range': 'Enter a number from {min} to {max}.',
   'answerError.too_long': 'Shorten your answer to {maxLength} characters or fewer.',
+  'answerError.date_out_of_range':
+    '{bounds, select, both {Pick a date from {min} to {max}.} min {Pick {min} or a later date.} other {Pick {max} or an earlier date.}}',
   'answerError.not_a_date': 'Enter a date that exists, or pick one from the calendar.',
   'prequalification.completed.title': 'You’ve already answered the questions for this job',
   'prequalification.completed.body':
