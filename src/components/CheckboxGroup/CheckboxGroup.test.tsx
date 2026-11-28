@@ -32,6 +32,14 @@ describe('CheckboxGroup', () => {
     expect(screen.getByRole('checkbox', { name: 'Design systems' })).not.toBeChecked();
   });
 
+  it('tells assistive technology a required group is required, in the legend', () => {
+    render(<ControlledCheckboxGroup required requiredLabel="required" />);
+
+    expect(
+      screen.getByRole('group', { name: 'Which areas would you like to focus on? required' }),
+    ).toBeInTheDocument();
+  });
+
   it('checks and unchecks options by mouse, in the order of the options', async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

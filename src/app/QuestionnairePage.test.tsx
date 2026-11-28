@@ -766,23 +766,24 @@ describe('QuestionnairePage multi-choice question', () => {
     const user = userEvent.setup();
     openMultiChoice(multiChoiceQuestionnaire({ required: true }));
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Design systems' }));
+    // The group's name says it's required, as a select's required state does.
+    const group = await screen.findByRole('group', { name: `${focusAreas.name} required` });
     await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
-    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription('Pick up to 2');
+    await user.click(screen.getByRole('checkbox', { name: 'Design systems' }));
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
     await user.tab();
     await user.tab();
-    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription(
-      'Pick up to 2 Answer this question to continue.',
-    );
+    expect(group).toHaveAccessibleDescription('Pick up to 2 Answer this question to continue.');
 
     await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
-    expect(screen.getByRole('group', focusAreas)).toHaveAccessibleDescription('Pick up to 2');
+    expect(group).toHaveAccessibleDescription('Pick up to 2');
   });
 
-  it('says how many can be picked in German for a German job', async () => {
-    openMultiChoice({ ...multiChoiceQuestionnaire(), language: 'de' });
+  it('says how many can be picked, and that a group is required, in German for a German job', async () => {
+    openMultiChoice({ ...multiChoiceQuestionnaire({ required: true }), language: 'de' });
 
-    expect(await screen.findByRole('group', focusAreas)).toHaveAccessibleDescription('Wähle bis zu 2 aus');
+    const group = await screen.findByRole('group', { name: `${focusAreas.name} Pflichtfeld` });
+    expect(group).toHaveAccessibleDescription('Wähle bis zu 2 aus');
   });
 });
 

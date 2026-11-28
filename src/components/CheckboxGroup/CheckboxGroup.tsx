@@ -21,6 +21,8 @@ export interface CheckboxGroupProps {
   /** A short line under the legend, read as the group's description, such as how many can be checked. */
   hint?: ReactNode;
   required?: boolean;
+  /** Read after the legend when `required`, in the UI language, since a group can't take `aria-required`. */
+  requiredLabel?: string;
   /** Shown next to the legend and read as the group's description, such as a tag. */
   annotation?: ReactNode;
   /** What's wrong with the value. Shown under the group, whose checkboxes are then marked invalid. */
@@ -38,6 +40,7 @@ export function CheckboxGroup({
   maxChecked,
   hint,
   required = false,
+  requiredLabel,
   annotation,
   error,
   onBlur,
@@ -71,9 +74,17 @@ export function CheckboxGroup({
         <span className={styles.label}>
           {label}
           {required && (
-            <span className={styles.required} aria-hidden="true">
-              {' *'}
-            </span>
+            <>
+              <span className={styles.required} aria-hidden="true">
+                {' *'}
+              </span>
+              {requiredLabel && (
+                <>
+                  {' '}
+                  <span className={styles.visuallyHidden}>{requiredLabel}</span>
+                </>
+              )}
+            </>
           )}
         </span>
         {annotation && <span id={annotationId}>{annotation}</span>}
@@ -85,12 +96,10 @@ export function CheckboxGroup({
       )}
       <div>
         {options.map((option) => {
-          const checkboxId = `${id}-${option.value}`;
           const isChecked = value.includes(option.value);
           return (
-            <label key={option.value} htmlFor={checkboxId} className={styles.option}>
+            <label key={option.value} className={styles.option}>
               <Checkbox.Root
-                id={checkboxId}
                 className={styles.checkbox}
                 checked={isChecked}
                 onCheckedChange={(next) => setOptionChecked(option.value, next === true)}

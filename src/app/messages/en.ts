@@ -6,6 +6,7 @@ export const en = {
   'question.placeholder': 'Choose an option',
   'question.fromProfile': 'From your profile',
   'question.maxChoices': 'Pick up to {maxChoices}',
+  'question.required': 'required',
   'job.error.title': 'We couldn’t load this job',
   'job.error.server': 'Our server ran into a problem. Please try again in a moment.',
   'job.error.network': 'We couldn’t reach the server. Check your internet connection.',

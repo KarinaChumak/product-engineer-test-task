@@ -46,6 +46,7 @@ function MultiChoiceQuestion({
   fromProfile,
   error,
 }: QuestionProps<SelectQuestionData>) {
+  const intl = useIntl();
   // A limit at or above the number of options limits nothing, so it isn't shown.
   const hasChoiceLimit = question.maxChoices < question.options.length;
   return (
@@ -62,6 +63,7 @@ function MultiChoiceQuestion({
         )
       }
       required={question.required}
+      requiredLabel={intl.formatMessage({ id: 'question.required' })}
       annotation={fromProfile && <FromProfileTag />}
       error={error}
       onBlur={onBlur}
