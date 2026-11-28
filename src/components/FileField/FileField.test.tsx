@@ -6,6 +6,7 @@ const label = 'Cover letter';
 
 function renderFileField(props: Partial<FileFieldProps> = {}) {
   const onFilePick = vi.fn();
+  const onFileRemove = vi.fn();
   render(
     <FileField
       label={label}
@@ -13,10 +14,12 @@ function renderFileField(props: Partial<FileFieldProps> = {}) {
       replaceLabel="Choose another file"
       fileName={undefined}
       onFilePick={onFilePick}
+      removeLabel="Remove file"
+      onFileRemove={onFileRemove}
       {...props}
     />,
   );
-  return onFilePick;
+  return { onFilePick, onFileRemove };
 }
 
 // The input is hidden from the tree, so a test reaches it through the document.
@@ -49,7 +52,7 @@ describe('FileField', () => {
 
   it('hands over the file the user picks', async () => {
     const user = userEvent.setup();
-    const onFilePick = renderFileField();
+    const { onFilePick } = renderFileField();
     const file = new File(['hello'], 'letter.pdf', { type: 'application/pdf' });
 
     await user.upload(getPicker(), file);
@@ -64,6 +67,35 @@ describe('FileField', () => {
     expect(screen.getByText('letter.pdf')).toBeVisible();
     expect(screen.getByText('1.2 MB')).toBeVisible();
     expect(screen.getByRole('button', { name: /Cover letter/ })).toHaveTextContent('Choose another file');
+  });
+
+  it('offers no remove button while no file is picked', () => {
+    renderFileField();
+
+    expect(screen.queryByRole('button', { name: 'Remove file' })).not.toBeInTheDocument();
+  });
+
+  it('removes the picked file with a click and moves focus to the choose button', async () => {
+    const user = userEvent.setup();
+    const { onFileRemove } = renderFileField({ fileName: 'letter.pdf' });
+
+    await user.click(screen.getByRole('button', { name: 'Remove file' }));
+
+    expect(onFileRemove).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /Cover letter/ })).toHaveFocus();
+  });
+
+  it.each([['{Enter}'], [' ']])('removes the picked file from the keyboard with %j', async (key) => {
+    const user = userEvent.setup();
+    const { onFileRemove } = renderFileField({ fileName: 'letter.pdf' });
+
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Remove file' })).toHaveFocus();
+    await user.keyboard(key);
+
+    expect(onFileRemove).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /Cover letter/ })).toHaveFocus();
   });
 
   it('marks a required field and reads its error as the button’s description', () => {

@@ -1063,6 +1063,20 @@ describe('QuestionnairePage file question', () => {
     expect(button).toHaveTextContent('Choose another file');
   });
 
+  it('empties the field when the candidate removes the file, and focuses the choose button', async () => {
+    const user = userEvent.setup();
+    openFile();
+    const button = await screen.findByRole('button', { name: letterQuestion });
+    const letter = new File([new Uint8Array(1500)], 'letter.pdf', { type: 'application/pdf' });
+    await user.upload(document.querySelector<HTMLInputElement>('[data-file-picker]')!, letter);
+
+    await user.click(screen.getByRole('button', { name: 'Remove file' }));
+
+    expect(screen.queryByText('letter.pdf')).not.toBeInTheDocument();
+    expect(button).toHaveTextContent('Choose a file');
+    expect(button).toHaveFocus();
+  });
+
   it.each([
     [800, '800 byte'],
     [999_999, '1 MB'],

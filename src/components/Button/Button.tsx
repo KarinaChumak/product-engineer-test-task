@@ -1,10 +1,10 @@
 import { LoaderCircle } from 'lucide-react';
-import type { ButtonHTMLAttributes, MouseEvent } from 'react';
+import type { ComponentPropsWithRef, MouseEvent } from 'react';
 import './Button.css';
 
 export type ButtonVariant = 'primary' | 'secondary';
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ComponentPropsWithRef<'button'> {
   variant?: ButtonVariant;
   /**
    * Shows a spinner beside the unchanged label while an action runs. The button stays focusable but is

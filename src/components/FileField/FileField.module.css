@@ -46,6 +46,38 @@
   overflow-wrap: anywhere;
 }
 
+.remove {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  /* A full-size touch target. The negative margin lets it sit inside the block's padding. */
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--color-success);
+  color: var(--color-surface);
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.removeIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .size {
   font-size: var(--font-size-s);
 }

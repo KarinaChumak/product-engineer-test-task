@@ -37,6 +37,8 @@ export function FileQuestion({ question, fromProfile, error, onBlur }: QuestionP
       fileName={pickedFile?.name}
       fileSizeLabel={pickedFile && formatFileSize(intl, pickedFile.size)}
       onFilePick={setPickedFile}
+      removeLabel={intl.formatMessage({ id: 'question.file.remove' })}
+      onFileRemove={() => setPickedFile(undefined)}
       required={question.required}
       annotation={fromProfile && <FromProfileTag />}
       error={error}
