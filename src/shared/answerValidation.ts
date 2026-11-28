@@ -56,7 +56,7 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
 export function isCalendarDate(text: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
   if (!match) return false;
-  const [year, month, day] = match.slice(1).map(Number);
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
   // Date.UTC rolls an impossible day over into the next month, so only a real date comes back unchanged.
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
