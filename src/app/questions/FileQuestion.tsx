@@ -17,8 +17,10 @@ export function FileQuestion({ question, fromProfile, error, onBlur }: QuestionP
   const [pickedFile, setPickedFile] = useState<File>();
 
   function formatFileSize(bytes: number) {
+    // Compared after rounding to one decimal, so 999,999 bytes is "1 MB", not "1,000 kB".
+    const roundedKilobytes = Math.round((bytes / bytesPerKilobyte) * 10) / 10;
     const [value, unit] =
-      bytes >= bytesPerMegabyte
+      bytes >= bytesPerMegabyte || roundedKilobytes >= 1000
         ? [bytes / bytesPerMegabyte, 'megabyte']
         : bytes >= bytesPerKilobyte
           ? [bytes / bytesPerKilobyte, 'kilobyte']

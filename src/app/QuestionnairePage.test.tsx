@@ -1062,4 +1062,19 @@ describe('QuestionnairePage file question', () => {
     expect(screen.getByText('1.5 kB')).toBeVisible();
     expect(button).toHaveTextContent('Choose another file');
   });
+
+  it.each([
+    [800, '800 byte'],
+    [999_999, '1 MB'],
+    [2_500_000, '2.5 MB'],
+  ])('shows a file of %i bytes as %s', async (size, shown) => {
+    const user = userEvent.setup();
+    openFile();
+    await screen.findByRole('button', { name: letterQuestion });
+    const letter = new File([new Uint8Array(size)], 'letter.pdf', { type: 'application/pdf' });
+
+    await user.upload(document.querySelector<HTMLInputElement>('[data-file-picker]')!, letter);
+
+    expect(screen.getByText(shown)).toBeVisible();
+  });
 });
