@@ -5,8 +5,8 @@ Phases run in order. Each has a one-line goal and exit below. Only the phases th
 ## Phases
 
 1. **Walking skeleton**: job-short works end to end, from the API and normalization through prefill, submit, server screening and storage, to the end screen. Exit: a candidate can answer and submit job-short, the server stores a payload that matches the contract, and a second submission is refused.
-2. **Every question type and messy configs** (current): date, boolean, multi-select and file questions, every screening rule, and full normalization of `bad.json` with logged warnings. Exit: all three jobs render and produce payloads that match the contract, and each `bad.json` fix shows up as a warning.
-3. **Step flow and drafts**: steps from easiest to hardest with progress, a review screen with in-place edits, localStorage drafts, full keyboard operation and `track()` events. Exit: an e2e run through job-long, reloading mid-flow, ends with the same payload as an uninterrupted run.
+2. **Every question type and messy configs**: date, boolean, multi-select and file questions, every screening rule, and full normalization of `bad.json` with logged warnings. Exit: all three jobs render and produce payloads that match the contract, and each `bad.json` fix shows up as a warning.
+3. **Step flow and drafts** (current): steps from easiest to hardest with progress, a review screen with in-place edits, localStorage drafts, full keyboard operation and `track()` events. Exit: an e2e run through job-long, reloading mid-flow, ends with the same payload as an uninterrupted run.
 4. **Polish and hand-in**: Instaffo look (Geist, Lucide, the salary pill variant), motion with reduced-motion support, an a11y pass, README and presentation notes. Exit: `/design-check` passes on every screen and the hand-over checklist in `.claude/WORKFLOW.md` is done.
 
 Finished phases are in [plan-archive.md](plan-archive.md): Phase 1.
@@ -153,7 +153,7 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-12c A picked file is read and sent in the payload
 
-- Status: in review
+- Status: done (merged)
 - Outcome: `readFileAnswer` (in `src/app/questions`) reads the picked file into a `FileAnswer` with base64 `data`, and `FileQuestion` answers with it once read; a read that finishes after another pick or a remove is dropped, and a failed read empties the field. Required and optional file questions needed no page change. Written fresh: `T-12-full-wip` wasn't available.
 - Done when:
   - The file is read in the browser and sent as `{ content_type, data, file_name }`, with `data` base64, and stored that way in the payload (test)
@@ -187,4 +187,112 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 - Touches: src/server (normalize.ts repairs), e2e (job-long and job-bad specs, clearing their submissions first like job-short's)
 - Size: ~250 lines
 - After: T-08a, T-08b, T-09, T-10, T-11a, T-11b, T-12, T-13
+- Branch: none yet
+
+## Phase 3: Step flow and drafts
+
+Features: T-15 → T-16, then T-17 → T-18, then T-19 → T-20, then T-21 → T-22.
+
+Phase 2's T-13 → T-14 is still open and is built first, so T-15 sits on top of that stack. T-15 needs nothing from it: it can start on `main` instead if Phase 2's last feature waits.
+
+The steps follow "Phase 3: Questions are split into three steps" in `decisions.md`, and every form state follows "T-07: Form state stays in React, with no form library". `QuestionnairePage.tsx` is already ~235 lines, so T-15 moves the answer state into a hook in `src/app` that the steps, the review screen and the draft share.
+
+Settled while planning, to record in `decisions.md` by the ticket that needs it:
+
+- A step's own answers are checked when the candidate presses Next: its errors show and focus moves to the first, as on submit today. Back never checks. T-15 records it.
+- File answers are not kept in the draft: a 5 MB file is ~6.7 MB as base64, over localStorage's usual 5 MB quota, and a CV shouldn't sit in the browser's storage. After a reload a file question is empty and says to pick the file again. T-19 records it.
+- `track()` events carry the job id, the step and counts, never an answer value or the screening result (product principle). In development they go to the console, behind a sink that tests replace. T-21 records it.
+
+### T-15 Answer the questions in steps, from your profile to your own words
+
+- Status: todo
+- Done when:
+  - A job's questions are split into "From your profile", "Quick answers" and "In your own words" as the decision says: a prefilled question goes to the first step whatever its type, each step keeps the config's order, and an empty step is skipped (test, one per rule)
+  - Next shows the next step only when this step's answers are valid; otherwise its errors show and focus moves to the first. Back keeps every answer. The last step's button submits, as today (test)
+  - Each step shows its name and "Step 2 of 3", counting only the steps shown (test)
+- Touches: src/app (`splitIntoSteps` in `src/app/questions`, a `useQuestionnaireAnswers` hook taken out of `QuestionnairePage`, the step screen, step messages)
+- Size: ~280 lines (`splitIntoSteps` with tests ~80, the hook moved out ~40, the step screen ~60, messages ~15, page tests ~85)
+- After: T-14 (stack order only)
+- Branch: none yet
+
+### T-16 See your progress, and land on the new step
+
+- Status: todo
+- Done when:
+  - A progress bar above the questions fills by step, with an accessible name and value ("Step 2 of 3") (test)
+  - Moving to another step, by Next or Back, scrolls to the top and puts focus on the step's heading, so a screen reader announces it (test)
+  - job-long's three steps render at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `ProgressBar` on `@radix-ui/react-progress`), src/app (the step screen uses it, heading focus)
+- Size: ~170 lines (`ProgressBar` with CSS and tests ~110, the step screen and page tests ~60)
+- After: T-15
+- Branch: none yet
+
+### T-17 Check every answer on a review screen before sending
+
+- Status: todo
+- Done when:
+  - After the last step, Next opens a review screen that lists every question with its answer as the candidate would read it: a select's option label, "Yes"/"No", a date in the UI locale, a number with grouping, a file's name, several picks joined, and "No answer" for an empty optional question (test, one per type)
+  - The review screen counts as the last place in the progress bar, has Back to the last step, and holds the only submit button (test)
+  - job-long's review screen renders at mobile and desktop widths (screenshot)
+- Touches: src/app (a `formatAnswerForReview` per type, the review screen, messages), src/components (a `DescriptionList` for question and answer pairs)
+- Size: ~290 lines (`formatAnswerForReview` with tests ~90, `DescriptionList` with CSS and tests ~90, the review screen, messages and page tests ~110)
+- After: T-16
+- Branch: none yet
+
+### T-18 Edit an answer in place on the review screen
+
+- Status: todo
+- Done when:
+  - Each answer on the review screen has an Edit button that turns that row into the question's field, with its current answer; Done shows the new answer, and Done on an invalid answer shows the error and keeps the field open (test)
+  - Closing the field puts focus back on that row's Edit button (test)
+  - When the server refuses answers with a 422, the review screen opens each refused question's field with its error, and focus moves to the first (test)
+- Touches: src/app (the review screen's edit rows, messages)
+- Size: ~220 lines
+- After: T-17
+- Branch: none yet
+
+### T-19 A reload keeps your answers and your step
+
+- Status: todo
+- Done when:
+  - Every changed answer, and the step or review screen the candidate is on, is saved to localStorage per job, and a reload opens the same step with the same answers, a cleared prefill staying cleared (test)
+  - The draft is removed after a successful submit and when the job turns out to be already completed (test)
+  - File answers aren't saved: after a reload the file question is empty and says to pick the file again (test)
+- Touches: src/app (a `useQuestionnaireDraft` hook beside `useQuestionnaireAnswers`, its storage key, the hint message), claude-notes/decisions.md
+- Size: ~230 lines
+- After: T-18
+- Branch: none yet
+
+### T-20 A draft that no longer fits the job is repaired, not trusted
+
+- Status: todo
+- Done when:
+  - On restore, an answer to a question the job no longer has, or of the wrong shape for its question, is dropped, and the rest are kept; a saved step past the job's steps opens the first step (test, one per case)
+  - A draft that isn't valid JSON, or a localStorage that throws on read or write, leaves the form working without a draft, with no console error (test)
+- Touches: src/app (the draft's restore check, using `findAnswerError` from src/shared for shapes)
+- Size: ~170 lines (the check ~50, tests ~120)
+- After: T-19
+- Branch: none yet
+
+### T-21 Steps, the review and the submit are tracked, without answers
+
+- Status: todo
+- Done when:
+  - A typed `track(event)` reports `step_viewed`, `step_completed`, `review_viewed`, `answer_edited` (from review) and `prequalification_submitted`, each with the job id and step, and none with an answer value or the screening result (test, one per event)
+  - In development events are written to the console's debug log; tests swap the sink and assert the events (test)
+- Touches: src/app (`track.ts` with its event types and sink, calls from the steps, review and submit), claude-notes/decisions.md
+- Size: ~180 lines
+- After: T-20
+- Branch: none yet
+
+### T-22 Answer job-long by keyboard alone, reloading halfway, and send the same payload
+
+- Status: todo
+- Done when:
+  - An e2e run answers job-long by keyboard only (Tab, arrows, Space, Enter) through every step and the review screen, edits one answer there and submits (e2e)
+  - A second run reloads in the middle of the second step, finishes, and stores the same payload as the first; the draft is gone afterwards (e2e)
+  - Every step and the review screen have a visible focus ring on each control and no axe violations (e2e)
+- Touches: e2e (a job-long step-flow spec, clearing its submission first), src/app or src/components only where the runs find a keyboard gap
+- Size: ~200 lines
+- After: T-21, T-14
 - Branch: none yet
