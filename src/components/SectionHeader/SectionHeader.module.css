@@ -1,0 +1,17 @@
+.header {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-s);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-l);
+  font-weight: 500;
+  line-height: 1.3;
+}

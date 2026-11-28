@@ -12,4 +12,11 @@ describe('EmptyState', () => {
     expect(screen.getByText('This job has no questions for you to answer.')).toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
+
+  it('shows its title as a second-level heading above the message', () => {
+    render(<EmptyState title="Nothing to answer">Pick another job.</EmptyState>);
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Nothing to answer' })).toBeInTheDocument();
+    expect(screen.getByText('Pick another job.')).toBeInTheDocument();
+  });
 });

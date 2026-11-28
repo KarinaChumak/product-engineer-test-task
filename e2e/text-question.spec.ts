@@ -5,6 +5,8 @@ test.beforeEach(() => clearSubmission('job-short'));
 
 test('the multiline text question grows with its content', async ({ page }) => {
   await page.goto('/jobs/job-short');
+  // The notice period and salary come prefilled on the first step; the text question is on the next.
+  await page.getByRole('button', { name: 'Next' }).click();
   const project = page.getByRole('textbox', {
     name: 'Which frontend project are you most proud of? 🚀🔥 Tell us what YOU built! 💪',
   });

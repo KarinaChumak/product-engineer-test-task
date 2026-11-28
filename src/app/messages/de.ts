@@ -5,7 +5,15 @@ export const de: Record<MessageKey, string> = {
   'job.notFound.title': 'Job nicht gefunden',
   'job.notFound.body':
     'Diesen Job gibt es nicht oder er ist nicht mehr offen. Prüfe den Link, dem du gefolgt bist.',
-  'job.noQuestions': 'Für diesen Job musst du keine Fragen beantworten.',
+  'job.noQuestions.title': 'Für diesen Job gibt es nichts zu beantworten',
+  'job.noQuestions.body':
+    'Dieser Job stellt keine Fragen, es gibt also nichts zu senden. Wähle oben in der Liste einen anderen Job.',
+  'step.fromProfile': 'Aus deinem Profil',
+  'step.quickAnswers': 'Kurze Antworten',
+  'step.ownWords': 'In deinen eigenen Worten',
+  'step.position': 'Schritt {current} von {total}',
+  'step.next': 'Weiter',
+  'step.back': 'Zurück',
   'question.placeholder': 'Option auswählen',
   'question.fromProfile': 'Aus deinem Profil',
   'question.yes': 'Ja',

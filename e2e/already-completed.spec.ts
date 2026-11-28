@@ -12,6 +12,7 @@ test('a job answered once shows as already completed after a reload', async ({ p
   await page.goto('/jobs/job-short');
   const salary = page.getByRole('textbox', { name: 'What is your yearly salary expectation in EUR?' });
   await salary.fill('85000');
+  await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Submit answers' }).click();
   await expect(
     page.getByRole('heading', { name: 'Your answers have been sent to Kranich Health GmbH' }),

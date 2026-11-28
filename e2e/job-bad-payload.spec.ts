@@ -18,10 +18,11 @@ test('job-bad, repaired, stores the README contract payload for every answer sha
   await expect(page.getByRole('combobox', { name: 'Kündigungsfrist' })).toHaveText('3 Monate');
   await expect(page.getByText('Wie lange ist Ihre aktuelle Kündigungsfrist')).toHaveCount(0);
   await expect(page.getByText('TypeScript-Kenntnisse')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Weiter' }).click();
 
+  // Quick answers.
   await page.getByRole('combobox', { name: 'Anrede' }).click();
   await page.getByRole('option', { name: 'Frau' }).click();
-  await page.getByRole('textbox', { name: 'Aktueller Wohnsitz (Land)' }).fill('Deutschland');
   await page
     .getByRole('radiogroup', { name: /^Haben Sie keine Einwände/ })
     .getByRole('radio', { name: 'Ja' })
@@ -30,6 +31,18 @@ test('job-bad, repaired, stores the README contract payload for every answer sha
     .getByRole('radiogroup', { name: 'Führerschein Klasse B vorhanden?' })
     .getByRole('radio', { name: 'Nein' })
     .check();
+  await page.getByRole('textbox', { name: /^Wie viele Jahre Berufserfahrung haben Sie mit React/ }).fill('5');
+  const techStack = page.getByRole('group', { name: /^Which of the following technologies/ });
+  await techStack.getByRole('checkbox', { name: 'React' }).check();
+  await techStack.getByRole('checkbox', { name: 'Vue' }).check();
+  await page
+    .getByRole('radiogroup', { name: /^Wären Sie grundsätzlich bereit/ })
+    .getByRole('radio', { name: 'Ja' })
+    .check();
+  await page.getByRole('button', { name: 'Weiter' }).click();
+
+  // In your own words.
+  await page.getByRole('textbox', { name: 'Aktueller Wohnsitz (Land)' }).fill('Deutschland');
   const fileChooser = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'Anschreiben (bitte ausschließlich als PDF)' }).click();
   await (
@@ -40,14 +53,6 @@ test('job-bad, repaired, stores the README contract payload for every answer sha
   await page
     .getByRole('textbox', { name: 'Beschreiben Sie Ihre Stärken und Schwächen.' })
     .fill('Stark im Testen.\nUngeduldig in langen Meetings.');
-  await page.getByRole('textbox', { name: /^Wie viele Jahre Berufserfahrung haben Sie mit React/ }).fill('5');
-  const techStack = page.getByRole('group', { name: /^Which of the following technologies/ });
-  await techStack.getByRole('checkbox', { name: 'React' }).check();
-  await techStack.getByRole('checkbox', { name: 'Vue' }).check();
-  await page
-    .getByRole('radiogroup', { name: /^Wären Sie grundsätzlich bereit/ })
-    .getByRole('radio', { name: 'Ja' })
-    .check();
   await page.getByRole('button', { name: 'Antworten absenden' }).click();
 
   await expect(

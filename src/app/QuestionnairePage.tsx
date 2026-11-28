@@ -10,21 +10,23 @@ import type { MessageKey } from '@/app/messages/en';
 import { JobNotFound, NotFoundPage } from '@/app/NotFoundPage';
 import { getQuestionComponent } from '@/app/questionComponents';
 import { AnswerErrorMessage } from '@/app/questions/AnswerErrorMessage';
+import { type QuestionStepName, splitIntoSteps } from '@/app/questions/splitIntoSteps';
 import { useJobQuestionnaire } from '@/app/useJobQuestionnaire';
+import { useQuestionnaireAnswers } from '@/app/useQuestionnaireAnswers';
 import { useSubmitPrequalification } from '@/app/useSubmitPrequalification';
 import { Alert } from '@/components/Alert';
 import { Button } from '@/components/Button';
+import { ButtonGroup } from '@/components/ButtonGroup';
 import { Card } from '@/components/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { Form } from '@/components/Form';
 import { Notice } from '@/components/Notice';
 import { Page } from '@/components/Page';
 import { PageHeader } from '@/components/PageHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { Skeleton } from '@/components/Skeleton';
 import { Stack } from '@/components/Stack';
-import { findInvalidAnswers } from '@/shared/answerValidation';
-import type { AnswerError } from '@/shared/prequalification';
-import type { AnswerValue, JobQuestionnaire } from '@/shared/questionnaire';
+import type { JobQuestionnaire } from '@/shared/questionnaire';
 
 /** The page at `/jobs/:jobId`: the questionnaire of that job. */
 export function QuestionnairePage() {
@@ -62,38 +64,14 @@ function QuestionnaireContent({ query }: { query: UseQueryResult<JobQuestionnair
 }
 
 function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
-  // Only the answers the candidate changed; the rest fall back to the profile prefill. A cleared
-  // answer stays in here as undefined, so it doesn't fall back.
-  const [changed, setChanged] = useState<Record<string, AnswerValue | undefined>>({});
-  // The questions the candidate has left at least once. Each shows its error from then on.
-  const [touchedIds, setTouchedIds] = useState<ReadonlySet<string>>(new Set());
-  // After a submit every question shows its error, touched or not.
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  // The answers the server refused in its last 422. Changing an answer drops its error.
-  const [serverErrors, setServerErrors] = useState<Partial<Record<string, AnswerError>>>({});
+  // Only the questions this page can render are answered, split into steps.
+  const questions = questionnaire.questions.filter((question) => getQuestionComponent(question));
+  const steps = splitIntoSteps(questions);
+  const { answers, invalidAnswers, getAnswer, getShownError, setAnswer, showErrors, setServerErrors } =
+    useQuestionnaireAnswers(questions);
+  const [stepIndex, setStepIndex] = useState(0);
   const [invalidFocusRequest, setInvalidFocusRequest] = useState(0);
   const submission = useSubmitPrequalification(questionnaire.id);
-  // The questions this page can render, each with its current answer.
-  const renderedQuestions = questionnaire.questions.flatMap((question) => {
-    const Component = getQuestionComponent(question);
-    if (!Component) return [];
-    const value = Object.hasOwn(changed, question.id) ? changed[question.id] : question.prefill;
-    return [{ question, Component, value }];
-  });
-  const answers = Object.fromEntries(
-    renderedQuestions.flatMap(({ question, value }) => (value === undefined ? [] : [[question.id, value]])),
-  );
-  // The same check the server runs, on every render, so a shown error follows the answer as it changes.
-  const invalidAnswers = findInvalidAnswers(
-    renderedQuestions.map(({ question }) => question),
-    { answers },
-  );
-  const questionsWithErrors = renderedQuestions.map((renderedQuestion) => {
-    const { id } = renderedQuestion.question;
-    const isErrorShown = hasSubmitted || touchedIds.has(id);
-    const error = (isErrorShown ? invalidAnswers[id] : undefined) ?? serverErrors[id];
-    return { ...renderedQuestion, error };
-  });
 
   // The candidate learns whether their answers go on to the employer, never which one decided it.
   if (submission.isSuccess) {
@@ -131,14 +109,54 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
     );
   }
 
+  // A background reload can leave fewer steps than before.
+  const currentIndex = Math.max(0, Math.min(stepIndex, steps.length - 1));
+  const step = steps[currentIndex];
+
+  // No step means nothing to answer, so nothing to send either.
+  if (!step) {
+    return (
+      <>
+        <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
+        <EmptyState
+          icon={<ClipboardList aria-hidden="true" />}
+          title={<FormattedMessage id="job.noQuestions.title" />}
+        >
+          <FormattedMessage id="job.noQuestions.body" />
+        </EmptyState>
+      </>
+    );
+  }
+
+  const isLastStep = currentIndex === steps.length - 1;
+
+  // Opens the earliest step with one of these answers, and focuses the first refused field there.
+  const showFirstRefusedAnswer = (refusedIds: string[]) => {
+    const index = steps.findIndex((step) => step.questions.some(({ id }) => refusedIds.includes(id)));
+    if (index !== -1) setStepIndex(index);
+    setInvalidFocusRequest((request) => request + 1);
+  };
+
+  // Next checks this step's answers only, and moves on once they're all valid.
+  const goToNextStep = () => {
+    const stepIds = step.questions.map(({ id }) => id);
+    showErrors(stepIds);
+    if (stepIds.some((id) => invalidAnswers[id])) {
+      setInvalidFocusRequest((request) => request + 1);
+      return;
+    }
+    setStepIndex(currentIndex + 1);
+  };
+
   const submitAnswers = () => {
     if (submission.isPending) return;
-    setHasSubmitted(true);
+    showErrors(questions.map(({ id }) => id));
     // Most refusals show without a round trip.
-    if (Object.keys(invalidAnswers).length > 0) {
+    const invalidIds = Object.keys(invalidAnswers);
+    if (invalidIds.length > 0) {
       // Nothing is sent, so an earlier send's error no longer applies.
       submission.reset();
-      setInvalidFocusRequest((request) => request + 1);
+      showFirstRefusedAnswer(invalidIds);
       return;
     }
     setServerErrors({});
@@ -148,7 +166,7 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
         onError: (error) => {
           if (!(error instanceof InvalidAnswersError)) return;
           setServerErrors(error.fields);
-          setInvalidFocusRequest((request) => request + 1);
+          showFirstRefusedAnswer(Object.keys(error.fields));
         },
       },
     );
@@ -157,47 +175,67 @@ function QuestionList({ questionnaire }: { questionnaire: JobQuestionnaire }) {
   return (
     <>
       <PageHeader eyebrow={questionnaire.company} title={questionnaire.title} />
-      <Form label={questionnaire.title} onSubmit={submitAnswers} invalidFocusRequest={invalidFocusRequest}>
-        {questionsWithErrors.length === 0 ? (
-          <EmptyState icon={<ClipboardList aria-hidden="true" />}>
-            <FormattedMessage id="job.noQuestions" />
-          </EmptyState>
-        ) : (
-          <Stack gap={6}>
-            {questionsWithErrors.map(({ question, Component, value, error }) => (
+      <Form
+        label={questionnaire.title}
+        onSubmit={isLastStep ? submitAnswers : goToNextStep}
+        invalidFocusRequest={invalidFocusRequest}
+      >
+        <SectionHeader
+          eyebrow={
+            <FormattedMessage
+              id="step.position"
+              values={{ current: currentIndex + 1, total: steps.length }}
+            />
+          }
+          title={<FormattedMessage id={stepTitles[step.name]} />}
+        />
+        <Stack gap={6}>
+          {step.questions.map((question) => {
+            const Component = getQuestionComponent(question);
+            if (!Component) return null;
+            const value = getAnswer(question);
+            const error = getShownError(question);
+            return (
               <Component
                 key={question.id}
                 question={question}
                 value={value}
-                onChange={(next) => {
-                  setChanged((answers) => ({ ...answers, [question.id]: next }));
-                  setServerErrors((errors) =>
-                    errors[question.id] ? { ...errors, [question.id]: undefined } : errors,
-                  );
-                }}
-                onBlur={() =>
-                  setTouchedIds((ids) => (ids.has(question.id) ? ids : new Set(ids).add(question.id)))
-                }
+                onChange={(next) => setAnswer(question, next)}
+                onBlur={() => showErrors([question.id])}
                 fromProfile={question.prefill !== undefined && value === question.prefill}
                 error={error && <AnswerErrorMessage question={question} error={error} />}
               />
-            ))}
-          </Stack>
-        )}
+            );
+          })}
+        </Stack>
         <Stack gap={4}>
+          {/* On every step, since a 422 opens the step with the first refused answer. */}
           {submission.isError && (
             <Alert>
               <FormattedMessage id={getSubmissionErrorMessage(submission.error)} />
             </Alert>
           )}
-          <Button type="submit" isLoading={submission.isPending}>
-            <FormattedMessage id="prequalification.submit" />
-          </Button>
+          <ButtonGroup>
+            {currentIndex > 0 && (
+              <Button variant="secondary" onClick={() => setStepIndex(currentIndex - 1)}>
+                <FormattedMessage id="step.back" />
+              </Button>
+            )}
+            <Button type="submit" isLoading={isLastStep && submission.isPending}>
+              <FormattedMessage id={isLastStep ? 'prequalification.submit' : 'step.next'} />
+            </Button>
+          </ButtonGroup>
         </Stack>
       </Form>
     </>
   );
 }
+
+const stepTitles: Record<QuestionStepName, MessageKey> = {
+  fromProfile: 'step.fromProfile',
+  quickAnswers: 'step.quickAnswers',
+  ownWords: 'step.ownWords',
+};
 
 function getSubmissionErrorMessage(error: Error): MessageKey {
   if (error instanceof InvalidAnswersError) return 'prequalification.error.invalid';

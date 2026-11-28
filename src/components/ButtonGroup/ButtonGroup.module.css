@@ -1,0 +1,11 @@
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* A lone button still sits at the end, where the main action goes. */
+.group > :last-child {
+  margin-inline-start: auto;
+}

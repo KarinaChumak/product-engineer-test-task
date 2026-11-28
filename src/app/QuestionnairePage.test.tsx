@@ -80,6 +80,18 @@ const focusAreas = { name: 'Which areas would you like to focus on?' };
 // The page also has the job switcher's combobox, so the question's is found by its name.
 const noticePeriod = { name: 'What is your notice period?' };
 const salaryQuestion = { name: 'What is your salary expectation?' };
+const proudProject = { name: /proud of/ };
+
+/** Presses Next until the last step, whose button submits. Every step on the way must be valid. */
+async function goToLastStep(user: ReturnType<typeof userEvent.setup>, nextLabel = 'Next') {
+  await screen.findByRole('form');
+  // A questionnaire has at most three steps, so at most two Nexts.
+  for (let presses = 0; presses < 2; presses += 1) {
+    const next = screen.queryByRole('button', { name: nextLabel });
+    if (!next) return;
+    await user.click(next);
+  }
+}
 
 beforeEach(() => server.use(jobListHandler()));
 
@@ -92,7 +104,7 @@ describe('QuestionnairePage', () => {
   });
 
   it('shows the title and company of the job it asked for', async () => {
-    server.use(http.get('/api/jobs/job-short/questionnaire', () => HttpResponse.json(noQuestions)));
+    server.use(http.get('/api/jobs/job-short/questionnaire', () => HttpResponse.json(questionnaire)));
     renderAt('/jobs/job-short');
 
     expect(await screen.findByRole('heading', { name: 'Frontend Developer (React)' })).toBeInTheDocument();
@@ -186,8 +198,10 @@ describe('QuestionnairePage', () => {
   });
 
   it('shows the free-text question exactly as the recruiter wrote it, emoji included, in a textarea', async () => {
-    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
     renderAt('/jobs/job-short');
+    await goToLastStep(user);
 
     const project = await screen.findByRole('textbox', {
       name: 'Which frontend project are you most proud of? 🚀🔥 Tell us what YOU built! 💪',
@@ -252,11 +266,32 @@ describe('QuestionnairePage', () => {
     expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('');
   });
 
-  it('says so when the job has no questions to answer', async () => {
+  it('says there is nothing to answer or send when the job has no questions, and points to the other jobs', async () => {
     server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(noQuestions)));
     renderAt('/jobs/job-short');
 
-    expect(await screen.findByText('This job has no questions for you to answer.')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Nothing to answer for this job' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Frontend Developer (React)' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'This job asks no questions, so there’s nothing to send. Pick another job from the list at the top.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit answers' })).not.toBeInTheDocument();
+  });
+
+  it('says there is nothing to answer in German for a German job', async () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json({ ...noQuestions, language: 'de' })),
+    );
+    renderAt('/jobs/job-short');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Für diesen Job gibt es nichts zu beantworten' }),
+    ).toBeInTheDocument();
   });
 
   it('shows a job-not-found state for an unknown job', async () => {
@@ -300,7 +335,7 @@ describe('QuestionnairePage', () => {
           once: true,
         },
       ),
-      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(noQuestions)),
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)),
     );
     renderAt('/jobs/job-short');
 
@@ -321,7 +356,7 @@ describe('QuestionnairePage', () => {
       ),
       http.get(
         '/api/jobs/:id/questionnaire',
-        () => new Promise<Response>((resolve) => (respond = () => resolve(HttpResponse.json(noQuestions)))),
+        () => new Promise<Response>((resolve) => (respond = () => resolve(HttpResponse.json(questionnaire)))),
       ),
     );
     renderAt('/jobs/job-short');
@@ -389,6 +424,7 @@ describe('QuestionnairePage submit', () => {
 
     await user.click(await screen.findByRole('combobox', noticePeriod));
     await user.click(screen.getByRole('option', { name: '1 month' }));
+    await goToLastStep(user);
     await user.click(screen.getByRole('button', submitAnswers));
 
     expect(await screen.findByRole('heading', answersSent)).toBeInTheDocument();
@@ -403,7 +439,8 @@ describe('QuestionnairePage submit', () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(() => HttpResponse.json({ passed: false }, { status: 201 }));
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', submitAnswers));
 
     expect(
       await screen.findByRole('heading', { name: 'You don’t fit this job’s requirements' }),
@@ -441,7 +478,8 @@ describe('QuestionnairePage submit', () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(passed);
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', submitAnswers));
 
     expect(await screen.findByRole('status')).not.toHaveTextContent(/application|applied/i);
   });
@@ -456,7 +494,8 @@ describe('QuestionnairePage submit', () => {
     );
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('button', { name: 'Antworten absenden' }));
+    await goToLastStep(user, 'Weiter');
+    await user.click(screen.getByRole('button', { name: 'Antworten absenden' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Deine Antworten wurden an Kranich Health GmbH gesendet' }),
@@ -467,7 +506,8 @@ describe('QuestionnairePage submit', () => {
     const user = userEvent.setup();
     const sent = openWithPrequalificationResponse(() => delay('infinite').then(() => new HttpResponse(null)));
 
-    await user.dblClick(await screen.findByRole('button', submitAnswers));
+    await goToLastStep(user);
+    await user.dblClick(screen.getByRole('button', submitAnswers));
 
     const button = screen.getByRole('button', submitAnswers);
     await waitFor(() => expect(button).toHaveAttribute('aria-busy', 'true'));
@@ -482,7 +522,10 @@ describe('QuestionnairePage submit', () => {
     [
       'a 422',
       () =>
-        HttpResponse.json({ error: 'invalid_answers', fields: { salary: 'out_of_range' } }, { status: 422 }),
+        HttpResponse.json(
+          { error: 'invalid_answers', fields: { proud_project: 'too_long' } },
+          { status: 422 },
+        ),
       /Some of your answers can’t be accepted/,
     ],
     ['a network error', () => HttpResponse.error(), /couldn’t reach the server/],
@@ -494,6 +537,8 @@ describe('QuestionnairePage submit', () => {
 
       await user.click(await screen.findByRole('combobox', noticePeriod));
       await user.click(screen.getByRole('option', { name: '1 month' }));
+      await goToLastStep(user);
+      await user.type(screen.getByRole('textbox', proudProject), 'A design system');
       await user.click(screen.getByRole('button', submitAnswers));
 
       const alert = await screen.findByRole('alert');
@@ -501,16 +546,18 @@ describe('QuestionnairePage submit', () => {
       expect(alert.compareDocumentPosition(screen.getByRole('button', submitAnswers))).toBe(
         Node.DOCUMENT_POSITION_FOLLOWING,
       );
+      expect(screen.getByRole('textbox', proudProject)).toHaveValue('A design system');
+      await user.click(screen.getByRole('button', { name: 'Back' }));
       expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
       expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('95,000');
     },
   );
 
-  it('marks every empty required field with its error and moves focus to the first, without sending', async () => {
+  it('marks every empty required field of the step with its error on Next and moves focus to the first, staying on the step', async () => {
     const user = userEvent.setup();
-    const sent = openWithPrequalificationResponse(passed, questionnaire);
+    openWithPrequalificationResponse(passed, questionnaire);
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await user.click(await screen.findByRole('button', { name: 'Next' }));
 
     const select = screen.getByRole('combobox', noticePeriod);
     const salary = screen.getByRole('textbox', salaryQuestion);
@@ -519,23 +566,38 @@ describe('QuestionnairePage submit', () => {
       expect(field).toHaveAccessibleDescription('Answer this question to continue.');
     }
     expect(select).toHaveFocus();
-    expect(screen.getByRole('textbox', { name: /proud of/ })).not.toHaveAttribute('aria-invalid');
-    expect(sent).toEqual([]);
+    expect(screen.getByRole('heading', { name: 'Quick answers' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', proudProject)).not.toBeInTheDocument();
   });
 
-  it('says which range a number must be in, without sending, when it is outside the field’s limits', async () => {
+  it('says which range a number must be in on Next, staying on the step, when it is outside the field’s limits', async () => {
     const user = userEvent.setup();
-    const sent = openWithPrequalificationResponse(passed);
+    openWithPrequalificationResponse(passed);
 
     const salary = await screen.findByRole('textbox', salaryQuestion);
     await user.clear(salary);
     await user.type(salary, '500000');
-    await user.click(screen.getByRole('button', submitAnswers));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
 
     expect(salary).toHaveAttribute('aria-invalid', 'true');
     // The field's own limits, which the candidate sees anyway; nothing about what the employer wants.
     expect(salary).toHaveAccessibleDescription('Enter a number from 20,000 to 300,000.');
     expect(salary).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'From your profile' })).toBeInTheDocument();
+  });
+
+  it('refuses to submit an invalid answer on the last step, marking it and moving focus to it, without sending', async () => {
+    const user = userEvent.setup();
+    const sent = openWithPrequalificationResponse(passed);
+
+    await goToLastStep(user);
+    const project = screen.getByRole('textbox', proudProject);
+    await user.click(project);
+    await user.paste('x'.repeat(5001));
+    await user.click(screen.getByRole('button', submitAnswers));
+
+    expect(project).toHaveAccessibleDescription('Shorten your answer to 5,000 characters or fewer.');
+    expect(project).toHaveFocus();
     expect(sent).toEqual([]);
   });
 
@@ -549,13 +611,17 @@ describe('QuestionnairePage submit', () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(respond);
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', submitAnswers));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Some of your answers can’t be accepted/);
+    // No field is refused, so the last step stays open.
+    expect(screen.getByRole('textbox', proudProject)).not.toHaveAttribute('aria-invalid');
+    await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByRole('textbox', salaryQuestion)).not.toHaveAttribute('aria-invalid');
   });
 
-  it('shows the server’s field errors on their fields and moves focus to the first', async () => {
+  it('opens the earliest step with an answer the server refused, shows each refusal on its field and focuses the first', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(() =>
       HttpResponse.json(
@@ -568,22 +634,27 @@ describe('QuestionnairePage submit', () => {
       ),
     );
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', submitAnswers));
 
-    const salary = screen.getByRole('textbox', salaryQuestion);
-    await waitFor(() => expect(salary).toHaveAttribute('aria-invalid', 'true'));
+    const salary = await screen.findByRole('textbox', salaryQuestion);
+    expect(screen.getByRole('heading', { name: 'From your profile' })).toBeInTheDocument();
+    expect(salary).toHaveAttribute('aria-invalid', 'true');
     expect(salary).toHaveAccessibleDescription(/^From your profile Enter a number from 20,000 to 300,000\.$/);
-    expect(screen.getByRole('textbox', { name: /proud of/ })).toHaveAccessibleDescription(
+    await waitFor(() => expect(salary).toHaveFocus());
+
+    // The client's check accepts 95,000, so Next moves on, where the other refusal is still shown.
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('textbox', proudProject)).toHaveAccessibleDescription(
       'Shorten your answer to 5,000 characters or fewer.',
     );
-    expect(salary).toHaveFocus();
   });
 
   it('drops a field’s error once the candidate changes its answer', async () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(passed, questionnaire);
 
-    await user.click(await screen.findByRole('button', submitAnswers));
+    await user.click(await screen.findByRole('button', { name: 'Next' }));
     await user.type(screen.getByRole('textbox', salaryQuestion), '95000');
 
     const salary = screen.getByRole('textbox', salaryQuestion);
@@ -601,8 +672,9 @@ describe('QuestionnairePage submit', () => {
       ),
     );
 
-    await user.click(await screen.findByRole('button', submitAnswers));
-    const salary = screen.getByRole('textbox', salaryQuestion);
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', submitAnswers));
+    const salary = await screen.findByRole('textbox', salaryQuestion);
     await waitFor(() => expect(salary).toHaveFocus());
     // The client's check accepts 95,000, so only the server's error is on the field.
     await user.tab();
@@ -617,7 +689,7 @@ describe('QuestionnairePage submit', () => {
     const user = userEvent.setup();
     openWithPrequalificationResponse(passed, { ...questionnaire, language: 'de' });
 
-    await user.click(await screen.findByRole('button', { name: 'Antworten absenden' }));
+    await user.click(await screen.findByRole('button', { name: 'Weiter' }));
 
     expect(screen.getByRole('combobox', noticePeriod)).toHaveAccessibleDescription(
       'Beantworte diese Frage, um fortzufahren.',
@@ -625,8 +697,103 @@ describe('QuestionnairePage submit', () => {
   });
 });
 
+describe('QuestionnairePage steps', () => {
+  const nextButton = { name: 'Next' };
+  const backButton = { name: 'Back' };
+
+  it('shows the step’s name and its place among the steps shown, skipping a step with no questions', async () => {
+    const user = userEvent.setup();
+    // Prefilled notice period and salary, then the text question: no quick answers step.
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'From your profile' })).toBeInTheDocument();
+    expect(screen.getByText('Step 1 of 2')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', proudProject)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', nextButton));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'In your own words' })).toBeInTheDocument();
+    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', noticePeriod)).not.toBeInTheDocument();
+  });
+
+  it('names the steps in German for a German job', async () => {
+    server.use(
+      http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json({ ...questionnaire, language: 'de' })),
+    );
+    renderAt('/jobs/job-short');
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Kurze Antworten' })).toBeInTheDocument();
+    expect(screen.getByText('Schritt 1 von 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Weiter' })).toBeInTheDocument();
+  });
+
+  it('has no Back on the first step, and Next instead of the submit until the last', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await screen.findByRole('button', nextButton);
+    expect(screen.queryByRole('button', backButton)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Submit answers' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', nextButton));
+
+    expect(screen.getByRole('button', backButton)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit answers' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', nextButton)).not.toBeInTheDocument();
+  });
+
+  it('moves on when Enter is pressed in a field of a valid step', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(prefilledQuestionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.type(await screen.findByRole('textbox', salaryQuestion), '{Enter}');
+
+    expect(screen.getByRole('heading', { name: 'In your own words' })).toBeInTheDocument();
+  });
+
+  it('keeps every answer when going Back and Next again', async () => {
+    const user = userEvent.setup();
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(questionnaire)));
+    renderAt('/jobs/job-short');
+
+    await user.click(await screen.findByRole('combobox', noticePeriod));
+    await user.click(screen.getByRole('option', { name: '1 month' }));
+    await user.type(screen.getByRole('textbox', salaryQuestion), '95000');
+    await user.click(screen.getByRole('button', nextButton));
+    await user.type(screen.getByRole('textbox', proudProject), 'A design system');
+    await user.click(screen.getByRole('button', backButton));
+
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveTextContent('1 month');
+    expect(screen.getByRole('textbox', salaryQuestion)).toHaveValue('95,000');
+
+    await user.click(screen.getByRole('button', nextButton));
+    expect(screen.getByRole('textbox', proudProject)).toHaveValue('A design system');
+  });
+
+  it('goes Back without checking the step’s answers', async () => {
+    const user = userEvent.setup();
+    const requiredProject: JobQuestionnaire = {
+      ...prefilledQuestionnaire,
+      questions: prefilledQuestionnaire.questions.map((question) =>
+        question.id === 'proud_project' ? { ...question, required: true } : question,
+      ),
+    };
+    server.use(http.get('/api/jobs/:id/questionnaire', () => HttpResponse.json(requiredProject)));
+    renderAt('/jobs/job-short');
+
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', backButton));
+    await user.click(screen.getByRole('button', nextButton));
+
+    expect(screen.getByRole('textbox', proudProject)).not.toHaveAttribute('aria-invalid');
+  });
+});
+
 describe('QuestionnairePage errors on leaving a field', () => {
-  const proudProject = { name: /proud of/ };
   const required = 'Answer this question to continue.';
   const outOfRange = 'Enter a number from 20,000 to 300,000.';
 
@@ -650,7 +817,8 @@ describe('QuestionnairePage errors on leaving a field', () => {
 
     const salary = await screen.findByRole('textbox', salaryQuestion);
     await user.type(salary, '5');
-    await user.click(screen.getByRole('textbox', proudProject));
+    await user.tab({ shift: true });
+    expect(screen.getByRole('combobox', noticePeriod)).toHaveFocus();
 
     expect(salary).toHaveAttribute('aria-invalid', 'true');
     expect(salary).toHaveAccessibleDescription(outOfRange);
@@ -685,7 +853,7 @@ describe('QuestionnairePage errors on leaving a field', () => {
     expect(salary).not.toHaveAccessibleDescription();
   });
 
-  it('shows no error on questions the candidate hasn’t left until they submit, then shows every one and focuses the first', async () => {
+  it('shows no error on questions the candidate hasn’t left until they press Next, then shows every one and focuses the first', async () => {
     const user = userEvent.setup();
     openUnanswered();
 
@@ -695,7 +863,7 @@ describe('QuestionnairePage errors on leaving a field', () => {
     expect(select).not.toHaveAttribute('aria-invalid');
     expect(screen.getByRole('textbox', salaryQuestion)).toHaveAttribute('aria-invalid', 'true');
 
-    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
 
     expect(select).toHaveAccessibleDescription(required);
     expect(select).toHaveFocus();
@@ -1001,7 +1169,8 @@ describe('QuestionnairePage already completed', () => {
     );
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
 
     expect(await screen.findByRole('heading', completedHeading)).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -1025,7 +1194,8 @@ describe('QuestionnairePage already completed', () => {
     );
     renderAt('/jobs/job-short');
 
-    await user.click(await screen.findByRole('button', { name: 'Submit answers' }));
+    await goToLastStep(user);
+    await user.click(screen.getByRole('button', { name: 'Submit answers' }));
 
     const sent = { name: 'Your answers have been sent to Kranich Health GmbH' };
     expect(await screen.findByRole('heading', sent)).toBeInTheDocument();

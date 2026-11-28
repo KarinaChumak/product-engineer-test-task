@@ -14,6 +14,7 @@ test('job-long stores the README contract payload, with every answer shape and a
   await page.goto('/jobs/job-long');
   // The notice period, German level, salary and years come prefilled from the profile and are kept.
   await expect(page.getByRole('combobox', { name: 'How good is your German?' })).toHaveText('B1');
+  await page.getByRole('button', { name: 'Next' }).click();
   await page
     .getByRole('radiogroup', { name: 'Are you allowed to work in the EU?' })
     .getByRole('radio', { name: 'Yes' })
