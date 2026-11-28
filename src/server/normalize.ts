@@ -110,7 +110,11 @@ function parseRules(raw: Raw, client: ClientQuestion, warn: Warn): ScreeningRule
   }
   // Not kept as a rule yet, even on a boolean question: T-08b screens by it.
   if ('must_be_true' in raw)
-    warn(`Ignored must_be_true on "${client.id}": it only applies to boolean questions`);
+    warn(
+      client.type === 'boolean'
+        ? `Ignored must_be_true on "${client.id}": screening by it is not applied yet`
+        : `Ignored must_be_true on "${client.id}": it only applies to boolean questions`,
+    );
   return rules;
 }
 

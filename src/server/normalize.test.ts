@@ -131,6 +131,15 @@ describe('parseJob screening rules', () => {
     expect(warnings).toEqual([expect.stringContaining('must_be_true on "country"')]);
   });
 
+  it('warns that must_be_true on a boolean question is not applied yet, without calling it the wrong type', () => {
+    const { warnings } = parse({
+      ...job,
+      questions: [{ type: 'boolean', id: 'permit', question: 'Permit?', must_be_true: true }],
+    });
+
+    expect(warnings).toEqual(['Ignored must_be_true on "permit": screening by it is not applied yet']);
+  });
+
   it('ignores a rule whose threshold is not a number, with a warning', () => {
     const { job: parsed, warnings } = parse({ ...job, questions: [{ ...salary, must_be_below: '90000' }] });
 
