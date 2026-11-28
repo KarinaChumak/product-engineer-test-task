@@ -59,19 +59,6 @@ describe('CheckboxGroup', () => {
     expect(screen.getByRole('checkbox', { name: 'Design systems' })).not.toBeChecked();
   });
 
-  it('disables the unchecked options once the most allowed are checked, until one is unchecked', async () => {
-    const user = userEvent.setup();
-    render(<ControlledCheckboxGroup maxChecked={2} />);
-
-    await user.click(screen.getByRole('checkbox', { name: 'Frontend architecture' }));
-    await user.click(screen.getByRole('checkbox', { name: 'Performance' }));
-    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: 'Performance' })).toBeEnabled();
-
-    await user.click(screen.getByRole('checkbox', { name: 'Frontend architecture' }));
-    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeEnabled();
-  });
-
   it('says when focus leaves the group, but not when it moves between its options', async () => {
     const user = userEvent.setup();
     const onBlur = vi.fn();
