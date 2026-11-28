@@ -165,7 +165,7 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-13 A file of the wrong type or over 5 MB is refused
 
-- Status: in review
+- Status: done (merged)
 - Outcome: Came to ~304 lines, kept as one slice (most of it tests). `allowedFileTypes` and `maxFileBytes` (5,000,000, decimal like the field's sizes) are in `src/shared/prequalification.ts`; `findAnswerError` refuses `missing_file_name`, `file_type_not_allowed`, `not_base64` and `file_too_large` (by decoded size). `FileQuestion` checks a picked file before reading it: a refused one empties the field, an earlier file included, and shows its error at once. A file the browser gives no type takes the one its extension stands for (a `.docx`), and the picker's `accept` lists the allowed extensions and types. A file the browser fails to read also empties the field, with the `not_base64` message ("couldn't be read, choose it again"). A refusal on an optional question doesn't block submit: the field is empty by then, so the answer is left out, as with no file. The file field's button now gets the danger border in error.
 - Done when:
   - Picking a file that isn't PDF, DOCX, PNG or JPG, or is over 5 MB, shows an error on the field right away, before it is read or sent, saying which types and size are allowed (test)
@@ -178,7 +178,8 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 
 ### T-14 job-bad opens with every repair logged, and all three jobs submit contract payloads
 
-- Status: todo
+- Status: in review
+- Outcome: ~373 lines, most of it tests. `normalize.ts` caps `max_choices` at the option count (below 1 becomes 1), drops a select with no usable options, drops a numeric `min` above `max` back to 0–100,000,000, and cuts question text to 254 code points plus "…", each with a warning; a test lists job-bad's four warnings exactly. job-bad's `react_years: 3` gets a 422 `out_of_range`, and 5 passes screening (decision entry added). Two e2e specs submit job-long and job-bad, on desktop and mobile, and compare the stored payload whole; both are screened out by the profile's 95,000 salary, so they end on the "doesn't fit" screen.
 - Done when:
   - Parsing `jobs/bad.json` logs one warning per repair, and a test lists them all: the second `notice_period`, `must_be_true` on the text `country`, the unknown `rating` type, `tech_stack`'s `max_choices` capped at its 5 options (test)
   - The defensive repairs from the kickoff decision each have a test and a warning: a numeric or date `min` above `max` (the range is dropped), a select without options (the question is dropped), question text over 255 characters (cut to 255) (test)
@@ -187,7 +188,7 @@ Split from T-12b ("Pick a file and see it, or remove it") when its estimate came
 - Touches: src/server (normalize.ts repairs), e2e (job-long and job-bad specs, clearing their submissions first like job-short's)
 - Size: ~250 lines
 - After: T-08a, T-08b, T-09, T-10, T-11a, T-11b, T-12, T-13
-- Branch: none yet
+- Branch: T-14-repair-job-configs
 
 ## Phase 3: Step flow and drafts
 
