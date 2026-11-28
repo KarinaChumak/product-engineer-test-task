@@ -53,7 +53,7 @@ export function findAnswerError(question: ClientQuestion, value: AnswerValue): A
 }
 
 /** Whether the text is a `YYYY-MM-DD` date that exists in the calendar, so `2026-02-30` isn't one. */
-export function isCalendarDate(text: string): boolean {
+function isCalendarDate(text: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
   if (!match) return false;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
