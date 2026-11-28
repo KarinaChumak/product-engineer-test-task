@@ -13,7 +13,7 @@ Finished phases are in [plan-archive.md](plan-archive.md): Phase 1.
 
 ## Phase 2: Every question type and messy configs
 
-Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11a, then T-11b ‖ T-12, then T-13, then T-14.
+Lanes: T-08a ‖ T-09 ‖ T-10, then T-08b ‖ T-11a, then T-11b ‖ T-12a, then T-12b, then T-12c, then T-13, then T-14.
 
 T-11 was split into T-11a (the date field) and T-11b (its range). T-12 needs only T-11a, since both add a question type; T-11b touches the date question alone, so it runs beside T-12, and whichever merges second rebases over the message files.
 
@@ -109,19 +109,43 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
 - Branch: claude/task-11-b-1c423c
 - Outcome: A date question's `min` and `max` are resolved by `parseJob(raw, today, warn)`: `"today"` becomes the server's date from `AppDeps.today` on each request, a bad bound is dropped with a warning, and a `min` after `max` drops both. `findAnswerError` refuses a date outside the range, inclusive, as `out_of_range`; `DateField` takes `min` and `max`; the message `answerError.date_out_of_range` names the range in the UI locale. Later tickets that call `parseJob` pass a date.
 
-### T-12 Attach a file, and it's sent in the payload
+### T-12a The API accepts a file answer
+
+Split from T-12 ("Attach a file, and it's sent in the payload") when the whole came to ~600 lines; the browser half is T-12b and T-12c.
+
+- Status: in progress
+- Done when:
+  - A `file` question is kept by the server and sent to the client as `{ type: 'file' }`, so job-bad's `cover_letter` is no longer dropped (test)
+  - A file answer `{ content_type, data, file_name }` is accepted, and stored as that object in the payload; anything else is refused as `wrong_type` (test)
+  - The server accepts a body big enough for a 5 MB file encoded as base64, and refuses a bigger body with 413 (test)
+- Touches: src/shared (`FileAnswer` in `AnswerValue`, `FileQuestion`, `isFileAnswer`, a `file` case in `findAnswerError` for the shape only), src/server (`normalizeQuestion` for `file`, the request shape check, the body limit)
+- Size: ~130 lines
+- After: T-11a
+- Branch: T-12-file-field
+
+### T-12b Pick a file and see it, or remove it
 
 - Status: todo
 - Done when:
   - A file question shows a button that opens the file picker; the chosen file's name and size are shown, with a way to remove it, by mouse or keyboard (test)
+  - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
+- Touches: src/components (a new `FileField` on `Field`), src/app (a `FileQuestion` adapter, its map entry, messages)
+- Size: ~330 lines (`FileField` with CSS and tests ~300). Done when the adapter keeps the picked `File` only for display; T-12c reads it into the answer
+- After: T-12a
+- Branch: none yet
+
+### T-12c A picked file is read and sent in the payload
+
+- Status: todo
+- Done when:
   - The file is read in the browser and sent as `{ content_type, data, file_name }`, with `data` base64, and stored that way in the payload (test)
   - A required file question with no file shows the `required` error; an optional one without a file is left out of the payload (test)
-  - The server accepts a body big enough for a 5 MB file encoded as base64, and refuses a bigger body with 413 (test)
-  - job-bad's `cover_letter` renders at mobile and desktop widths (screenshot)
-- Touches: src/components (a new `FileField`), src/app (a `FileQuestion` adapter that reads the file, its map entry, messages), src/shared (`FileAnswer` in `AnswerValue`, `FileQuestion`, a `file` case in `findAnswerError` for the shape only), src/server (`normalizeQuestion` for `file`, the request shape check, the body limit)
-- Size: ~300 lines
-- After: T-11a
+- Touches: src/app (`readFileAnswer`, the `FileQuestion` adapter keeps a `FileAnswer`, page tests)
+- Size: ~170 lines
+- After: T-12b
 - Branch: none yet
+
+The full, unsplit work is on the local branch `T-12-full-wip` (607 lines, `check` passing), to cut T-12b and T-12c from.
 
 ### T-13 A file of the wrong type or over 5 MB is refused
 
@@ -132,7 +156,7 @@ Split from T-11 ("Pick a start date within the job's range") when it came to ~45
   - The file picker offers only the allowed types (test)
 - Touches: src/shared (the file case in `findAnswerError`, new `AnswerError` codes, the allowed types and size), src/components/FileField (an `accept`), src/app (the adapter's check on pick, messages)
 - Size: ~170 lines
-- After: T-12
+- After: T-12c
 - Branch: none yet
 
 ### T-14 job-bad opens with every repair logged, and all three jobs submit contract payloads

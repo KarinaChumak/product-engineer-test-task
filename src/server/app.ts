@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { jobsFromDirectory, type JobStore } from '@/server/jobs';
 import { parseJob, toJobQuestionnaire, toJobSummary, type Warn } from '@/server/normalize';
 import { profileFromFile, type Profile } from '@/server/prefill';
@@ -16,6 +17,12 @@ import type {
   PrequalificationResult,
 } from '@/shared/prequalification';
 import type { JobSummary } from '@/shared/questionnaire';
+
+/**
+ * The largest request body the API reads: 7 MiB. A 5 MB file is about 6.99 million base64 characters, so
+ * this leaves about 350 KB for the rest of the JSON. A bigger body is refused with a 413 before it is parsed.
+ */
+const maxRequestBodyBytes = 7 * 1024 * 1024;
 
 export interface AppDeps {
   jobs: JobStore;
@@ -82,7 +89,12 @@ export function createApp(overrides: Partial<AppDeps> = {}) {
   });
 
   // Prequalification, not an application: the answers reach the employer only if they pass screening.
-  app.post('/api/jobs/:id/prequalification', async (c) => {
+  const refuseBigBody = bodyLimit({
+    maxSize: maxRequestBodyBytes,
+    onError: (c) => c.json({ error: 'payload_too_large' }, 413),
+  });
+
+  app.post('/api/jobs/:id/prequalification', refuseBigBody, async (c) => {
     const id = c.req.param('id');
     const config = await jobs.find(id);
     if (config === undefined) return c.json({ error: 'not_found' }, 404);

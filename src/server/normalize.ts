@@ -114,6 +114,8 @@ function normalizeQuestion(raw: Raw, today: string, warn: Warn): ClientQuestion 
       return { ...base, type: 'boolean' };
     case 'date':
       return { ...base, type: 'date', ...parseDateBounds(raw, id, today, warn) };
+    case 'file':
+      return { ...base, type: 'file' };
     default:
       warn(`Dropped question "${id}": type ${JSON.stringify(raw.type)} is not supported`);
       return undefined;

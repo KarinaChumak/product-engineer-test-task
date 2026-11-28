@@ -139,6 +139,26 @@ describe('findAnswerError', () => {
   it('accepts any date after min when there is no max', () => {
     expect(findAnswerError({ ...date, min: '2026-06-15' }, '2099-01-01')).toBeUndefined();
   });
+
+  const file: ClientQuestion = { ...base, id: 'cover_letter', type: 'file' };
+
+  it('accepts a file answer with a content type, base64 data and a file name', () => {
+    const answer = { content_type: 'application/pdf', data: 'JVBERi0xLjcK', file_name: 'cover_letter.pdf' };
+
+    expect(findAnswerError(file, answer)).toBeUndefined();
+  });
+
+  it.each<[string, AnswerValue]>([
+    ['a string', 'cover_letter.pdf'],
+    ['a list', ['cover_letter.pdf']],
+    ['a file without its data', { content_type: 'application/pdf', file_name: 'a.pdf' } as AnswerValue],
+    [
+      'a file whose data is a number',
+      { content_type: 'a/b', data: 1, file_name: 'a' } as unknown as AnswerValue,
+    ],
+  ])('refuses a file answer that is %s', (_, value) => {
+    expect(findAnswerError(file, value)).toBe('wrong_type');
+  });
 });
 
 describe('findInvalidAnswers', () => {

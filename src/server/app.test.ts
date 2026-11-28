@@ -569,6 +569,63 @@ describe('POST /api/jobs/:id/prequalification', () => {
     expect(saved).toEqual([]);
   });
 
+  const coverLetterJob = storeOf({
+    id: 'job-file',
+    title: 'File',
+    company: 'Acme',
+    questions: [{ type: 'file', id: 'cover_letter', question: 'Cover letter?', required: true }],
+  });
+
+  /** A file answer whose base64 `data` is `characters` long. */
+  const fileAnswer = (characters: number) => ({
+    content_type: 'application/pdf',
+    data: 'A'.repeat(characters),
+    file_name: 'cover_letter.pdf',
+  });
+
+  it('stores a file answer as the file object, with its base64 data', async () => {
+    const { app, saved } = appStoringIn({ jobs: coverLetterJob });
+    const answer = fileAnswer(100);
+
+    const response = await submitAnswers(app, 'job-file', { answers: { cover_letter: answer } });
+
+    expect(response.status).toBe(201);
+    expect(saved[0]?.payload.answers).toEqual([{ id: 'cover_letter', value: answer }]);
+  });
+
+  it('refuses a file answer that is not a file object with wrong_type', async () => {
+    const { app, saved } = appStoringIn({ jobs: coverLetterJob });
+
+    const response = await submitAnswers(app, 'job-file', { answers: { cover_letter: 'cover_letter.pdf' } });
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ fields: { cover_letter: 'wrong_type' } });
+    expect(saved).toEqual([]);
+  });
+
+  it('accepts a body big enough for a 5 MB file encoded as base64', async () => {
+    const { app, saved } = appStoringIn({ jobs: coverLetterJob });
+    const base64Characters = Math.ceil((5 * 1024 * 1024) / 3) * 4;
+
+    const response = await submitAnswers(app, 'job-file', {
+      answers: { cover_letter: fileAnswer(base64Characters) },
+    });
+
+    expect(response.status).toBe(201);
+    expect(saved).toHaveLength(1);
+  });
+
+  it('refuses a body bigger than that with 413 and stores nothing', async () => {
+    const { app, saved } = appStoringIn({ jobs: coverLetterJob });
+
+    const response = await submitAnswers(app, 'job-file', {
+      answers: { cover_letter: fileAnswer(8 * 1024 * 1024) },
+    });
+
+    expect(response.status).toBe(413);
+    expect(saved).toEqual([]);
+  });
+
   it.each([
     ['has no id', async () => ({})],
     ['cannot be read', () => Promise.reject(new Error('ENOENT: profile.json'))],
