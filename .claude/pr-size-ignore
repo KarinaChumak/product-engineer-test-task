@@ -1,5 +1,7 @@
 # Files that don't count toward the PR size limit (.claude/scripts/pr-size).
 # One glob per line. A glob without a "/" matches the file name in any folder.
+
+# Generated: lockfiles, snapshots, build and test output, minified and source-map files.
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
@@ -7,4 +9,19 @@ yarn.lock
 *.snap
 *.svg
 *.min.js
+*.map
+*.gen.*
+*.generated.*
+dist/*
+coverage/*
+playwright-report/*
+test-results/*
+
+# Docs: Markdown anywhere (README, claude-notes, .claude instructions and skills).
+*.md
+*.mdx
 claude-notes/*
+
+# Translations: one file per language, named by its two-letter code (en.ts, de.ts). index.ts
+# in the same folder holds code, so it still counts.
+src/app/messages/[a-z][a-z].ts
