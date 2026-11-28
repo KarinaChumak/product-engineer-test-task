@@ -39,6 +39,7 @@ export const de: Record<MessageKey, string> = {
   'answerError.not_an_integer': 'Gib eine ganze Zahl ohne Nachkommastellen ein.',
   'answerError.out_of_range': 'Gib eine Zahl von {min} bis {max} ein.',
   'answerError.too_long': 'Kürze deine Antwort auf höchstens {maxLength} Zeichen.',
+  'answerError.not_a_date': 'Gib ein Datum ein, das es gibt, oder wähle eins im Kalender.',
   'prequalification.completed.title': 'Du hast die Fragen zu diesem Job schon beantwortet',
   'prequalification.completed.body':
     'Du hast die Fragen zu {title} bei {company} schon beantwortet. Die Fragen eines Jobs kannst du nur einmal beantworten, hier gibt es also nichts mehr zu tun.',
