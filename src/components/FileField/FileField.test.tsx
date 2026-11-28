@@ -60,6 +60,7 @@ describe('FileField', () => {
   it('shows the picked file’s name and size, and offers to choose another', () => {
     renderFileField({ fileName: 'letter.pdf', fileSizeLabel: '1.2 MB' });
 
+    expect(screen.getByRole('status')).toHaveTextContent('letter.pdf1.2 MB');
     expect(screen.getByText('letter.pdf')).toBeVisible();
     expect(screen.getByText('1.2 MB')).toBeVisible();
     expect(screen.getByRole('button', { name: /Cover letter/ })).toHaveTextContent('Choose another file');

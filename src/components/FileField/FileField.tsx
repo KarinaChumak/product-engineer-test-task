@@ -73,15 +73,18 @@ export function FileField({
           >
             {fileName === undefined ? chooseLabel : replaceLabel}
           </Button>
-          {fileName !== undefined && (
-            <p className={styles.file}>
-              <Check aria-hidden="true" className={styles.check} />
-              <span className={styles.details}>
-                <span className={styles.name}>{fileName}</span>
-                {fileSizeLabel && <span className={styles.size}>{fileSizeLabel}</span>}
-              </span>
-            </p>
-          )}
+          {/* Always rendered, so a screen reader announces the file once it appears in it. */}
+          <div role="status" className={styles.status}>
+            {fileName !== undefined && (
+              <p className={styles.file}>
+                <Check aria-hidden="true" className={styles.check} />
+                <span className={styles.details}>
+                  <span className={styles.name}>{fileName}</span>
+                  {fileSizeLabel && <span className={styles.size}>{fileSizeLabel}</span>}
+                </span>
+              </p>
+            )}
+          </div>
         </div>
       )}
     </Field>
