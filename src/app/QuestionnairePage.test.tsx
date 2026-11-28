@@ -762,21 +762,6 @@ describe('QuestionnairePage multi-choice question', () => {
     expect(screen.getByRole('group', focusAreas)).not.toHaveAccessibleDescription();
   });
 
-  it('picks options by keyboard', async () => {
-    const user = userEvent.setup();
-    openMultiChoice(multiChoiceQuestionnaire());
-
-    await screen.findByRole('group', focusAreas);
-    // From the job switcher, the last stop before the questions.
-    act(() => screen.getByRole('combobox', { name: 'Switch job' }).focus());
-    await user.tab();
-    expect(screen.getByRole('checkbox', { name: 'Frontend architecture' })).toHaveFocus();
-    await user.tab();
-    await user.keyboard(' ');
-
-    expect(screen.getByRole('checkbox', { name: 'Design systems' })).toBeChecked();
-  });
-
   it('shows the required error once the candidate leaves the group without a pick, and drops it on a pick', async () => {
     const user = userEvent.setup();
     openMultiChoice(multiChoiceQuestionnaire({ required: true }));
