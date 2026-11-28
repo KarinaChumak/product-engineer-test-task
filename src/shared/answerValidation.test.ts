@@ -104,7 +104,7 @@ describe('findAnswerError', () => {
     expect(findAnswerError(yesNo, value)).toBe('wrong_type');
   });
 
-  it.each(['2026-12-01', '2028-02-29', '1999-12-31'])('accepts the date %s', (value) => {
+  it.each(['2026-12-01', '2028-02-29', '1999-12-31', '0050-01-01'])('accepts the date %s', (value) => {
     expect(findAnswerError(date, value)).toBeUndefined();
   });
 
