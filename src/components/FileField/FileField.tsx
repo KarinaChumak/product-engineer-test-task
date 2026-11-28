@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { useRef, type ChangeEvent, type ReactNode } from 'react';
 import { Button } from '@/components/Button';
 import { Field } from '@/components/Field';
@@ -74,8 +75,11 @@ export function FileField({
           </Button>
           {fileName !== undefined && (
             <p className={styles.file}>
-              <span className={styles.name}>{fileName}</span>
-              {fileSizeLabel && <span className={styles.size}>{fileSizeLabel}</span>}
+              <Check aria-hidden="true" className={styles.check} />
+              <span className={styles.details}>
+                <span className={styles.name}>{fileName}</span>
+                {fileSizeLabel && <span className={styles.size}>{fileSizeLabel}</span>}
+              </span>
             </p>
           )}
         </div>
